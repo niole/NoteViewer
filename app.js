@@ -1,26 +1,12 @@
 var React = require('react');
 var ReactDOM = require('react-dom');
+var App = require('./view/App.js');
 
-var propTypes  = {
-  foo: React.PropTypes.oneOfType([
-       React.PropTypes.string,
-       React.PropTypes.shape({
-        bar: React.PropTypes.shape({
-          car: React.PropTypes.number
-        })
-      })
-    ])
-};
+//[{ className: string, notes: [{fileName: string, date: string, lectureNumber: string, className: string}]}]
 
-var rootElement = React.createElement('div', {}, "Contacts");
-
-var MyComponent = React.createClass({
-  displayName: "MyComponent",
-  render: function() {
-    return rootElement;
-  }
-});
-
-MyComponent.propTypes = propTypes;
-
-ReactDOM.render(React.createElement(MyComponent, { foo: { bar: "x" } }), document.getElementById('app'));
+ReactDOM.render(
+  React.createElement(App, {
+    classNotes
+  }),
+  document.getElementById('app')
+);

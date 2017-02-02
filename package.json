@@ -12,9 +12,8 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.14.1",
-    "jquery": "^3.1.1",
-    "pdf2json": "^1.1.7",
-    "pdfjs-dist": "^1.7.235",
+    "react": "^15.4.2",
+    "react-dom": "^15.4.2",
     "webpack": "^2.2.1"
   }
 }
