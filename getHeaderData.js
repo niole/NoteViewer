@@ -46,4 +46,3 @@ function getHeaderData(fileContent) {
 }
 
 module.exports = getHeaderData;
-

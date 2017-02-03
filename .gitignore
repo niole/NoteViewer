@@ -2,3 +2,4 @@ text/
 node_modules/
 npm-debug.log
 allPdfs.json
+bundle.js
