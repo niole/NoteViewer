@@ -1,5 +1,10 @@
 var React = require('react');
 
+
+var allUnderscores = /_/g;
+var rootDistDir = /^dist/;
+var txtEnding = /\.txt$/;
+
 var PDF = React.createClass({
   displayName: 'PDF',
 
@@ -17,15 +22,19 @@ var PDF = React.createClass({
     return React.createElement('div', { dangerouslySetInnerHTML: { __html: withHTMLLineBreaks } });
   },
 
+  getPDFFilePath: function() {
+    return this.props.fileName.replace(allUnderscores,"/").replace(rootDistDir, "").replace(txtEnding, "");
+  },
+
   getPDFIFrame: function() {
-    var pathToPDF = fileName.replace("_","/");
-    return false;
-  //  return React.createElement("object",
-  //                      { data: pathToPDF
-  //                        type: "application/pdf"},
-  //    React.createElement("embed",
-  //                      { src: pathToPDF
-  //                        type: "application/pdf"}));
+    var pathToPDF = this.getPDFFilePath();
+
+    return React.createElement("object",
+                        { data: pathToPDF,
+                          type: "application/pdf"},
+      React.createElement("embed",
+                        { src: pathToPDF,
+                          type: "application/pdf"}));
   },
 
   render: function() {

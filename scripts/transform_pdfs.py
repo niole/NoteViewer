@@ -4,7 +4,7 @@ transforms .pdfs into .txt files
 
 import os
 
-def transform_pdfs(dir_name="pdf"):
+def transform_pdfs(dir_name="dist/pdf"):
     """
     transforms all pdfs in directory
     is not very well planned out and will break if there's anything else in heree

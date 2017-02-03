@@ -46,12 +46,13 @@ var App = React.createClass({
   },
 
   getViewedPdfs: function() {
-      return this.state.viewing.map(function(pdfContent, index) {
+      return this.state.viewing.map(function(note, index) {
           return React.createElement(
             PDF,
             {
               key: "%-pdf-text".replace("%", index),
-              textContent: pdfContent.content
+              textContent: note.content,
+              fileName: note.fileName,
             }
           );
       });
