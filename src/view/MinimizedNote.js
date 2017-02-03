@@ -12,6 +12,7 @@ var MinimizedNote = React.createClass({
 
   propTypes: {
     fileName: React.PropTypes.string.isRequired,
+    fileLabel: React.PropTypes.string.isRequired,
     date: React.PropTypes.string.isRequired,
     lectureNumber: React.PropTypes.string.isRequired,
     className: React.PropTypes.string.isRequired,
@@ -66,7 +67,7 @@ var MinimizedNote = React.createClass({
           className: this.state.shouldExpandNote ? "note showing" : "note hiding",
           onClick: this.toggleNote,
         },
-        this.props.fileName
+        this.props.fileLabel
       )
     );
   }

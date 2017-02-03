@@ -7,12 +7,14 @@ var App = React.createClass({
   displayName: 'App',
 
   propTypes: {
+    PDFController: React.PropTypes.object,
     classNotes: React.PropTypes.arrayOf(
       React.PropTypes.shape({
         className: React.PropTypes.string.isRequired,
         notes: React.PropTypes.arrayOf(
           React.PropTypes.shape({
             content: React.PropTypes.string.isRequired,
+            fileLabel: React.PropTypes.string.isRequired,
             fileName: React.PropTypes.string.isRequired,
             date: React.PropTypes.string.isRequired,
             lectureNumber: React.PropTypes.string.isRequired,
