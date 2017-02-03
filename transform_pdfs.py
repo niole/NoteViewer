@@ -19,6 +19,6 @@ def transform_pdfs(dir_name="pdf"):
             os.system(cmd)
             print "successfully transformed %s%s" % (dir_name, filename)
         else:
-            return transform_pdfs("%s/%s"%(dir_name, filename))
+            transform_pdfs("%s/%s"%(dir_name, filename))
 
 transform_pdfs()

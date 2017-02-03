@@ -24,8 +24,9 @@ var App = React.createClass({
   render: function() {
     return (
       React.createElement('div', { className: "all-classes" },
-        this.props.classNotes.map(function(classNotes) {
+        this.props.classNotes.map(function(classNotes, index) {
           return React.createElement(ClassTile, {
+            key: "%-class-tile".replace("%", index),
             className: classNotes.className,
             notes: classNotes.notes,
           });

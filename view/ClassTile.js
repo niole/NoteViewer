@@ -23,12 +23,12 @@ var ClassTile = React.createClass({
   },
 
   showNotes: function() {
-    console.log("showNotes");
     return (
       React.createElement('ul', {},
-        this.props.notes.map(function(note) {
+        this.props.notes.map(function(note, index) {
           return React.createElement(MinimizedNote,
             {
+              key: "%-min-note".replace("%", index),
               fileName: note.fileName,
               date: note.date,
               lectureNumber: note.lectureNumber,
