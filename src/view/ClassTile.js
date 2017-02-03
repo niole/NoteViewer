@@ -14,6 +14,9 @@ var ClassTile = React.createClass({
         className: React.PropTypes.string.isRequired,
       }).isRequired
     ).isRequired,
+    addNoteToViewing: React.PropTypes.func.isRequired,
+    removeNoteFromViewing: React.PropTypes.func.isRequired,
+    removeAllViewing: React.PropTypes.func.isRequired,
   },
 
   getInitialState: function() {
@@ -34,7 +37,10 @@ var ClassTile = React.createClass({
               date: note.date,
               lectureNumber: note.lectureNumber,
               className: note.className,
+              content: note.content,
               shouldMinimize: !self.state.shouldShowNotes,
+              addNoteToViewing: self.props.addNoteToViewing,
+              removeNoteFromViewing: self.props.removeNoteFromViewing,
             }
           );
         })
@@ -44,6 +50,14 @@ var ClassTile = React.createClass({
 
   toggleNotes: function(event) {
     event.preventDefault();
+
+    //TODO be able to remove all of a className when tile is closed
+    //addNoteToViewing: React.PropTypes.func.isRequired,
+    //removeNoteFromViewing: React.PropTypes.func.isRequired,
+    if (this.state.shouldShowNotes) {
+      this.props.removeAllViewing(this.props.className);
+    }
+
     this.setState({ shouldShowNotes: !this.state.shouldShowNotes });
   },
 

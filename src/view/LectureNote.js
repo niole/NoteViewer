@@ -1,5 +1,7 @@
 var React = require('react');
 
+var SHOWING_PDF_TEXT = "showing pdf";
+
 var LectureNote = React.createClass({
   displayName: 'LectureNote',
 
@@ -9,7 +11,7 @@ var LectureNote = React.createClass({
 
   render: function() {
     return (
-      React.createElement('div', { className: "lecture-note" }, "showing pdf")
+      React.createElement('div', { className: "lecture-note" }, SHOWING_PDF_TEXT)
     );
   }
 });

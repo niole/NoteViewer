@@ -15,7 +15,8 @@ function getFormattedClassNotes() {
       fileName: nameAndContent.fileName,
       date: headerData.date,
       lectureNumber: headerData.lectureNumber,
-      className: headerData.className
+      className: headerData.className,
+      content: nameAndContent.content,
     };
   });
 

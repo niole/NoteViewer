@@ -11,7 +11,6 @@ def transform_pdfs(dir_name="pdf"):
     except directories and .pdf files
     """
     for filename in os.listdir(dir_name):
-        print filename
         if filename.endswith(".pdf"):
             outfile = "./text/%s%s.txt" % (dir_name.replace("/", "_"), filename)
             infile = "./%s/%s" % (dir_name, filename)
