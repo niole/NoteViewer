@@ -34,14 +34,16 @@ var MinimizedNote = React.createClass({
 
   render: function() {
     return (
-      React.createElement('li', {
-        onClick: this.toggleNote,
-      },
-      this.state.shouldExpandNote ?
-      React.createElement(LectureNote, {
-        fileName: this.props.fileName,
-      }) :
-      this.props.fileName
+      React.createElement(
+        'li',
+        {
+          onClick: this.toggleNote,
+        },
+        this.state.shouldExpandNote ?
+        React.createElement(LectureNote, {
+          fileName: this.props.fileName,
+        }) :
+        this.props.fileName
       )
     );
   }

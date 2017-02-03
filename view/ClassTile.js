@@ -4,12 +4,6 @@ var MinimizedNote = require('./MinimizedNote.js');
 var ClassTile = React.createClass({
   displayName: 'ClassTile',
 
-  getInitialState: function() {
-    return {
-      shouldShowNotes: false,
-    };
-  },
-
   propTypes: {
     className: React.PropTypes.string.isRequired,
     notes: React.PropTypes.arrayOf(
@@ -22,7 +16,14 @@ var ClassTile = React.createClass({
     ).isRequired,
   },
 
+  getInitialState: function() {
+    return {
+      shouldShowNotes: false,
+    };
+  },
+
   showNotes: function() {
+    var self = this;
     return (
       React.createElement('ul', {},
         this.props.notes.map(function(note, index) {
@@ -33,7 +34,7 @@ var ClassTile = React.createClass({
               date: note.date,
               lectureNumber: note.lectureNumber,
               className: note.className,
-              shouldMinimize: !this.state.shouldShowNotes,
+              shouldMinimize: !self.state.shouldShowNotes,
             }
           );
         })
@@ -41,11 +42,21 @@ var ClassTile = React.createClass({
     );
   },
 
+  toggleNotes: function() {
+    this.setState({ shouldShowNotes: !this.state.shouldShowNotes });
+  },
+
   render: function() {
     return (
       React.createElement('div',
         { className: "class-tile" },
-        React.createElement('div', { className: "class-name" }, this.props.className),
+        React.createElement(
+          'div',
+          {
+            className: "class-name",
+            onClick: this.toggleNotes,
+          },
+          this.props.className),
         this.state.shouldShowNotes && this.showNotes()
        )
     );
