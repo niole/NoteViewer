@@ -42,7 +42,7 @@ var MinimizedNote = React.createClass({
         fileName: this.props.fileName,
       }) :
       this.props.fileName
-      );
+      )
     );
   }
 });

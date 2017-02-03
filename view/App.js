@@ -29,7 +29,7 @@ var App = React.createClass({
             className: classNotes.className,
             notes: classNotes.notes,
           });
-        });
+        })
       )
     );
   }

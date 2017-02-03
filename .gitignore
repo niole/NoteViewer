@@ -1,3 +1,4 @@
 text/
 node_modules/
-npm_debug.log
+npm-debug.log
+allPdfs.json

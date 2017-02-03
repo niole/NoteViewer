@@ -46,7 +46,7 @@ var ClassTile = React.createClass({
       React.createElement('div',
         { className: "class-tile" },
         React.createElement('div', { className: "class-name" }, this.props.className),
-        { this.state.shouldShowNotes && this.showNotes() }
+        this.state.shouldShowNotes && this.showNotes()
        )
     );
   }

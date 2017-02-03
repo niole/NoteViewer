@@ -9,7 +9,7 @@ var LectureNote = React.createClass({
 
   render: function() {
     return (
-      React.createElement('div', { className: "lecture-note" }, /*get pdf*/)
+      React.createElement('div', { className: "lecture-note" })/*will show pdf*/
     );
   }
 });

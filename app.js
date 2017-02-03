@@ -2,13 +2,12 @@ var React = require('react');
 var ReactDOM = require('react-dom');
 var App = require('./view/App.js');
 var getHeaderData = require('./getHeaderData.js');
-var textGetter = require('./textGetter.js');
+var noteData = require('./allPdfs.json');
 
 
-//[{ className: string, notes: [{fileName: string, date: string, lectureNumber: string, className: string}]}]
+//allPdfs.json --> [{ className: string, notes: [{fileName: string, date: string, lectureNumber: string, className: string}]}]
 
 function getFormattedClassNotes() {
-  var noteData = textGetter();
   var allFormattedNoteData = noteData.map(function(nameAndContent) {
     var headerData = getHeaderData(nameAndContent.content);
 

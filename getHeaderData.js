@@ -1,5 +1,3 @@
-var textGetter = require('./textGetter.js');
-
 var NA = "n/a";
 var getDatePattern = /([0-9]+\/[0-9]+\/[0-9]+)/
 var getLectureNumberPattern = /Lecture[\s]+#([0-9]+)/

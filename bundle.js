@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 190);
+/******/ 	return __webpack_require__(__webpack_require__.s = 183);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -319,50 +319,6 @@ module.exports = invariant;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-
-/**
- * WARNING: DO NOT manually require this module.
- * This is a replacement for `invariant(...)` used by the error code system
- * and will _only_ be required by the corresponding babel pass.
- * It always throws.
- */
-
-function reactProdInvariant(code) {
-  var argCount = arguments.length - 1;
-
-  var message = 'Minified React error #' + code + '; visit ' + 'http://facebook.github.io/react/docs/error-decoder.html?invariant=' + code;
-
-  for (var argIdx = 0; argIdx < argCount; argIdx++) {
-    message += '&args[]=' + encodeURIComponent(arguments[argIdx + 1]);
-  }
-
-  message += ' for the full message or use the non-minified dev environment' + ' for full errors and additional helpful warnings.';
-
-  var error = new Error(message);
-  error.name = 'Invariant Violation';
-  error.framesToPop = 1; // we don't care about reactProdInvariant's own frame
-
-  throw error;
-}
-
-module.exports = reactProdInvariant;
-
-/***/ }),
-/* 3 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
 /* WEBPACK VAR INJECTION */(function(process) {/**
  * Copyright 2014-2015, Facebook, Inc.
  * All rights reserved.
@@ -375,7 +331,7 @@ module.exports = reactProdInvariant;
 
 
 
-var emptyFunction = __webpack_require__(13);
+var emptyFunction = __webpack_require__(9);
 
 /**
  * Similar to invariant but only logs a warning if the condition is not met.
@@ -432,251 +388,51 @@ module.exports = warning;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 4 */
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
- * Copyright 2013-present, Facebook, Inc.
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  *
+ * 
  */
 
-
-
-var _prodInvariant = __webpack_require__(2);
-
-var DOMProperty = __webpack_require__(12);
-var ReactDOMComponentFlags = __webpack_require__(65);
-
-var _require = __webpack_require__(30),
-    HostComponent = _require.HostComponent,
-    HostText = _require.HostText;
-
-var invariant = __webpack_require__(1);
-
-var ATTR_NAME = DOMProperty.ID_ATTRIBUTE_NAME;
-var Flags = ReactDOMComponentFlags;
-
-var randomKey = Math.random().toString(36).slice(2);
-
-var internalInstanceKey = '__reactInternalInstance$' + randomKey;
-
-var internalEventHandlersKey = '__reactEventHandlers$' + randomKey;
 
 /**
- * Check if a given node should be cached.
+ * WARNING: DO NOT manually require this module.
+ * This is a replacement for `invariant(...)` used by the error code system
+ * and will _only_ be required by the corresponding babel pass.
+ * It always throws.
  */
-function shouldPrecacheNode(node, nodeID) {
-  return node.nodeType === 1 && node.getAttribute(ATTR_NAME) === String(nodeID) || node.nodeType === 8 && node.nodeValue === ' react-text: ' + nodeID + ' ' || node.nodeType === 8 && node.nodeValue === ' react-empty: ' + nodeID + ' ';
+
+function reactProdInvariant(code) {
+  var argCount = arguments.length - 1;
+
+  var message = 'Minified React error #' + code + '; visit ' + 'http://facebook.github.io/react/docs/error-decoder.html?invariant=' + code;
+
+  for (var argIdx = 0; argIdx < argCount; argIdx++) {
+    message += '&args[]=' + encodeURIComponent(arguments[argIdx + 1]);
+  }
+
+  message += ' for the full message or use the non-minified dev environment' + ' for full errors and additional helpful warnings.';
+
+  var error = new Error(message);
+  error.name = 'Invariant Violation';
+  error.framesToPop = 1; // we don't care about reactProdInvariant's own frame
+
+  throw error;
 }
 
-/**
- * Drill down (through composites and empty components) until we get a host or
- * host text component.
- *
- * This is pretty polymorphic but unavoidable with the current structure we have
- * for `_renderedChildren`.
- */
-function getRenderedHostOrTextFromComponent(component) {
-  var rendered;
-  while (rendered = component._renderedComponent) {
-    component = rendered;
-  }
-  return component;
-}
-
-/**
- * Populate `_hostNode` on the rendered host/text component with the given
- * DOM node. The passed `inst` can be a composite.
- */
-function precacheNode(inst, node) {
-  var hostInst = getRenderedHostOrTextFromComponent(inst);
-  hostInst._hostNode = node;
-  node[internalInstanceKey] = hostInst;
-}
-
-function precacheFiberNode(hostInst, node) {
-  node[internalInstanceKey] = hostInst;
-}
-
-function uncacheNode(inst) {
-  var node = inst._hostNode;
-  if (node) {
-    delete node[internalInstanceKey];
-    inst._hostNode = null;
-  }
-}
-
-/**
- * Populate `_hostNode` on each child of `inst`, assuming that the children
- * match up with the DOM (element) children of `node`.
- *
- * We cache entire levels at once to avoid an n^2 problem where we access the
- * children of a node sequentially and have to walk from the start to our target
- * node every time.
- *
- * Since we update `_renderedChildren` and the actual DOM at (slightly)
- * different times, we could race here and see a newer `_renderedChildren` than
- * the DOM nodes we see. To avoid this, ReactMultiChild calls
- * `prepareToManageChildren` before we change `_renderedChildren`, at which
- * time the container's child nodes are always cached (until it unmounts).
- */
-function precacheChildNodes(inst, node) {
-  if (inst._flags & Flags.hasCachedChildNodes) {
-    return;
-  }
-  var children = inst._renderedChildren;
-  var childNode = node.firstChild;
-  outer: for (var name in children) {
-    if (!children.hasOwnProperty(name)) {
-      continue;
-    }
-    var childInst = children[name];
-    var childID = getRenderedHostOrTextFromComponent(childInst)._domID;
-    if (childID === 0) {
-      // We're currently unmounting this child in ReactMultiChild; skip it.
-      continue;
-    }
-    // We assume the child nodes are in the same order as the child instances.
-    for (; childNode !== null; childNode = childNode.nextSibling) {
-      if (shouldPrecacheNode(childNode, childID)) {
-        precacheNode(childInst, childNode);
-        continue outer;
-      }
-    }
-    // We reached the end of the DOM children without finding an ID match.
-     true ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Unable to find element with ID %s.', childID) : _prodInvariant('32', childID) : void 0;
-  }
-  inst._flags |= Flags.hasCachedChildNodes;
-}
-
-/**
- * Given a DOM node, return the closest ReactDOMComponent or
- * ReactDOMTextComponent instance ancestor.
- */
-function getClosestInstanceFromNode(node) {
-  if (node[internalInstanceKey]) {
-    return node[internalInstanceKey];
-  }
-
-  // Walk up the tree until we find an ancestor whose instance we have cached.
-  var parents = [];
-  while (!node[internalInstanceKey]) {
-    parents.push(node);
-    if (node.parentNode) {
-      node = node.parentNode;
-    } else {
-      // Top of the tree. This node must not be part of a React tree (or is
-      // unmounted, potentially).
-      return null;
-    }
-  }
-
-  var closest;
-  var inst = node[internalInstanceKey];
-  if (inst.tag === HostComponent || inst.tag === HostText) {
-    // In Fiber, this will always be the deepest root.
-    return inst;
-  }
-  for (; node && (inst = node[internalInstanceKey]); node = parents.pop()) {
-    closest = inst;
-    if (parents.length) {
-      precacheChildNodes(inst, node);
-    }
-  }
-
-  return closest;
-}
-
-/**
- * Given a DOM node, return the ReactDOMComponent or ReactDOMTextComponent
- * instance, or null if the node was not rendered by this React.
- */
-function getInstanceFromNode(node) {
-  var inst = node[internalInstanceKey];
-  if (inst) {
-    if (inst.tag === HostComponent || inst.tag === HostText) {
-      return inst;
-    } else if (inst._hostNode === node) {
-      return inst;
-    } else {
-      return null;
-    }
-  }
-  inst = getClosestInstanceFromNode(node);
-  if (inst != null && inst._hostNode === node) {
-    return inst;
-  } else {
-    return null;
-  }
-}
-
-/**
- * Given a ReactDOMComponent or ReactDOMTextComponent, return the corresponding
- * DOM node.
- */
-function getNodeFromInstance(inst) {
-  if (inst.tag === HostComponent || inst.tag === HostText) {
-    // In Fiber this, is just the state node right now. We assume it will be
-    // a host component or host text.
-    return inst.stateNode;
-  }
-
-  // Without this first invariant, passing a non-DOM-component triggers the next
-  // invariant for a missing parent, which is super confusing.
-  !(inst._hostNode !== undefined) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'getNodeFromInstance: Invalid argument.') : _prodInvariant('33') : void 0;
-
-  if (inst._hostNode) {
-    return inst._hostNode;
-  }
-
-  // Walk up the tree until we find an ancestor whose DOM node we have cached.
-  var parents = [];
-  while (!inst._hostNode) {
-    parents.push(inst);
-    !inst._hostParent ? process.env.NODE_ENV !== 'production' ? invariant(false, 'React DOM tree root should always have a node reference.') : _prodInvariant('34') : void 0;
-    inst = inst._hostParent;
-  }
-
-  // Now parents contains each ancestor that does *not* have a cached native
-  // node, and `inst` is the deepest ancestor that does.
-  for (; parents.length; inst = parents.pop()) {
-    precacheChildNodes(inst, inst._hostNode);
-  }
-
-  return inst._hostNode;
-}
-
-function getFiberCurrentPropsFromNode(node) {
-  return node[internalEventHandlersKey] || null;
-}
-
-function updateFiberProps(node, props) {
-  node[internalEventHandlersKey] = props;
-}
-
-var ReactDOMComponentTree = {
-  getClosestInstanceFromNode: getClosestInstanceFromNode,
-  getInstanceFromNode: getInstanceFromNode,
-  getNodeFromInstance: getNodeFromInstance,
-  precacheChildNodes: precacheChildNodes,
-  precacheNode: precacheNode,
-  uncacheNode: uncacheNode,
-  precacheFiberNode: precacheFiberNode,
-  getFiberCurrentPropsFromNode: getFiberCurrentPropsFromNode,
-  updateFiberProps: updateFiberProps
-};
-
-module.exports = ReactDOMComponentTree;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+module.exports = reactProdInvariant;
 
 /***/ }),
-/* 5 */
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -773,6 +529,207 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 
 
 /***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(process) {/**
+ * Copyright 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+
+
+var _prodInvariant = __webpack_require__(3);
+
+var DOMProperty = __webpack_require__(13);
+var ReactDOMComponentFlags = __webpack_require__(59);
+
+var invariant = __webpack_require__(1);
+
+var ATTR_NAME = DOMProperty.ID_ATTRIBUTE_NAME;
+var Flags = ReactDOMComponentFlags;
+
+var internalInstanceKey = '__reactInternalInstance$' + Math.random().toString(36).slice(2);
+
+/**
+ * Check if a given node should be cached.
+ */
+function shouldPrecacheNode(node, nodeID) {
+  return node.nodeType === 1 && node.getAttribute(ATTR_NAME) === String(nodeID) || node.nodeType === 8 && node.nodeValue === ' react-text: ' + nodeID + ' ' || node.nodeType === 8 && node.nodeValue === ' react-empty: ' + nodeID + ' ';
+}
+
+/**
+ * Drill down (through composites and empty components) until we get a host or
+ * host text component.
+ *
+ * This is pretty polymorphic but unavoidable with the current structure we have
+ * for `_renderedChildren`.
+ */
+function getRenderedHostOrTextFromComponent(component) {
+  var rendered;
+  while (rendered = component._renderedComponent) {
+    component = rendered;
+  }
+  return component;
+}
+
+/**
+ * Populate `_hostNode` on the rendered host/text component with the given
+ * DOM node. The passed `inst` can be a composite.
+ */
+function precacheNode(inst, node) {
+  var hostInst = getRenderedHostOrTextFromComponent(inst);
+  hostInst._hostNode = node;
+  node[internalInstanceKey] = hostInst;
+}
+
+function uncacheNode(inst) {
+  var node = inst._hostNode;
+  if (node) {
+    delete node[internalInstanceKey];
+    inst._hostNode = null;
+  }
+}
+
+/**
+ * Populate `_hostNode` on each child of `inst`, assuming that the children
+ * match up with the DOM (element) children of `node`.
+ *
+ * We cache entire levels at once to avoid an n^2 problem where we access the
+ * children of a node sequentially and have to walk from the start to our target
+ * node every time.
+ *
+ * Since we update `_renderedChildren` and the actual DOM at (slightly)
+ * different times, we could race here and see a newer `_renderedChildren` than
+ * the DOM nodes we see. To avoid this, ReactMultiChild calls
+ * `prepareToManageChildren` before we change `_renderedChildren`, at which
+ * time the container's child nodes are always cached (until it unmounts).
+ */
+function precacheChildNodes(inst, node) {
+  if (inst._flags & Flags.hasCachedChildNodes) {
+    return;
+  }
+  var children = inst._renderedChildren;
+  var childNode = node.firstChild;
+  outer: for (var name in children) {
+    if (!children.hasOwnProperty(name)) {
+      continue;
+    }
+    var childInst = children[name];
+    var childID = getRenderedHostOrTextFromComponent(childInst)._domID;
+    if (childID === 0) {
+      // We're currently unmounting this child in ReactMultiChild; skip it.
+      continue;
+    }
+    // We assume the child nodes are in the same order as the child instances.
+    for (; childNode !== null; childNode = childNode.nextSibling) {
+      if (shouldPrecacheNode(childNode, childID)) {
+        precacheNode(childInst, childNode);
+        continue outer;
+      }
+    }
+    // We reached the end of the DOM children without finding an ID match.
+     true ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Unable to find element with ID %s.', childID) : _prodInvariant('32', childID) : void 0;
+  }
+  inst._flags |= Flags.hasCachedChildNodes;
+}
+
+/**
+ * Given a DOM node, return the closest ReactDOMComponent or
+ * ReactDOMTextComponent instance ancestor.
+ */
+function getClosestInstanceFromNode(node) {
+  if (node[internalInstanceKey]) {
+    return node[internalInstanceKey];
+  }
+
+  // Walk up the tree until we find an ancestor whose instance we have cached.
+  var parents = [];
+  while (!node[internalInstanceKey]) {
+    parents.push(node);
+    if (node.parentNode) {
+      node = node.parentNode;
+    } else {
+      // Top of the tree. This node must not be part of a React tree (or is
+      // unmounted, potentially).
+      return null;
+    }
+  }
+
+  var closest;
+  var inst;
+  for (; node && (inst = node[internalInstanceKey]); node = parents.pop()) {
+    closest = inst;
+    if (parents.length) {
+      precacheChildNodes(inst, node);
+    }
+  }
+
+  return closest;
+}
+
+/**
+ * Given a DOM node, return the ReactDOMComponent or ReactDOMTextComponent
+ * instance, or null if the node was not rendered by this React.
+ */
+function getInstanceFromNode(node) {
+  var inst = getClosestInstanceFromNode(node);
+  if (inst != null && inst._hostNode === node) {
+    return inst;
+  } else {
+    return null;
+  }
+}
+
+/**
+ * Given a ReactDOMComponent or ReactDOMTextComponent, return the corresponding
+ * DOM node.
+ */
+function getNodeFromInstance(inst) {
+  // Without this first invariant, passing a non-DOM-component triggers the next
+  // invariant for a missing parent, which is super confusing.
+  !(inst._hostNode !== undefined) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'getNodeFromInstance: Invalid argument.') : _prodInvariant('33') : void 0;
+
+  if (inst._hostNode) {
+    return inst._hostNode;
+  }
+
+  // Walk up the tree until we find an ancestor whose DOM node we have cached.
+  var parents = [];
+  while (!inst._hostNode) {
+    parents.push(inst);
+    !inst._hostParent ? process.env.NODE_ENV !== 'production' ? invariant(false, 'React DOM tree root should always have a node reference.') : _prodInvariant('34') : void 0;
+    inst = inst._hostParent;
+  }
+
+  // Now parents contains each ancestor that does *not* have a cached native
+  // node, and `inst` is the deepest ancestor that does.
+  for (; parents.length; inst = parents.pop()) {
+    precacheChildNodes(inst, inst._hostNode);
+  }
+
+  return inst._hostNode;
+}
+
+var ReactDOMComponentTree = {
+  getClosestInstanceFromNode: getClosestInstanceFromNode,
+  getInstanceFromNode: getInstanceFromNode,
+  getNodeFromInstance: getNodeFromInstance,
+  precacheChildNodes: precacheChildNodes,
+  precacheNode: precacheNode,
+  uncacheNode: uncacheNode
+};
+
+module.exports = ReactDOMComponentTree;
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
 /* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -831,19 +788,12 @@ module.exports = ExecutionEnvironment;
 
 
 
-var _prodInvariant = __webpack_require__(14);
+var _prodInvariant = __webpack_require__(16);
 
-var ReactCurrentOwner = __webpack_require__(9);
-var ReactTypeOfWork = __webpack_require__(185);
-var IndeterminateComponent = ReactTypeOfWork.IndeterminateComponent,
-    FunctionalComponent = ReactTypeOfWork.FunctionalComponent,
-    ClassComponent = ReactTypeOfWork.ClassComponent,
-    HostComponent = ReactTypeOfWork.HostComponent;
+var ReactCurrentOwner = __webpack_require__(11);
 
-
-var getComponentName = __webpack_require__(88);
-var invariant = __webpack_require__(15);
-var warning = __webpack_require__(10);
+var invariant = __webpack_require__(1);
+var warning = __webpack_require__(2);
 
 function isNative(fn) {
   // Based on isNative() from Lodash
@@ -992,29 +942,10 @@ function describeID(id) {
   return describeComponentFrame(name, element && element._source, ownerName);
 }
 
-function describeFiber(fiber) {
-  switch (fiber.tag) {
-    case IndeterminateComponent:
-    case FunctionalComponent:
-    case ClassComponent:
-    case HostComponent:
-      var owner = fiber._debugOwner;
-      var source = fiber._debugSource;
-      var name = getComponentName(fiber);
-      var ownerName = null;
-      if (owner) {
-        ownerName = getComponentName(owner);
-      }
-      return describeComponentFrame(name, source, ownerName);
-    default:
-      return '';
-  }
-}
-
 var ReactComponentTreeHook = {
   onSetChildren: function (id, nextChildIDs) {
     var item = getItem(id);
-    invariant(item, 'Item must have been set');
+    !item ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Item must have been set') : _prodInvariant('144') : void 0;
     item.childIDs = nextChildIDs;
 
     for (var i = 0; i < nextChildIDs.length; i++) {
@@ -1054,7 +985,7 @@ var ReactComponentTreeHook = {
   },
   onMountComponent: function (id) {
     var item = getItem(id);
-    invariant(item, 'Item must have been set');
+    !item ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Item must have been set') : _prodInvariant('144') : void 0;
     item.isMounted = true;
     var isRoot = item.parentID === 0;
     if (isRoot) {
@@ -1107,20 +1038,13 @@ var ReactComponentTreeHook = {
     if (topElement) {
       var name = getDisplayName(topElement);
       var owner = topElement._owner;
-      info += describeComponentFrame(name, topElement._source, owner && getComponentName(owner));
+      info += describeComponentFrame(name, topElement._source, owner && owner.getName());
     }
 
     var currentOwner = ReactCurrentOwner.current;
-    if (currentOwner) {
-      if (typeof currentOwner.tag === 'number') {
-        var workInProgress = currentOwner;
-        // Safe because if current owner exists, we are reconciling,
-        // and it is guaranteed to be the work-in-progress version.
-        info += ReactComponentTreeHook.getStackAddendumByWorkInProgressFiber(workInProgress);
-      } else if (typeof currentOwner._debugID === 'number') {
-        info += ReactComponentTreeHook.getStackAddendumByID(currentOwner._debugID);
-      }
-    }
+    var id = currentOwner && currentOwner._debugID;
+
+    info += ReactComponentTreeHook.getStackAddendumByID(id);
     return info;
   },
   getStackAddendumByID: function (id) {
@@ -1129,21 +1053,6 @@ var ReactComponentTreeHook = {
       info += describeID(id);
       id = ReactComponentTreeHook.getParentID(id);
     }
-    return info;
-  },
-
-
-  // This function can only be called with a work-in-progress fiber and
-  // only during begin or complete phase. Do not call it under any other
-  // circumstances.
-  getStackAddendumByWorkInProgressFiber: function (workInProgress) {
-    var info = '';
-    var node = workInProgress;
-    do {
-      info += describeFiber(node);
-      // Otherwise this return pointer might point to the wrong tree:
-      node = node['return'];
-    } while (node);
     return info;
   },
   getChildIDs: function (id) {
@@ -1224,7 +1133,7 @@ module.exports = ReactComponentTreeHook;
 var debugTool = null;
 
 if (process.env.NODE_ENV !== 'production') {
-  var ReactDebugTool = __webpack_require__(121);
+  var ReactDebugTool = __webpack_require__(126);
   debugTool = ReactDebugTool;
 }
 
@@ -1233,6 +1142,307 @@ module.exports = { debugTool: debugTool };
 
 /***/ }),
 /* 9 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * 
+ */
+
+function makeEmptyFunction(arg) {
+  return function () {
+    return arg;
+  };
+}
+
+/**
+ * This function accepts and discards inputs; it has no side effects. This is
+ * primarily useful idiomatically for overridable function endpoints which
+ * always need to be callable, since JS lacks a null-call idiom ala Cocoa.
+ */
+var emptyFunction = function emptyFunction() {};
+
+emptyFunction.thatReturns = makeEmptyFunction;
+emptyFunction.thatReturnsFalse = makeEmptyFunction(false);
+emptyFunction.thatReturnsTrue = makeEmptyFunction(true);
+emptyFunction.thatReturnsNull = makeEmptyFunction(null);
+emptyFunction.thatReturnsThis = function () {
+  return this;
+};
+emptyFunction.thatReturnsArgument = function (arg) {
+  return arg;
+};
+
+module.exports = emptyFunction;
+
+/***/ }),
+/* 10 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(process) {/**
+ * Copyright 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+
+
+var _prodInvariant = __webpack_require__(3),
+    _assign = __webpack_require__(4);
+
+var CallbackQueue = __webpack_require__(57);
+var PooledClass = __webpack_require__(14);
+var ReactFeatureFlags = __webpack_require__(62);
+var ReactReconciler = __webpack_require__(18);
+var Transaction = __webpack_require__(29);
+
+var invariant = __webpack_require__(1);
+
+var dirtyComponents = [];
+var updateBatchNumber = 0;
+var asapCallbackQueue = CallbackQueue.getPooled();
+var asapEnqueued = false;
+
+var batchingStrategy = null;
+
+function ensureInjected() {
+  !(ReactUpdates.ReactReconcileTransaction && batchingStrategy) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactUpdates: must inject a reconcile transaction class and batching strategy') : _prodInvariant('123') : void 0;
+}
+
+var NESTED_UPDATES = {
+  initialize: function () {
+    this.dirtyComponentsLength = dirtyComponents.length;
+  },
+  close: function () {
+    if (this.dirtyComponentsLength !== dirtyComponents.length) {
+      // Additional updates were enqueued by componentDidUpdate handlers or
+      // similar; before our own UPDATE_QUEUEING wrapper closes, we want to run
+      // these new updates so that if A's componentDidUpdate calls setState on
+      // B, B will update before the callback A's updater provided when calling
+      // setState.
+      dirtyComponents.splice(0, this.dirtyComponentsLength);
+      flushBatchedUpdates();
+    } else {
+      dirtyComponents.length = 0;
+    }
+  }
+};
+
+var UPDATE_QUEUEING = {
+  initialize: function () {
+    this.callbackQueue.reset();
+  },
+  close: function () {
+    this.callbackQueue.notifyAll();
+  }
+};
+
+var TRANSACTION_WRAPPERS = [NESTED_UPDATES, UPDATE_QUEUEING];
+
+function ReactUpdatesFlushTransaction() {
+  this.reinitializeTransaction();
+  this.dirtyComponentsLength = null;
+  this.callbackQueue = CallbackQueue.getPooled();
+  this.reconcileTransaction = ReactUpdates.ReactReconcileTransaction.getPooled(
+  /* useCreateElement */true);
+}
+
+_assign(ReactUpdatesFlushTransaction.prototype, Transaction, {
+  getTransactionWrappers: function () {
+    return TRANSACTION_WRAPPERS;
+  },
+
+  destructor: function () {
+    this.dirtyComponentsLength = null;
+    CallbackQueue.release(this.callbackQueue);
+    this.callbackQueue = null;
+    ReactUpdates.ReactReconcileTransaction.release(this.reconcileTransaction);
+    this.reconcileTransaction = null;
+  },
+
+  perform: function (method, scope, a) {
+    // Essentially calls `this.reconcileTransaction.perform(method, scope, a)`
+    // with this transaction's wrappers around it.
+    return Transaction.perform.call(this, this.reconcileTransaction.perform, this.reconcileTransaction, method, scope, a);
+  }
+});
+
+PooledClass.addPoolingTo(ReactUpdatesFlushTransaction);
+
+function batchedUpdates(callback, a, b, c, d, e) {
+  ensureInjected();
+  return batchingStrategy.batchedUpdates(callback, a, b, c, d, e);
+}
+
+/**
+ * Array comparator for ReactComponents by mount ordering.
+ *
+ * @param {ReactComponent} c1 first component you're comparing
+ * @param {ReactComponent} c2 second component you're comparing
+ * @return {number} Return value usable by Array.prototype.sort().
+ */
+function mountOrderComparator(c1, c2) {
+  return c1._mountOrder - c2._mountOrder;
+}
+
+function runBatchedUpdates(transaction) {
+  var len = transaction.dirtyComponentsLength;
+  !(len === dirtyComponents.length) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Expected flush transaction\'s stored dirty-components length (%s) to match dirty-components array length (%s).', len, dirtyComponents.length) : _prodInvariant('124', len, dirtyComponents.length) : void 0;
+
+  // Since reconciling a component higher in the owner hierarchy usually (not
+  // always -- see shouldComponentUpdate()) will reconcile children, reconcile
+  // them before their children by sorting the array.
+  dirtyComponents.sort(mountOrderComparator);
+
+  // Any updates enqueued while reconciling must be performed after this entire
+  // batch. Otherwise, if dirtyComponents is [A, B] where A has children B and
+  // C, B could update twice in a single batch if C's render enqueues an update
+  // to B (since B would have already updated, we should skip it, and the only
+  // way we can know to do so is by checking the batch counter).
+  updateBatchNumber++;
+
+  for (var i = 0; i < len; i++) {
+    // If a component is unmounted before pending changes apply, it will still
+    // be here, but we assume that it has cleared its _pendingCallbacks and
+    // that performUpdateIfNecessary is a noop.
+    var component = dirtyComponents[i];
+
+    // If performUpdateIfNecessary happens to enqueue any new updates, we
+    // shouldn't execute the callbacks until the next render happens, so
+    // stash the callbacks first
+    var callbacks = component._pendingCallbacks;
+    component._pendingCallbacks = null;
+
+    var markerName;
+    if (ReactFeatureFlags.logTopLevelRenders) {
+      var namedComponent = component;
+      // Duck type TopLevelWrapper. This is probably always true.
+      if (component._currentElement.type.isReactTopLevelWrapper) {
+        namedComponent = component._renderedComponent;
+      }
+      markerName = 'React update: ' + namedComponent.getName();
+      console.time(markerName);
+    }
+
+    ReactReconciler.performUpdateIfNecessary(component, transaction.reconcileTransaction, updateBatchNumber);
+
+    if (markerName) {
+      console.timeEnd(markerName);
+    }
+
+    if (callbacks) {
+      for (var j = 0; j < callbacks.length; j++) {
+        transaction.callbackQueue.enqueue(callbacks[j], component.getPublicInstance());
+      }
+    }
+  }
+}
+
+var flushBatchedUpdates = function () {
+  // ReactUpdatesFlushTransaction's wrappers will clear the dirtyComponents
+  // array and perform any updates enqueued by mount-ready handlers (i.e.,
+  // componentDidUpdate) but we need to check here too in order to catch
+  // updates enqueued by setState callbacks and asap calls.
+  while (dirtyComponents.length || asapEnqueued) {
+    if (dirtyComponents.length) {
+      var transaction = ReactUpdatesFlushTransaction.getPooled();
+      transaction.perform(runBatchedUpdates, null, transaction);
+      ReactUpdatesFlushTransaction.release(transaction);
+    }
+
+    if (asapEnqueued) {
+      asapEnqueued = false;
+      var queue = asapCallbackQueue;
+      asapCallbackQueue = CallbackQueue.getPooled();
+      queue.notifyAll();
+      CallbackQueue.release(queue);
+    }
+  }
+};
+
+/**
+ * Mark a component as needing a rerender, adding an optional callback to a
+ * list of functions which will be executed once the rerender occurs.
+ */
+function enqueueUpdate(component) {
+  ensureInjected();
+
+  // Various parts of our code (such as ReactCompositeComponent's
+  // _renderValidatedComponent) assume that calls to render aren't nested;
+  // verify that that's the case. (This is called by each top-level update
+  // function, like setState, forceUpdate, etc.; creation and
+  // destruction of top-level components is guarded in ReactMount.)
+
+  if (!batchingStrategy.isBatchingUpdates) {
+    batchingStrategy.batchedUpdates(enqueueUpdate, component);
+    return;
+  }
+
+  dirtyComponents.push(component);
+  if (component._updateBatchNumber == null) {
+    component._updateBatchNumber = updateBatchNumber + 1;
+  }
+}
+
+/**
+ * Enqueue a callback to be run at the end of the current batching cycle. Throws
+ * if no updates are currently being performed.
+ */
+function asap(callback, context) {
+  !batchingStrategy.isBatchingUpdates ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactUpdates.asap: Can\'t enqueue an asap callback in a context whereupdates are not being batched.') : _prodInvariant('125') : void 0;
+  asapCallbackQueue.enqueue(callback, context);
+  asapEnqueued = true;
+}
+
+var ReactUpdatesInjection = {
+  injectReconcileTransaction: function (ReconcileTransaction) {
+    !ReconcileTransaction ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactUpdates: must provide a reconcile transaction class') : _prodInvariant('126') : void 0;
+    ReactUpdates.ReactReconcileTransaction = ReconcileTransaction;
+  },
+
+  injectBatchingStrategy: function (_batchingStrategy) {
+    !_batchingStrategy ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactUpdates: must provide a batching strategy') : _prodInvariant('127') : void 0;
+    !(typeof _batchingStrategy.batchedUpdates === 'function') ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactUpdates: must provide a batchedUpdates() function') : _prodInvariant('128') : void 0;
+    !(typeof _batchingStrategy.isBatchingUpdates === 'boolean') ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactUpdates: must provide an isBatchingUpdates boolean attribute') : _prodInvariant('129') : void 0;
+    batchingStrategy = _batchingStrategy;
+  }
+};
+
+var ReactUpdates = {
+  /**
+   * React references `ReactReconcileTransaction` using this property in order
+   * to allow dependency injection.
+   *
+   * @internal
+   */
+  ReactReconcileTransaction: null,
+
+  batchedUpdates: batchedUpdates,
+  enqueueUpdate: enqueueUpdate,
+  flushBatchedUpdates: flushBatchedUpdates,
+  injection: ReactUpdatesInjection,
+  asap: asap
+};
+
+module.exports = ReactUpdates;
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1268,80 +1478,7 @@ var ReactCurrentOwner = {
 module.exports = ReactCurrentOwner;
 
 /***/ }),
-/* 10 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
- * Copyright 2014-2015, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-var emptyFunction = __webpack_require__(59);
-
-/**
- * Similar to invariant but only logs a warning if the condition is not met.
- * This can be used to log issues in development environments in critical
- * paths. Removing the logging code for production environments will keep the
- * same logic and follow the same code paths.
- */
-
-var warning = emptyFunction;
-
-if (process.env.NODE_ENV !== 'production') {
-  (function () {
-    var printWarning = function printWarning(format) {
-      for (var _len = arguments.length, args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-        args[_key - 1] = arguments[_key];
-      }
-
-      var argIndex = 0;
-      var message = 'Warning: ' + format.replace(/%s/g, function () {
-        return args[argIndex++];
-      });
-      if (typeof console !== 'undefined') {
-        console.error(message);
-      }
-      try {
-        // --- Welcome to debugging React ---
-        // This error was thrown as a convenience so that you can use this stack
-        // to find the callsite that caused this warning to fire.
-        throw new Error(message);
-      } catch (x) {}
-    };
-
-    warning = function warning(condition, format) {
-      if (format === undefined) {
-        throw new Error('`warning(condition, format, ...args)` requires a warning ' + 'message argument');
-      }
-
-      if (format.indexOf('Failed Composite propType: ') === 0) {
-        return; // Ignore CompositeComponent proptype check.
-      }
-
-      if (!condition) {
-        for (var _len2 = arguments.length, args = Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
-          args[_key2 - 2] = arguments[_key2];
-        }
-
-        printWarning.apply(undefined, [format].concat(args));
-      }
-    };
-  })();
-}
-
-module.exports = warning;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1357,12 +1494,12 @@ module.exports = warning;
 
 
 
-var _assign = __webpack_require__(5);
+var _assign = __webpack_require__(4);
 
-var PooledClass = __webpack_require__(16);
+var PooledClass = __webpack_require__(14);
 
-var emptyFunction = __webpack_require__(13);
-var warning = __webpack_require__(3);
+var emptyFunction = __webpack_require__(9);
+var warning = __webpack_require__(2);
 
 var didWarnForAddedNewProperty = false;
 var isProxySupported = typeof Proxy === 'function';
@@ -1615,7 +1752,7 @@ function getPooledWarningPropertyDefinition(propName, getVal) {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1631,7 +1768,7 @@ function getPooledWarningPropertyDefinition(propName, getVal) {
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
 var invariant = __webpack_require__(1);
 
@@ -1831,157 +1968,7 @@ module.exports = DOMProperty;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 13 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-function makeEmptyFunction(arg) {
-  return function () {
-    return arg;
-  };
-}
-
-/**
- * This function accepts and discards inputs; it has no side effects. This is
- * primarily useful idiomatically for overridable function endpoints which
- * always need to be callable, since JS lacks a null-call idiom ala Cocoa.
- */
-var emptyFunction = function emptyFunction() {};
-
-emptyFunction.thatReturns = makeEmptyFunction;
-emptyFunction.thatReturnsFalse = makeEmptyFunction(false);
-emptyFunction.thatReturnsTrue = makeEmptyFunction(true);
-emptyFunction.thatReturnsNull = makeEmptyFunction(null);
-emptyFunction.thatReturnsThis = function () {
-  return this;
-};
-emptyFunction.thatReturnsArgument = function (arg) {
-  return arg;
-};
-
-module.exports = emptyFunction;
-
-/***/ }),
 /* 14 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-
-/**
- * WARNING: DO NOT manually require this module.
- * This is a replacement for `invariant(...)` used by the error code system
- * and will _only_ be required by the corresponding babel pass.
- * It always throws.
- */
-
-function reactProdInvariant(code) {
-  var argCount = arguments.length - 1;
-
-  var message = 'Minified React error #' + code + '; visit ' + 'http://facebook.github.io/react/docs/error-decoder.html?invariant=' + code;
-
-  for (var argIdx = 0; argIdx < argCount; argIdx++) {
-    message += '&args[]=' + encodeURIComponent(arguments[argIdx + 1]);
-  }
-
-  message += ' for the full message or use the non-minified dev environment' + ' for full errors and additional helpful warnings.';
-
-  var error = new Error(message);
-  error.name = 'Invariant Violation';
-  error.framesToPop = 1; // we don't care about reactProdInvariant's own frame
-
-  throw error;
-}
-
-module.exports = reactProdInvariant;
-
-/***/ }),
-/* 15 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-/**
- * Use invariant() to assert state which your program assumes to be true.
- *
- * Provide sprintf-style format (only %s is supported) and arguments
- * to provide information about what broke and what you were
- * expecting.
- *
- * The invariant message will be stripped in production, but the invariant
- * will remain to ensure logic does not differ in production.
- */
-
-var validateFormat = function validateFormat(format) {};
-
-if (process.env.NODE_ENV !== 'production') {
-  validateFormat = function validateFormat(format) {
-    if (format === undefined) {
-      throw new Error('invariant requires an error message argument');
-    }
-  };
-}
-
-function invariant(condition, format, a, b, c, d, e, f) {
-  validateFormat(format);
-
-  if (!condition) {
-    var error;
-    if (format === undefined) {
-      error = new Error('Minified exception occurred; use the non-minified dev environment ' + 'for the full error message and additional helpful warnings.');
-    } else {
-      var args = [a, b, c, d, e, f];
-      var argIndex = 0;
-      error = new Error(format.replace(/%s/g, function () {
-        return args[argIndex++];
-      }));
-      error.name = 'Invariant Violation';
-    }
-
-    error.framesToPop = 1; // we don't care about invariant's own frame
-    throw error;
-  }
-}
-
-module.exports = invariant;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1998,7 +1985,7 @@ module.exports = invariant;
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
 var invariant = __webpack_require__(1);
 
@@ -2099,7 +2086,7 @@ module.exports = PooledClass;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 17 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2115,15 +2102,15 @@ module.exports = PooledClass;
 
 
 
-var _assign = __webpack_require__(37);
+var _assign = __webpack_require__(4);
 
-var ReactCurrentOwner = __webpack_require__(9);
+var ReactCurrentOwner = __webpack_require__(11);
 
-var warning = __webpack_require__(10);
-var canDefineProperty = __webpack_require__(57);
+var warning = __webpack_require__(2);
+var canDefineProperty = __webpack_require__(51);
 var hasOwnProperty = Object.prototype.hasOwnProperty;
 
-var REACT_ELEMENT_TYPE = __webpack_require__(86);
+var REACT_ELEMENT_TYPE = __webpack_require__(77);
 
 var RESERVED_PROPS = {
   key: true,
@@ -2270,7 +2257,7 @@ var ReactElement = function (type, key, ref, self, source, owner, props) {
 
 /**
  * Create and return a new ReactElement of the given type.
- * See https://facebook.github.io/react/docs/react-api.html#createelement
+ * See https://facebook.github.io/react/docs/top-level-api.html#react.createelement
  */
 ReactElement.createElement = function (type, config, children) {
   var propName;
@@ -2346,7 +2333,7 @@ ReactElement.createElement = function (type, config, children) {
 
 /**
  * Return a function that produces ReactElements of a given type.
- * See https://facebook.github.io/react/docs/react-api.html#createfactory
+ * See https://facebook.github.io/react/docs/top-level-api.html#react.createfactory
  */
 ReactElement.createFactory = function (type) {
   var factory = ReactElement.createElement.bind(null, type);
@@ -2367,7 +2354,7 @@ ReactElement.cloneAndReplaceKey = function (oldElement, newKey) {
 
 /**
  * Clone and return a new ReactElement using element as the starting point.
- * See https://facebook.github.io/react/docs/react-api.html#cloneelement
+ * See https://facebook.github.io/react/docs/top-level-api.html#react.cloneelement
  */
 ReactElement.cloneElement = function (element, config, children) {
   var propName;
@@ -2433,7 +2420,7 @@ ReactElement.cloneElement = function (element, config, children) {
 
 /**
  * Verifies the object is a ReactElement.
- * See https://facebook.github.io/react/docs/react-api.html#isvalidelement
+ * See https://facebook.github.io/react/docs/top-level-api.html#react.isvalidelement
  * @param {?object} object
  * @return {boolean} True if `object` is a valid component.
  * @final
@@ -2446,7 +2433,51 @@ module.exports = ReactElement;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 18 */
+/* 16 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * 
+ */
+
+
+/**
+ * WARNING: DO NOT manually require this module.
+ * This is a replacement for `invariant(...)` used by the error code system
+ * and will _only_ be required by the corresponding babel pass.
+ * It always throws.
+ */
+
+function reactProdInvariant(code) {
+  var argCount = arguments.length - 1;
+
+  var message = 'Minified React error #' + code + '; visit ' + 'http://facebook.github.io/react/docs/error-decoder.html?invariant=' + code;
+
+  for (var argIdx = 0; argIdx < argCount; argIdx++) {
+    message += '&args[]=' + encodeURIComponent(arguments[argIdx + 1]);
+  }
+
+  message += ' for the full message or use the non-minified dev environment' + ' for full errors and additional helpful warnings.';
+
+  var error = new Error(message);
+  error.name = 'Invariant Violation';
+  error.framesToPop = 1; // we don't care about reactProdInvariant's own frame
+
+  throw error;
+}
+
+module.exports = reactProdInvariant;
+
+/***/ }),
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2462,11 +2493,11 @@ module.exports = ReactElement;
 
 
 
-var DOMNamespaces = __webpack_require__(39);
-var setInnerHTML = __webpack_require__(36);
+var DOMNamespaces = __webpack_require__(34);
+var setInnerHTML = __webpack_require__(31);
 
-var createMicrosoftUnsafeLocalFunction = __webpack_require__(46);
-var setTextContent = __webpack_require__(80);
+var createMicrosoftUnsafeLocalFunction = __webpack_require__(41);
+var setTextContent = __webpack_require__(75);
 
 var ELEMENT_NODE_TYPE = 1;
 var DOCUMENT_FRAGMENT_NODE_TYPE = 11;
@@ -2569,60 +2600,7 @@ DOMLazyTree.queueText = queueText;
 module.exports = DOMLazyTree;
 
 /***/ }),
-/* 19 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-/**
- * `ReactInstanceMap` maintains a mapping from a public facing stateful
- * instance (key) and the internal representation (value). This allows public
- * methods to accept the user facing instance as an argument and map them back
- * to internal methods.
- */
-
-// TODO: Replace this with ES6: var ReactInstanceMap = new Map();
-
-var ReactInstanceMap = {
-
-  /**
-   * This API should be called `delete` but we'd have to make sure to always
-   * transform these to strings for IE support. When this transform is fully
-   * supported we can rename it.
-   */
-  remove: function (key) {
-    key._reactInternalInstance = undefined;
-  },
-
-  get: function (key) {
-    return key._reactInternalInstance;
-  },
-
-  has: function (key) {
-    return key._reactInternalInstance !== undefined;
-  },
-
-  set: function (key, value) {
-    key._reactInternalInstance = value;
-  }
-
-};
-
-module.exports = ReactInstanceMap;
-
-/***/ }),
-/* 20 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2638,10 +2616,10 @@ module.exports = ReactInstanceMap;
 
 
 
-var ReactRef = __webpack_require__(134);
+var ReactRef = __webpack_require__(140);
 var ReactInstrumentation = __webpack_require__(8);
 
-var warning = __webpack_require__(3);
+var warning = __webpack_require__(2);
 
 /**
  * Helper to call ReactRef.attachRefs with this composite component, split out
@@ -2697,14 +2675,14 @@ var ReactReconciler = {
    * @final
    * @internal
    */
-  unmountComponent: function (internalInstance, safely, skipLifecycle) {
+  unmountComponent: function (internalInstance, safely) {
     if (process.env.NODE_ENV !== 'production') {
       if (internalInstance._debugID !== 0) {
         ReactInstrumentation.debugTool.onBeforeUnmountComponent(internalInstance._debugID);
       }
     }
     ReactRef.detachRefs(internalInstance, internalInstance._currentElement);
-    internalInstance.unmountComponent(safely, skipLifecycle);
+    internalInstance.unmountComponent(safely);
     if (process.env.NODE_ENV !== 'production') {
       if (internalInstance._debugID !== 0) {
         ReactInstrumentation.debugTool.onUnmountComponent(internalInstance._debugID);
@@ -2796,7 +2774,7 @@ module.exports = ReactReconciler;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 21 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2812,49 +2790,39 @@ module.exports = ReactReconciler;
 
 
 
-var _assign = __webpack_require__(37);
+var _assign = __webpack_require__(4);
 
-var ReactChildren = __webpack_require__(180);
-var ReactComponent = __webpack_require__(54);
-var ReactPureComponent = __webpack_require__(184);
-var ReactClass = __webpack_require__(181);
-var ReactDOMFactories = __webpack_require__(182);
-var ReactElement = __webpack_require__(17);
-var ReactPropTypes = __webpack_require__(183);
-var ReactVersion = __webpack_require__(186);
+var ReactChildren = __webpack_require__(171);
+var ReactComponent = __webpack_require__(48);
+var ReactPureComponent = __webpack_require__(175);
+var ReactClass = __webpack_require__(172);
+var ReactDOMFactories = __webpack_require__(173);
+var ReactElement = __webpack_require__(15);
+var ReactPropTypes = __webpack_require__(174);
+var ReactVersion = __webpack_require__(176);
 
-var onlyChild = __webpack_require__(188);
-var warning = __webpack_require__(10);
+var onlyChild = __webpack_require__(178);
+var warning = __webpack_require__(2);
 
 var createElement = ReactElement.createElement;
 var createFactory = ReactElement.createFactory;
 var cloneElement = ReactElement.cloneElement;
 
 if (process.env.NODE_ENV !== 'production') {
-  var ReactElementValidator = __webpack_require__(87);
+  var ReactElementValidator = __webpack_require__(78);
   createElement = ReactElementValidator.createElement;
   createFactory = ReactElementValidator.createFactory;
   cloneElement = ReactElementValidator.cloneElement;
 }
 
 var __spread = _assign;
-var createMixin = function (mixin) {
-  return mixin;
-};
 
 if (process.env.NODE_ENV !== 'production') {
-  var warnedForSpread = false;
-  var warnedForCreateMixin = false;
+  var warned = false;
   __spread = function () {
-    process.env.NODE_ENV !== 'production' ? warning(warnedForSpread, 'React.__spread is deprecated and should not be used. Use ' + 'Object.assign directly or another helper function with similar ' + 'semantics. You may be seeing this warning due to your compiler. ' + 'See https://fb.me/react-spread-deprecation for more details.') : void 0;
-    warnedForSpread = true;
+    process.env.NODE_ENV !== 'production' ? warning(warned, 'React.__spread is deprecated and should not be used. Use ' + 'Object.assign directly or another helper function with similar ' + 'semantics. You may be seeing this warning due to your compiler. ' + 'See https://fb.me/react-spread-deprecation for more details.') : void 0;
+    warned = true;
     return _assign.apply(null, arguments);
-  };
-
-  createMixin = function (mixin) {
-    process.env.NODE_ENV !== 'production' ? warning(warnedForCreateMixin, 'React.createMixin is deprecated and should not be used. You ' + 'can use this mixin directly instead.') : void 0;
-    warnedForCreateMixin = true;
-    return mixin;
   };
 }
 
@@ -2882,7 +2850,10 @@ var React = {
   PropTypes: ReactPropTypes,
   createClass: ReactClass.createClass,
   createFactory: createFactory,
-  createMixin: createMixin,
+  createMixin: function (mixin) {
+    // Currently a noop. Will be used to validate and trace mixins.
+    return mixin;
+  },
 
   // This looks DOM specific but these are actually isomorphic helpers
   // since they are just generating DOM strings.
@@ -2895,6 +2866,42 @@ var React = {
 };
 
 module.exports = React;
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 20 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+module.exports = __webpack_require__(19);
+
+
+/***/ }),
+/* 21 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(process) {/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+
+
+var emptyObject = {};
+
+if (process.env.NODE_ENV !== 'production') {
+  Object.freeze(emptyObject);
+}
+
+module.exports = emptyObject;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
@@ -2914,626 +2921,20 @@ module.exports = React;
 
 
 
-var EventPluginHub = __webpack_require__(26);
-var ReactTreeTraversal = __webpack_require__(137);
+var _prodInvariant = __webpack_require__(3);
 
-var accumulateInto = __webpack_require__(72);
-var forEachAccumulated = __webpack_require__(74);
-var warning = __webpack_require__(3);
+var EventPluginRegistry = __webpack_require__(26);
+var EventPluginUtils = __webpack_require__(35);
+var ReactErrorUtils = __webpack_require__(39);
 
-var getListener = EventPluginHub.getListener;
-
-/**
- * Some event types have a notion of different registration names for different
- * "phases" of propagation. This finds listeners by a given phase.
- */
-function listenerAtPhase(inst, event, propagationPhase) {
-  var registrationName = event.dispatchConfig.phasedRegistrationNames[propagationPhase];
-  return getListener(inst, registrationName);
-}
-
-/**
- * Tags a `SyntheticEvent` with dispatched listeners. Creating this function
- * here, allows us to not have to bind or create functions for each event.
- * Mutating the event's members allows us to not have to create a wrapping
- * "dispatch" object that pairs the event with the listener.
- */
-function accumulateDirectionalDispatches(inst, phase, event) {
-  if (process.env.NODE_ENV !== 'production') {
-    process.env.NODE_ENV !== 'production' ? warning(inst, 'Dispatching inst must not be null') : void 0;
-  }
-  var listener = listenerAtPhase(inst, event, phase);
-  if (listener) {
-    event._dispatchListeners = accumulateInto(event._dispatchListeners, listener);
-    event._dispatchInstances = accumulateInto(event._dispatchInstances, inst);
-  }
-}
-
-/**
- * Collect dispatches (must be entirely collected before dispatching - see unit
- * tests). Lazily allocate the array to conserve memory.  We must loop through
- * each event and perform the traversal for each one. We cannot perform a
- * single traversal for the entire collection of events because each event may
- * have a different target.
- */
-function accumulateTwoPhaseDispatchesSingle(event) {
-  if (event && event.dispatchConfig.phasedRegistrationNames) {
-    ReactTreeTraversal.traverseTwoPhase(event._targetInst, accumulateDirectionalDispatches, event);
-  }
-}
-
-/**
- * Same as `accumulateTwoPhaseDispatchesSingle`, but skips over the targetID.
- */
-function accumulateTwoPhaseDispatchesSingleSkipTarget(event) {
-  if (event && event.dispatchConfig.phasedRegistrationNames) {
-    var targetInst = event._targetInst;
-    var parentInst = targetInst ? ReactTreeTraversal.getParentInstance(targetInst) : null;
-    ReactTreeTraversal.traverseTwoPhase(parentInst, accumulateDirectionalDispatches, event);
-  }
-}
-
-/**
- * Accumulates without regard to direction, does not look for phased
- * registration names. Same as `accumulateDirectDispatchesSingle` but without
- * requiring that the `dispatchMarker` be the same as the dispatched ID.
- */
-function accumulateDispatches(inst, ignoredDirection, event) {
-  if (event && event.dispatchConfig.registrationName) {
-    var registrationName = event.dispatchConfig.registrationName;
-    var listener = getListener(inst, registrationName);
-    if (listener) {
-      event._dispatchListeners = accumulateInto(event._dispatchListeners, listener);
-      event._dispatchInstances = accumulateInto(event._dispatchInstances, inst);
-    }
-  }
-}
-
-/**
- * Accumulates dispatches on an `SyntheticEvent`, but only for the
- * `dispatchMarker`.
- * @param {SyntheticEvent} event
- */
-function accumulateDirectDispatchesSingle(event) {
-  if (event && event.dispatchConfig.registrationName) {
-    accumulateDispatches(event._targetInst, null, event);
-  }
-}
-
-function accumulateTwoPhaseDispatches(events) {
-  forEachAccumulated(events, accumulateTwoPhaseDispatchesSingle);
-}
-
-function accumulateTwoPhaseDispatchesSkipTarget(events) {
-  forEachAccumulated(events, accumulateTwoPhaseDispatchesSingleSkipTarget);
-}
-
-function accumulateEnterLeaveDispatches(leave, enter, from, to) {
-  ReactTreeTraversal.traverseEnterLeave(from, to, accumulateDispatches, leave, enter);
-}
-
-function accumulateDirectDispatches(events) {
-  forEachAccumulated(events, accumulateDirectDispatchesSingle);
-}
-
-/**
- * A small set of propagation patterns, each of which will accept a small amount
- * of information, and generate a set of "dispatch ready event objects" - which
- * are sets of events that have already been annotated with a set of dispatched
- * listener functions/ids. The API is designed this way to discourage these
- * propagation strategies from actually executing the dispatches, since we
- * always want to collect the entire set of dispatches before executing even a
- * single one.
- *
- * @constructor EventPropagators
- */
-var EventPropagators = {
-  accumulateTwoPhaseDispatches: accumulateTwoPhaseDispatches,
-  accumulateTwoPhaseDispatchesSkipTarget: accumulateTwoPhaseDispatchesSkipTarget,
-  accumulateDirectDispatches: accumulateDirectDispatches,
-  accumulateEnterLeaveDispatches: accumulateEnterLeaveDispatches
-};
-
-module.exports = EventPropagators;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 23 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-var _assign = __webpack_require__(5);
-
-var EventPluginRegistry = __webpack_require__(27);
-var ReactEventEmitterMixin = __webpack_require__(124);
-var ViewportMetrics = __webpack_require__(71);
-
-var getVendorPrefixedEventName = __webpack_require__(161);
-var isEventSupported = __webpack_require__(50);
-
-/**
- * Summary of `ReactBrowserEventEmitter` event handling:
- *
- *  - Top-level delegation is used to trap most native browser events. This
- *    may only occur in the main thread and is the responsibility of
- *    ReactEventListener, which is injected and can therefore support pluggable
- *    event sources. This is the only work that occurs in the main thread.
- *
- *  - We normalize and de-duplicate events to account for browser quirks. This
- *    may be done in the worker thread.
- *
- *  - Forward these native events (with the associated top-level type used to
- *    trap it) to `EventPluginHub`, which in turn will ask plugins if they want
- *    to extract any synthetic events.
- *
- *  - The `EventPluginHub` will then process each event by annotating them with
- *    "dispatches", a sequence of listeners and IDs that care about that event.
- *
- *  - The `EventPluginHub` then dispatches the events.
- *
- * Overview of React and the event system:
- *
- * +------------+    .
- * |    DOM     |    .
- * +------------+    .
- *       |           .
- *       v           .
- * +------------+    .
- * | ReactEvent |    .
- * |  Listener  |    .
- * +------------+    .                         +-----------+
- *       |           .               +--------+|SimpleEvent|
- *       |           .               |         |Plugin     |
- * +-----|------+    .               v         +-----------+
- * |     |      |    .    +--------------+                    +------------+
- * |     +-----------.--->|EventPluginHub|                    |    Event   |
- * |            |    .    |              |     +-----------+  | Propagators|
- * | ReactEvent |    .    |              |     |TapEvent   |  |------------|
- * |  Emitter   |    .    |              |<---+|Plugin     |  |other plugin|
- * |            |    .    |              |     +-----------+  |  utilities |
- * |     +-----------.--->|              |                    +------------+
- * |     |      |    .    +--------------+
- * +-----|------+    .                ^        +-----------+
- *       |           .                |        |Enter/Leave|
- *       +           .                +-------+|Plugin     |
- * +-------------+   .                         +-----------+
- * | application |   .
- * |-------------|   .
- * |             |   .
- * |             |   .
- * +-------------+   .
- *                   .
- *    React Core     .  General Purpose Event Plugin System
- */
-
-var hasEventPageXY;
-var alreadyListeningTo = {};
-var isMonitoringScrollValue = false;
-var reactTopListenersCounter = 0;
-
-// For events like 'submit' which don't consistently bubble (which we trap at a
-// lower node than `document`), binding at `document` would cause duplicate
-// events so we don't include them here
-var topEventMapping = {
-  topAbort: 'abort',
-  topAnimationEnd: getVendorPrefixedEventName('animationend') || 'animationend',
-  topAnimationIteration: getVendorPrefixedEventName('animationiteration') || 'animationiteration',
-  topAnimationStart: getVendorPrefixedEventName('animationstart') || 'animationstart',
-  topBlur: 'blur',
-  topCancel: 'cancel',
-  topCanPlay: 'canplay',
-  topCanPlayThrough: 'canplaythrough',
-  topChange: 'change',
-  topClick: 'click',
-  topClose: 'close',
-  topCompositionEnd: 'compositionend',
-  topCompositionStart: 'compositionstart',
-  topCompositionUpdate: 'compositionupdate',
-  topContextMenu: 'contextmenu',
-  topCopy: 'copy',
-  topCut: 'cut',
-  topDoubleClick: 'dblclick',
-  topDrag: 'drag',
-  topDragEnd: 'dragend',
-  topDragEnter: 'dragenter',
-  topDragExit: 'dragexit',
-  topDragLeave: 'dragleave',
-  topDragOver: 'dragover',
-  topDragStart: 'dragstart',
-  topDrop: 'drop',
-  topDurationChange: 'durationchange',
-  topEmptied: 'emptied',
-  topEncrypted: 'encrypted',
-  topEnded: 'ended',
-  topError: 'error',
-  topFocus: 'focus',
-  topInput: 'input',
-  topKeyDown: 'keydown',
-  topKeyPress: 'keypress',
-  topKeyUp: 'keyup',
-  topLoadedData: 'loadeddata',
-  topLoadedMetadata: 'loadedmetadata',
-  topLoadStart: 'loadstart',
-  topMouseDown: 'mousedown',
-  topMouseMove: 'mousemove',
-  topMouseOut: 'mouseout',
-  topMouseOver: 'mouseover',
-  topMouseUp: 'mouseup',
-  topPaste: 'paste',
-  topPause: 'pause',
-  topPlay: 'play',
-  topPlaying: 'playing',
-  topProgress: 'progress',
-  topRateChange: 'ratechange',
-  topScroll: 'scroll',
-  topSeeked: 'seeked',
-  topSeeking: 'seeking',
-  topSelectionChange: 'selectionchange',
-  topStalled: 'stalled',
-  topSuspend: 'suspend',
-  topTextInput: 'textInput',
-  topTimeUpdate: 'timeupdate',
-  topTouchCancel: 'touchcancel',
-  topTouchEnd: 'touchend',
-  topTouchMove: 'touchmove',
-  topTouchStart: 'touchstart',
-  topTransitionEnd: getVendorPrefixedEventName('transitionend') || 'transitionend',
-  topVolumeChange: 'volumechange',
-  topWaiting: 'waiting',
-  topWheel: 'wheel'
-};
-
-/**
- * To ensure no conflicts with other potential React instances on the page
- */
-var topListenersIDKey = '_reactListenersID' + String(Math.random()).slice(2);
-
-function getListeningForDocument(mountAt) {
-  // In IE8, `mountAt` is a host object and doesn't have `hasOwnProperty`
-  // directly.
-  if (!Object.prototype.hasOwnProperty.call(mountAt, topListenersIDKey)) {
-    mountAt[topListenersIDKey] = reactTopListenersCounter++;
-    alreadyListeningTo[mountAt[topListenersIDKey]] = {};
-  }
-  return alreadyListeningTo[mountAt[topListenersIDKey]];
-}
-
-var ReactBrowserEventEmitter = _assign({}, ReactEventEmitterMixin, {
-
-  /**
-   * Injectable event backend
-   */
-  ReactEventListener: null,
-
-  injection: {
-    /**
-     * @param {object} ReactEventListener
-     */
-    injectReactEventListener: function (ReactEventListener) {
-      ReactEventListener.setHandleTopLevel(ReactBrowserEventEmitter.handleTopLevel);
-      ReactBrowserEventEmitter.ReactEventListener = ReactEventListener;
-    }
-  },
-
-  /**
-   * Sets whether or not any created callbacks should be enabled.
-   *
-   * @param {boolean} enabled True if callbacks should be enabled.
-   */
-  setEnabled: function (enabled) {
-    if (ReactBrowserEventEmitter.ReactEventListener) {
-      ReactBrowserEventEmitter.ReactEventListener.setEnabled(enabled);
-    }
-  },
-
-  /**
-   * @return {boolean} True if callbacks are enabled.
-   */
-  isEnabled: function () {
-    return !!(ReactBrowserEventEmitter.ReactEventListener && ReactBrowserEventEmitter.ReactEventListener.isEnabled());
-  },
-
-  /**
-   * We listen for bubbled touch events on the document object.
-   *
-   * Firefox v8.01 (and possibly others) exhibited strange behavior when
-   * mounting `onmousemove` events at some node that was not the document
-   * element. The symptoms were that if your mouse is not moving over something
-   * contained within that mount point (for example on the background) the
-   * top-level listeners for `onmousemove` won't be called. However, if you
-   * register the `mousemove` on the document object, then it will of course
-   * catch all `mousemove`s. This along with iOS quirks, justifies restricting
-   * top-level listeners to the document object only, at least for these
-   * movement types of events and possibly all events.
-   *
-   * @see http://www.quirksmode.org/blog/archives/2010/09/click_event_del.html
-   *
-   * Also, `keyup`/`keypress`/`keydown` do not bubble to the window on IE, but
-   * they bubble to document.
-   *
-   * @param {string} registrationName Name of listener (e.g. `onClick`).
-   * @param {object} contentDocumentHandle Document which owns the container
-   */
-  listenTo: function (registrationName, contentDocumentHandle) {
-    var mountAt = contentDocumentHandle;
-    var isListening = getListeningForDocument(mountAt);
-    var dependencies = EventPluginRegistry.registrationNameDependencies[registrationName];
-
-    for (var i = 0; i < dependencies.length; i++) {
-      var dependency = dependencies[i];
-      if (!(isListening.hasOwnProperty(dependency) && isListening[dependency])) {
-        if (dependency === 'topWheel') {
-          if (isEventSupported('wheel')) {
-            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent('topWheel', 'wheel', mountAt);
-          } else if (isEventSupported('mousewheel')) {
-            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent('topWheel', 'mousewheel', mountAt);
-          } else {
-            // Firefox needs to capture a different mouse scroll event.
-            // @see http://www.quirksmode.org/dom/events/tests/scroll.html
-            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent('topWheel', 'DOMMouseScroll', mountAt);
-          }
-        } else if (dependency === 'topScroll') {
-
-          if (isEventSupported('scroll', true)) {
-            ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent('topScroll', 'scroll', mountAt);
-          } else {
-            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent('topScroll', 'scroll', ReactBrowserEventEmitter.ReactEventListener.WINDOW_HANDLE);
-          }
-        } else if (dependency === 'topFocus' || dependency === 'topBlur') {
-
-          if (isEventSupported('focus', true)) {
-            ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent('topFocus', 'focus', mountAt);
-            ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent('topBlur', 'blur', mountAt);
-          } else if (isEventSupported('focusin')) {
-            // IE has `focusin` and `focusout` events which bubble.
-            // @see http://www.quirksmode.org/blog/archives/2008/04/delegating_the.html
-            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent('topFocus', 'focusin', mountAt);
-            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent('topBlur', 'focusout', mountAt);
-          }
-
-          // to make sure blur and focus event listeners are only attached once
-          isListening.topBlur = true;
-          isListening.topFocus = true;
-        } else if (dependency === 'topCancel') {
-          if (isEventSupported('cancel', true)) {
-            ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent('topCancel', 'cancel', mountAt);
-          }
-          isListening.topCancel = true;
-        } else if (dependency === 'topClose') {
-          if (isEventSupported('close', true)) {
-            ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent('topClose', 'close', mountAt);
-          }
-          isListening.topClose = true;
-        } else if (topEventMapping.hasOwnProperty(dependency)) {
-          ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(dependency, topEventMapping[dependency], mountAt);
-        }
-
-        isListening[dependency] = true;
-      }
-    }
-  },
-
-  isListeningToAllDependencies: function (registrationName, mountAt) {
-    var isListening = getListeningForDocument(mountAt);
-    var dependencies = EventPluginRegistry.registrationNameDependencies[registrationName];
-    for (var i = 0; i < dependencies.length; i++) {
-      var dependency = dependencies[i];
-      if (!(isListening.hasOwnProperty(dependency) && isListening[dependency])) {
-        return false;
-      }
-    }
-    return true;
-  },
-
-  trapBubbledEvent: function (topLevelType, handlerBaseName, handle) {
-    return ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(topLevelType, handlerBaseName, handle);
-  },
-
-  trapCapturedEvent: function (topLevelType, handlerBaseName, handle) {
-    return ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent(topLevelType, handlerBaseName, handle);
-  },
-
-  /**
-   * Protect against document.createEvent() returning null
-   * Some popup blocker extensions appear to do this:
-   * https://github.com/facebook/react/issues/6887
-   */
-  supportsEventPageXY: function () {
-    if (!document.createEvent) {
-      return false;
-    }
-    var ev = document.createEvent('MouseEvent');
-    return ev != null && 'pageX' in ev;
-  },
-
-  /**
-   * Listens to window scroll and resize events. We cache scroll values so that
-   * application code can access them without triggering reflows.
-   *
-   * ViewportMetrics is only used by SyntheticMouse/TouchEvent and only when
-   * pageX/pageY isn't supported (legacy browsers).
-   *
-   * NOTE: Scroll events do not bubble.
-   *
-   * @see http://www.quirksmode.org/dom/events/scroll.html
-   */
-  ensureScrollValueMonitoring: function () {
-    if (hasEventPageXY === undefined) {
-      hasEventPageXY = ReactBrowserEventEmitter.supportsEventPageXY();
-    }
-    if (!hasEventPageXY && !isMonitoringScrollValue) {
-      var refresh = ViewportMetrics.refreshScrollValues;
-      ReactBrowserEventEmitter.ReactEventListener.monitorScrollValue(refresh);
-      isMonitoringScrollValue = true;
-    }
-  }
-
-});
-
-module.exports = ReactBrowserEventEmitter;
-
-/***/ }),
-/* 24 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-
-
-if (process.env.NODE_ENV !== 'production') {
-  var getComponentName = __webpack_require__(35);
-
-  var _require = __webpack_require__(7),
-      getStackAddendumByWorkInProgressFiber = _require.getStackAddendumByWorkInProgressFiber;
-}
-
-function getCurrentFiberOwnerName() {
-  if (process.env.NODE_ENV !== 'production') {
-    var fiber = ReactDebugCurrentFiber.current;
-    if (fiber == null) {
-      return null;
-    }
-    if (fiber._debugOwner != null) {
-      return getComponentName(fiber._debugOwner);
-    }
-  }
-  return null;
-}
-
-function getCurrentFiberStackAddendum() {
-  if (process.env.NODE_ENV !== 'production') {
-    var fiber = ReactDebugCurrentFiber.current;
-    if (fiber == null) {
-      return null;
-    }
-    // Safe because if current fiber exists, we are reconciling,
-    // and it is guaranteed to be the work-in-progress version.
-    return getStackAddendumByWorkInProgressFiber(fiber);
-  }
-  return null;
-}
-
-var ReactDebugCurrentFiber = {
-  current: null,
-  getCurrentFiberOwnerName: getCurrentFiberOwnerName,
-  getCurrentFiberStackAddendum: getCurrentFiberStackAddendum
-};
-
-module.exports = ReactDebugCurrentFiber;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 25 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-var SyntheticEvent = __webpack_require__(11);
-
-var getEventTarget = __webpack_require__(49);
-
-/**
- * @interface UIEvent
- * @see http://www.w3.org/TR/DOM-Level-3-Events/
- */
-var UIEventInterface = {
-  view: function (event) {
-    if (event.view) {
-      return event.view;
-    }
-
-    var target = getEventTarget(event);
-    if (target.window === target) {
-      // target is a window object
-      return target;
-    }
-
-    var doc = target.ownerDocument;
-    // TODO: Figure out why `ownerDocument` is sometimes undefined in IE8.
-    if (doc) {
-      return doc.defaultView || doc.parentWindow;
-    } else {
-      return window;
-    }
-  },
-  detail: function (event) {
-    return event.detail || 0;
-  }
-};
-
-/**
- * @param {object} dispatchConfig Configuration used to dispatch this event.
- * @param {string} dispatchMarker Marker identifying the event target.
- * @param {object} nativeEvent Native browser event.
- * @extends {SyntheticEvent}
- */
-function SyntheticUIEvent(dispatchConfig, dispatchMarker, nativeEvent, nativeEventTarget) {
-  return SyntheticEvent.call(this, dispatchConfig, dispatchMarker, nativeEvent, nativeEventTarget);
-}
-
-SyntheticEvent.augmentClass(SyntheticUIEvent, UIEventInterface);
-
-module.exports = SyntheticUIEvent;
-
-/***/ }),
-/* 26 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-var _prodInvariant = __webpack_require__(2);
-
-var EventPluginRegistry = __webpack_require__(27);
-var EventPluginUtils = __webpack_require__(40);
-var ReactErrorUtils = __webpack_require__(44);
-
-var accumulateInto = __webpack_require__(72);
-var forEachAccumulated = __webpack_require__(74);
+var accumulateInto = __webpack_require__(69);
+var forEachAccumulated = __webpack_require__(70);
 var invariant = __webpack_require__(1);
+
+/**
+ * Internal store for event listeners
+ */
+var listenerBank = {};
 
 /**
  * Internal queue of events that have accumulated their dispatches and are
@@ -3562,6 +2963,12 @@ var executeDispatchesAndReleaseSimulated = function (e) {
 };
 var executeDispatchesAndReleaseTopLevel = function (e) {
   return executeDispatchesAndRelease(e, false);
+};
+
+var getDictionaryKey = function (inst) {
+  // Prevents V8 performance issue:
+  // https://github.com/facebook/react/pull/7232
+  return '.' + inst._rootNodeID;
 };
 
 function isInteractive(tag) {
@@ -3629,35 +3036,84 @@ var EventPluginHub = {
   },
 
   /**
+   * Stores `listener` at `listenerBank[registrationName][key]`. Is idempotent.
+   *
+   * @param {object} inst The instance, which is the source of events.
+   * @param {string} registrationName Name of listener (e.g. `onClick`).
+   * @param {function} listener The callback to store.
+   */
+  putListener: function (inst, registrationName, listener) {
+    !(typeof listener === 'function') ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Expected %s listener to be a function, instead got type %s', registrationName, typeof listener) : _prodInvariant('94', registrationName, typeof listener) : void 0;
+
+    var key = getDictionaryKey(inst);
+    var bankForRegistrationName = listenerBank[registrationName] || (listenerBank[registrationName] = {});
+    bankForRegistrationName[key] = listener;
+
+    var PluginModule = EventPluginRegistry.registrationNameModules[registrationName];
+    if (PluginModule && PluginModule.didPutListener) {
+      PluginModule.didPutListener(inst, registrationName, listener);
+    }
+  },
+
+  /**
    * @param {object} inst The instance, which is the source of events.
    * @param {string} registrationName Name of listener (e.g. `onClick`).
    * @return {?function} The stored callback.
    */
   getListener: function (inst, registrationName) {
-    var listener;
-
     // TODO: shouldPreventMouseEvent is DOM-specific and definitely should not
     // live here; needs to be moved to a better place soon
-    if (typeof inst.tag === 'number') {
-      var props = EventPluginUtils.getFiberCurrentPropsFromNode(inst.stateNode);
-      if (!props) {
-        // Work in progress.
-        return null;
-      }
-      listener = props[registrationName];
-      if (shouldPreventMouseEvent(registrationName, inst.type, props)) {
-        return null;
-      }
-    } else {
-      var _props = inst._currentElement.props;
-      listener = _props[registrationName];
-      if (shouldPreventMouseEvent(registrationName, inst._currentElement.type, _props)) {
-        return null;
-      }
+    var bankForRegistrationName = listenerBank[registrationName];
+    if (shouldPreventMouseEvent(registrationName, inst._currentElement.type, inst._currentElement.props)) {
+      return null;
+    }
+    var key = getDictionaryKey(inst);
+    return bankForRegistrationName && bankForRegistrationName[key];
+  },
+
+  /**
+   * Deletes a listener from the registration bank.
+   *
+   * @param {object} inst The instance, which is the source of events.
+   * @param {string} registrationName Name of listener (e.g. `onClick`).
+   */
+  deleteListener: function (inst, registrationName) {
+    var PluginModule = EventPluginRegistry.registrationNameModules[registrationName];
+    if (PluginModule && PluginModule.willDeleteListener) {
+      PluginModule.willDeleteListener(inst, registrationName);
     }
 
-    !(!listener || typeof listener === 'function') ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Expected %s listener to be a function, instead got type %s', registrationName, typeof listener) : _prodInvariant('94', registrationName, typeof listener) : void 0;
-    return listener;
+    var bankForRegistrationName = listenerBank[registrationName];
+    // TODO: This should never be null -- when is it?
+    if (bankForRegistrationName) {
+      var key = getDictionaryKey(inst);
+      delete bankForRegistrationName[key];
+    }
+  },
+
+  /**
+   * Deletes all listeners for the DOM element with the supplied ID.
+   *
+   * @param {object} inst The instance, which is the source of events.
+   */
+  deleteAllListeners: function (inst) {
+    var key = getDictionaryKey(inst);
+    for (var registrationName in listenerBank) {
+      if (!listenerBank.hasOwnProperty(registrationName)) {
+        continue;
+      }
+
+      if (!listenerBank[registrationName][key]) {
+        continue;
+      }
+
+      var PluginModule = EventPluginRegistry.registrationNameModules[registrationName];
+      if (PluginModule && PluginModule.willDeleteListener) {
+        PluginModule.willDeleteListener(inst, registrationName);
+      }
+
+      delete listenerBank[registrationName][key];
+    }
   },
 
   /**
@@ -3714,6 +3170,17 @@ var EventPluginHub = {
     !!eventQueue ? process.env.NODE_ENV !== 'production' ? invariant(false, 'processEventQueue(): Additional events were enqueued while processing an event queue. Support for this has not yet been implemented.') : _prodInvariant('95') : void 0;
     // This would be a good time to rethrow if any of the event handlers threw.
     ReactErrorUtils.rethrowCaughtError();
+  },
+
+  /**
+   * These are needed for tests only. Do not use!
+   */
+  __purge: function () {
+    listenerBank = {};
+  },
+
+  __getListenerBank: function () {
+    return listenerBank;
   }
 
 };
@@ -3722,7 +3189,264 @@ module.exports = EventPluginHub;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 27 */
+/* 23 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(process) {/**
+ * Copyright 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+
+
+var EventPluginHub = __webpack_require__(22);
+var EventPluginUtils = __webpack_require__(35);
+
+var accumulateInto = __webpack_require__(69);
+var forEachAccumulated = __webpack_require__(70);
+var warning = __webpack_require__(2);
+
+var getListener = EventPluginHub.getListener;
+
+/**
+ * Some event types have a notion of different registration names for different
+ * "phases" of propagation. This finds listeners by a given phase.
+ */
+function listenerAtPhase(inst, event, propagationPhase) {
+  var registrationName = event.dispatchConfig.phasedRegistrationNames[propagationPhase];
+  return getListener(inst, registrationName);
+}
+
+/**
+ * Tags a `SyntheticEvent` with dispatched listeners. Creating this function
+ * here, allows us to not have to bind or create functions for each event.
+ * Mutating the event's members allows us to not have to create a wrapping
+ * "dispatch" object that pairs the event with the listener.
+ */
+function accumulateDirectionalDispatches(inst, phase, event) {
+  if (process.env.NODE_ENV !== 'production') {
+    process.env.NODE_ENV !== 'production' ? warning(inst, 'Dispatching inst must not be null') : void 0;
+  }
+  var listener = listenerAtPhase(inst, event, phase);
+  if (listener) {
+    event._dispatchListeners = accumulateInto(event._dispatchListeners, listener);
+    event._dispatchInstances = accumulateInto(event._dispatchInstances, inst);
+  }
+}
+
+/**
+ * Collect dispatches (must be entirely collected before dispatching - see unit
+ * tests). Lazily allocate the array to conserve memory.  We must loop through
+ * each event and perform the traversal for each one. We cannot perform a
+ * single traversal for the entire collection of events because each event may
+ * have a different target.
+ */
+function accumulateTwoPhaseDispatchesSingle(event) {
+  if (event && event.dispatchConfig.phasedRegistrationNames) {
+    EventPluginUtils.traverseTwoPhase(event._targetInst, accumulateDirectionalDispatches, event);
+  }
+}
+
+/**
+ * Same as `accumulateTwoPhaseDispatchesSingle`, but skips over the targetID.
+ */
+function accumulateTwoPhaseDispatchesSingleSkipTarget(event) {
+  if (event && event.dispatchConfig.phasedRegistrationNames) {
+    var targetInst = event._targetInst;
+    var parentInst = targetInst ? EventPluginUtils.getParentInstance(targetInst) : null;
+    EventPluginUtils.traverseTwoPhase(parentInst, accumulateDirectionalDispatches, event);
+  }
+}
+
+/**
+ * Accumulates without regard to direction, does not look for phased
+ * registration names. Same as `accumulateDirectDispatchesSingle` but without
+ * requiring that the `dispatchMarker` be the same as the dispatched ID.
+ */
+function accumulateDispatches(inst, ignoredDirection, event) {
+  if (event && event.dispatchConfig.registrationName) {
+    var registrationName = event.dispatchConfig.registrationName;
+    var listener = getListener(inst, registrationName);
+    if (listener) {
+      event._dispatchListeners = accumulateInto(event._dispatchListeners, listener);
+      event._dispatchInstances = accumulateInto(event._dispatchInstances, inst);
+    }
+  }
+}
+
+/**
+ * Accumulates dispatches on an `SyntheticEvent`, but only for the
+ * `dispatchMarker`.
+ * @param {SyntheticEvent} event
+ */
+function accumulateDirectDispatchesSingle(event) {
+  if (event && event.dispatchConfig.registrationName) {
+    accumulateDispatches(event._targetInst, null, event);
+  }
+}
+
+function accumulateTwoPhaseDispatches(events) {
+  forEachAccumulated(events, accumulateTwoPhaseDispatchesSingle);
+}
+
+function accumulateTwoPhaseDispatchesSkipTarget(events) {
+  forEachAccumulated(events, accumulateTwoPhaseDispatchesSingleSkipTarget);
+}
+
+function accumulateEnterLeaveDispatches(leave, enter, from, to) {
+  EventPluginUtils.traverseEnterLeave(from, to, accumulateDispatches, leave, enter);
+}
+
+function accumulateDirectDispatches(events) {
+  forEachAccumulated(events, accumulateDirectDispatchesSingle);
+}
+
+/**
+ * A small set of propagation patterns, each of which will accept a small amount
+ * of information, and generate a set of "dispatch ready event objects" - which
+ * are sets of events that have already been annotated with a set of dispatched
+ * listener functions/ids. The API is designed this way to discourage these
+ * propagation strategies from actually executing the dispatches, since we
+ * always want to collect the entire set of dispatches before executing event a
+ * single one.
+ *
+ * @constructor EventPropagators
+ */
+var EventPropagators = {
+  accumulateTwoPhaseDispatches: accumulateTwoPhaseDispatches,
+  accumulateTwoPhaseDispatchesSkipTarget: accumulateTwoPhaseDispatchesSkipTarget,
+  accumulateDirectDispatches: accumulateDirectDispatches,
+  accumulateEnterLeaveDispatches: accumulateEnterLeaveDispatches
+};
+
+module.exports = EventPropagators;
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 24 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * Copyright 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+
+
+/**
+ * `ReactInstanceMap` maintains a mapping from a public facing stateful
+ * instance (key) and the internal representation (value). This allows public
+ * methods to accept the user facing instance as an argument and map them back
+ * to internal methods.
+ */
+
+// TODO: Replace this with ES6: var ReactInstanceMap = new Map();
+
+var ReactInstanceMap = {
+
+  /**
+   * This API should be called `delete` but we'd have to make sure to always
+   * transform these to strings for IE support. When this transform is fully
+   * supported we can rename it.
+   */
+  remove: function (key) {
+    key._reactInternalInstance = undefined;
+  },
+
+  get: function (key) {
+    return key._reactInternalInstance;
+  },
+
+  has: function (key) {
+    return key._reactInternalInstance !== undefined;
+  },
+
+  set: function (key, value) {
+    key._reactInternalInstance = value;
+  }
+
+};
+
+module.exports = ReactInstanceMap;
+
+/***/ }),
+/* 25 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * Copyright 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+
+
+var SyntheticEvent = __webpack_require__(12);
+
+var getEventTarget = __webpack_require__(44);
+
+/**
+ * @interface UIEvent
+ * @see http://www.w3.org/TR/DOM-Level-3-Events/
+ */
+var UIEventInterface = {
+  view: function (event) {
+    if (event.view) {
+      return event.view;
+    }
+
+    var target = getEventTarget(event);
+    if (target.window === target) {
+      // target is a window object
+      return target;
+    }
+
+    var doc = target.ownerDocument;
+    // TODO: Figure out why `ownerDocument` is sometimes undefined in IE8.
+    if (doc) {
+      return doc.defaultView || doc.parentWindow;
+    } else {
+      return window;
+    }
+  },
+  detail: function (event) {
+    return event.detail || 0;
+  }
+};
+
+/**
+ * @param {object} dispatchConfig Configuration used to dispatch this event.
+ * @param {string} dispatchMarker Marker identifying the event target.
+ * @param {object} nativeEvent Native browser event.
+ * @extends {SyntheticEvent}
+ */
+function SyntheticUIEvent(dispatchConfig, dispatchMarker, nativeEvent, nativeEventTarget) {
+  return SyntheticEvent.call(this, dispatchConfig, dispatchMarker, nativeEvent, nativeEventTarget);
+}
+
+SyntheticEvent.augmentClass(SyntheticUIEvent, UIEventInterface);
+
+module.exports = SyntheticUIEvent;
+
+/***/ }),
+/* 26 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3739,7 +3463,7 @@ module.exports = EventPluginHub;
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
 var invariant = __webpack_require__(1);
 
@@ -3808,7 +3532,8 @@ function publishEventForPlugin(dispatchConfig, pluginModule, eventName) {
 }
 
 /**
- * Publishes a registration name that is used to identify dispatched events.
+ * Publishes a registration name that is used to identify dispatched events and
+ * can be used with `EventPluginHub.putListener` to register listeners.
  *
  * @param {string} registrationName Registration name to add.
  * @param {object} PluginModule Plugin publishing the event.
@@ -3982,36 +3707,7 @@ module.exports = EventPluginRegistry;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 28 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-
-
-var ReactFeatureFlags = {
-  // When true, call console.time() before and .timeEnd() after each top-level
-  // render (both initial renders and updates). Useful when looking at prod-mode
-  // timeline profiles in Chrome, for example.
-  logTopLevelRenders: false,
-  prepareNewChildrenBeforeUnmountInStack: true,
-  disableNewFiberFeatures: false
-};
-
-module.exports = ReactFeatureFlags;
-
-/***/ }),
-/* 29 */
+/* 27 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4027,317 +3723,324 @@ module.exports = ReactFeatureFlags;
 
 
 
-var ReactControlledComponent = __webpack_require__(64);
+var _assign = __webpack_require__(4);
 
-// Used as a way to call batchedUpdates when we don't know if we're in a Fiber
-// or Stack context. Such as when we're dispatching events or if third party
-// libraries need to call batchedUpdates. Eventually, this API will go away when
-// everything is batched by default. We'll then have a similar API to opt-out of
-// scheduled work and instead do synchronous work.
+var EventPluginRegistry = __webpack_require__(26);
+var ReactEventEmitterMixin = __webpack_require__(130);
+var ViewportMetrics = __webpack_require__(68);
 
-// Defaults
-var stackBatchedUpdates = function (fn, a, b, c, d, e) {
-  return fn(a, b, c, d, e);
+var getVendorPrefixedEventName = __webpack_require__(166);
+var isEventSupported = __webpack_require__(45);
+
+/**
+ * Summary of `ReactBrowserEventEmitter` event handling:
+ *
+ *  - Top-level delegation is used to trap most native browser events. This
+ *    may only occur in the main thread and is the responsibility of
+ *    ReactEventListener, which is injected and can therefore support pluggable
+ *    event sources. This is the only work that occurs in the main thread.
+ *
+ *  - We normalize and de-duplicate events to account for browser quirks. This
+ *    may be done in the worker thread.
+ *
+ *  - Forward these native events (with the associated top-level type used to
+ *    trap it) to `EventPluginHub`, which in turn will ask plugins if they want
+ *    to extract any synthetic events.
+ *
+ *  - The `EventPluginHub` will then process each event by annotating them with
+ *    "dispatches", a sequence of listeners and IDs that care about that event.
+ *
+ *  - The `EventPluginHub` then dispatches the events.
+ *
+ * Overview of React and the event system:
+ *
+ * +------------+    .
+ * |    DOM     |    .
+ * +------------+    .
+ *       |           .
+ *       v           .
+ * +------------+    .
+ * | ReactEvent |    .
+ * |  Listener  |    .
+ * +------------+    .                         +-----------+
+ *       |           .               +--------+|SimpleEvent|
+ *       |           .               |         |Plugin     |
+ * +-----|------+    .               v         +-----------+
+ * |     |      |    .    +--------------+                    +------------+
+ * |     +-----------.--->|EventPluginHub|                    |    Event   |
+ * |            |    .    |              |     +-----------+  | Propagators|
+ * | ReactEvent |    .    |              |     |TapEvent   |  |------------|
+ * |  Emitter   |    .    |              |<---+|Plugin     |  |other plugin|
+ * |            |    .    |              |     +-----------+  |  utilities |
+ * |     +-----------.--->|              |                    +------------+
+ * |     |      |    .    +--------------+
+ * +-----|------+    .                ^        +-----------+
+ *       |           .                |        |Enter/Leave|
+ *       +           .                +-------+|Plugin     |
+ * +-------------+   .                         +-----------+
+ * | application |   .
+ * |-------------|   .
+ * |             |   .
+ * |             |   .
+ * +-------------+   .
+ *                   .
+ *    React Core     .  General Purpose Event Plugin System
+ */
+
+var hasEventPageXY;
+var alreadyListeningTo = {};
+var isMonitoringScrollValue = false;
+var reactTopListenersCounter = 0;
+
+// For events like 'submit' which don't consistently bubble (which we trap at a
+// lower node than `document`), binding at `document` would cause duplicate
+// events so we don't include them here
+var topEventMapping = {
+  topAbort: 'abort',
+  topAnimationEnd: getVendorPrefixedEventName('animationend') || 'animationend',
+  topAnimationIteration: getVendorPrefixedEventName('animationiteration') || 'animationiteration',
+  topAnimationStart: getVendorPrefixedEventName('animationstart') || 'animationstart',
+  topBlur: 'blur',
+  topCanPlay: 'canplay',
+  topCanPlayThrough: 'canplaythrough',
+  topChange: 'change',
+  topClick: 'click',
+  topCompositionEnd: 'compositionend',
+  topCompositionStart: 'compositionstart',
+  topCompositionUpdate: 'compositionupdate',
+  topContextMenu: 'contextmenu',
+  topCopy: 'copy',
+  topCut: 'cut',
+  topDoubleClick: 'dblclick',
+  topDrag: 'drag',
+  topDragEnd: 'dragend',
+  topDragEnter: 'dragenter',
+  topDragExit: 'dragexit',
+  topDragLeave: 'dragleave',
+  topDragOver: 'dragover',
+  topDragStart: 'dragstart',
+  topDrop: 'drop',
+  topDurationChange: 'durationchange',
+  topEmptied: 'emptied',
+  topEncrypted: 'encrypted',
+  topEnded: 'ended',
+  topError: 'error',
+  topFocus: 'focus',
+  topInput: 'input',
+  topKeyDown: 'keydown',
+  topKeyPress: 'keypress',
+  topKeyUp: 'keyup',
+  topLoadedData: 'loadeddata',
+  topLoadedMetadata: 'loadedmetadata',
+  topLoadStart: 'loadstart',
+  topMouseDown: 'mousedown',
+  topMouseMove: 'mousemove',
+  topMouseOut: 'mouseout',
+  topMouseOver: 'mouseover',
+  topMouseUp: 'mouseup',
+  topPaste: 'paste',
+  topPause: 'pause',
+  topPlay: 'play',
+  topPlaying: 'playing',
+  topProgress: 'progress',
+  topRateChange: 'ratechange',
+  topScroll: 'scroll',
+  topSeeked: 'seeked',
+  topSeeking: 'seeking',
+  topSelectionChange: 'selectionchange',
+  topStalled: 'stalled',
+  topSuspend: 'suspend',
+  topTextInput: 'textInput',
+  topTimeUpdate: 'timeupdate',
+  topTouchCancel: 'touchcancel',
+  topTouchEnd: 'touchend',
+  topTouchMove: 'touchmove',
+  topTouchStart: 'touchstart',
+  topTransitionEnd: getVendorPrefixedEventName('transitionend') || 'transitionend',
+  topVolumeChange: 'volumechange',
+  topWaiting: 'waiting',
+  topWheel: 'wheel'
 };
-var fiberBatchedUpdates = function (fn, bookkeeping) {
-  return fn(bookkeeping);
-};
 
-function performFiberBatchedUpdates(fn, bookkeeping) {
-  // If we have Fiber loaded, we need to wrap this in a batching call so that
-  // Fiber can apply its default priority for this call.
-  return fiberBatchedUpdates(fn, bookkeeping);
-}
-function batchedUpdates(fn, bookkeeping) {
-  // We first perform work with the stack batching strategy, by passing our
-  // indirection to it.
-  return stackBatchedUpdates(performFiberBatchedUpdates, fn, bookkeeping);
-}
+/**
+ * To ensure no conflicts with other potential React instances on the page
+ */
+var topListenersIDKey = '_reactListenersID' + String(Math.random()).slice(2);
 
-var isNestingBatched = false;
-function batchedUpdatesWithControlledComponents(fn, bookkeeping) {
-  if (isNestingBatched) {
-    // If we are currently inside another batch, we need to wait until it
-    // fully completes before restoring state. Therefore, we add the target to
-    // a queue of work.
-    return batchedUpdates(fn, bookkeeping);
+function getListeningForDocument(mountAt) {
+  // In IE8, `mountAt` is a host object and doesn't have `hasOwnProperty`
+  // directly.
+  if (!Object.prototype.hasOwnProperty.call(mountAt, topListenersIDKey)) {
+    mountAt[topListenersIDKey] = reactTopListenersCounter++;
+    alreadyListeningTo[mountAt[topListenersIDKey]] = {};
   }
-  isNestingBatched = true;
-  try {
-    return batchedUpdates(fn, bookkeeping);
-  } finally {
-    // Here we wait until all updates have propagated, which is important
-    // when using controlled components within layers:
-    // https://github.com/facebook/react/issues/1698
-    // Then we restore state of any controlled component.
-    isNestingBatched = false;
-    ReactControlledComponent.restoreStateIfNeeded();
-  }
+  return alreadyListeningTo[mountAt[topListenersIDKey]];
 }
 
-var ReactGenericBatchingInjection = {
-  injectStackBatchedUpdates: function (_batchedUpdates) {
-    stackBatchedUpdates = _batchedUpdates;
+/**
+ * `ReactBrowserEventEmitter` is used to attach top-level event listeners. For
+ * example:
+ *
+ *   EventPluginHub.putListener('myID', 'onClick', myFunction);
+ *
+ * This would allocate a "registration" of `('onClick', myFunction)` on 'myID'.
+ *
+ * @internal
+ */
+var ReactBrowserEventEmitter = _assign({}, ReactEventEmitterMixin, {
+
+  /**
+   * Injectable event backend
+   */
+  ReactEventListener: null,
+
+  injection: {
+    /**
+     * @param {object} ReactEventListener
+     */
+    injectReactEventListener: function (ReactEventListener) {
+      ReactEventListener.setHandleTopLevel(ReactBrowserEventEmitter.handleTopLevel);
+      ReactBrowserEventEmitter.ReactEventListener = ReactEventListener;
+    }
   },
-  injectFiberBatchedUpdates: function (_batchedUpdates) {
-    fiberBatchedUpdates = _batchedUpdates;
-  }
-};
 
-var ReactGenericBatching = {
-  batchedUpdates: batchedUpdatesWithControlledComponents,
-  injection: ReactGenericBatchingInjection
-};
-
-module.exports = ReactGenericBatching;
-
-/***/ }),
-/* 30 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-
-
-module.exports = {
-  IndeterminateComponent: 0, // Before we know whether it is functional or class
-  FunctionalComponent: 1,
-  ClassComponent: 2,
-  HostRoot: 3, // Root of a host tree. Could be nested inside another node.
-  HostPortal: 4, // A subtree. Could be an entry point to a different renderer.
-  HostComponent: 5,
-  HostText: 6,
-  CoroutineComponent: 7,
-  CoroutineHandlerPhase: 8,
-  YieldComponent: 9,
-  Fragment: 10
-};
-
-/***/ }),
-/* 31 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-var _prodInvariant = __webpack_require__(2),
-    _assign = __webpack_require__(5);
-
-var PooledClass = __webpack_require__(16);
-var ReactFeatureFlags = __webpack_require__(28);
-var ReactReconciler = __webpack_require__(20);
-var Transaction = __webpack_require__(33);
-
-var invariant = __webpack_require__(1);
-
-var dirtyComponents = [];
-var updateBatchNumber = 0;
-
-var batchingStrategy = null;
-
-function ensureInjected() {
-  !(ReactUpdates.ReactReconcileTransaction && batchingStrategy) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactUpdates: must inject a reconcile transaction class and batching strategy') : _prodInvariant('123') : void 0;
-}
-
-var NESTED_UPDATES = {
-  initialize: function () {
-    this.dirtyComponentsLength = dirtyComponents.length;
+  /**
+   * Sets whether or not any created callbacks should be enabled.
+   *
+   * @param {boolean} enabled True if callbacks should be enabled.
+   */
+  setEnabled: function (enabled) {
+    if (ReactBrowserEventEmitter.ReactEventListener) {
+      ReactBrowserEventEmitter.ReactEventListener.setEnabled(enabled);
+    }
   },
-  close: function () {
-    if (this.dirtyComponentsLength !== dirtyComponents.length) {
-      // Additional updates were enqueued by componentDidUpdate handlers or
-      // similar; before our own UPDATE_QUEUEING wrapper closes, we want to run
-      // these new updates so that if A's componentDidUpdate calls setState on
-      // B, B will update before the callback A's updater provided when calling
-      // setState.
-      dirtyComponents.splice(0, this.dirtyComponentsLength);
-      flushBatchedUpdates();
-    } else {
-      dirtyComponents.length = 0;
+
+  /**
+   * @return {boolean} True if callbacks are enabled.
+   */
+  isEnabled: function () {
+    return !!(ReactBrowserEventEmitter.ReactEventListener && ReactBrowserEventEmitter.ReactEventListener.isEnabled());
+  },
+
+  /**
+   * We listen for bubbled touch events on the document object.
+   *
+   * Firefox v8.01 (and possibly others) exhibited strange behavior when
+   * mounting `onmousemove` events at some node that was not the document
+   * element. The symptoms were that if your mouse is not moving over something
+   * contained within that mount point (for example on the background) the
+   * top-level listeners for `onmousemove` won't be called. However, if you
+   * register the `mousemove` on the document object, then it will of course
+   * catch all `mousemove`s. This along with iOS quirks, justifies restricting
+   * top-level listeners to the document object only, at least for these
+   * movement types of events and possibly all events.
+   *
+   * @see http://www.quirksmode.org/blog/archives/2010/09/click_event_del.html
+   *
+   * Also, `keyup`/`keypress`/`keydown` do not bubble to the window on IE, but
+   * they bubble to document.
+   *
+   * @param {string} registrationName Name of listener (e.g. `onClick`).
+   * @param {object} contentDocumentHandle Document which owns the container
+   */
+  listenTo: function (registrationName, contentDocumentHandle) {
+    var mountAt = contentDocumentHandle;
+    var isListening = getListeningForDocument(mountAt);
+    var dependencies = EventPluginRegistry.registrationNameDependencies[registrationName];
+
+    for (var i = 0; i < dependencies.length; i++) {
+      var dependency = dependencies[i];
+      if (!(isListening.hasOwnProperty(dependency) && isListening[dependency])) {
+        if (dependency === 'topWheel') {
+          if (isEventSupported('wheel')) {
+            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent('topWheel', 'wheel', mountAt);
+          } else if (isEventSupported('mousewheel')) {
+            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent('topWheel', 'mousewheel', mountAt);
+          } else {
+            // Firefox needs to capture a different mouse scroll event.
+            // @see http://www.quirksmode.org/dom/events/tests/scroll.html
+            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent('topWheel', 'DOMMouseScroll', mountAt);
+          }
+        } else if (dependency === 'topScroll') {
+
+          if (isEventSupported('scroll', true)) {
+            ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent('topScroll', 'scroll', mountAt);
+          } else {
+            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent('topScroll', 'scroll', ReactBrowserEventEmitter.ReactEventListener.WINDOW_HANDLE);
+          }
+        } else if (dependency === 'topFocus' || dependency === 'topBlur') {
+
+          if (isEventSupported('focus', true)) {
+            ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent('topFocus', 'focus', mountAt);
+            ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent('topBlur', 'blur', mountAt);
+          } else if (isEventSupported('focusin')) {
+            // IE has `focusin` and `focusout` events which bubble.
+            // @see http://www.quirksmode.org/blog/archives/2008/04/delegating_the.html
+            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent('topFocus', 'focusin', mountAt);
+            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent('topBlur', 'focusout', mountAt);
+          }
+
+          // to make sure blur and focus event listeners are only attached once
+          isListening.topBlur = true;
+          isListening.topFocus = true;
+        } else if (topEventMapping.hasOwnProperty(dependency)) {
+          ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(dependency, topEventMapping[dependency], mountAt);
+        }
+
+        isListening[dependency] = true;
+      }
+    }
+  },
+
+  trapBubbledEvent: function (topLevelType, handlerBaseName, handle) {
+    return ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(topLevelType, handlerBaseName, handle);
+  },
+
+  trapCapturedEvent: function (topLevelType, handlerBaseName, handle) {
+    return ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent(topLevelType, handlerBaseName, handle);
+  },
+
+  /**
+   * Protect against document.createEvent() returning null
+   * Some popup blocker extensions appear to do this:
+   * https://github.com/facebook/react/issues/6887
+   */
+  supportsEventPageXY: function () {
+    if (!document.createEvent) {
+      return false;
+    }
+    var ev = document.createEvent('MouseEvent');
+    return ev != null && 'pageX' in ev;
+  },
+
+  /**
+   * Listens to window scroll and resize events. We cache scroll values so that
+   * application code can access them without triggering reflows.
+   *
+   * ViewportMetrics is only used by SyntheticMouse/TouchEvent and only when
+   * pageX/pageY isn't supported (legacy browsers).
+   *
+   * NOTE: Scroll events do not bubble.
+   *
+   * @see http://www.quirksmode.org/dom/events/scroll.html
+   */
+  ensureScrollValueMonitoring: function () {
+    if (hasEventPageXY === undefined) {
+      hasEventPageXY = ReactBrowserEventEmitter.supportsEventPageXY();
+    }
+    if (!hasEventPageXY && !isMonitoringScrollValue) {
+      var refresh = ViewportMetrics.refreshScrollValues;
+      ReactBrowserEventEmitter.ReactEventListener.monitorScrollValue(refresh);
+      isMonitoringScrollValue = true;
     }
   }
-};
 
-var TRANSACTION_WRAPPERS = [NESTED_UPDATES];
-
-function ReactUpdatesFlushTransaction() {
-  this.reinitializeTransaction();
-  this.dirtyComponentsLength = null;
-  this.reconcileTransaction = ReactUpdates.ReactReconcileTransaction.getPooled(
-  /* useCreateElement */true);
-}
-
-_assign(ReactUpdatesFlushTransaction.prototype, Transaction, {
-  getTransactionWrappers: function () {
-    return TRANSACTION_WRAPPERS;
-  },
-
-  destructor: function () {
-    this.dirtyComponentsLength = null;
-    ReactUpdates.ReactReconcileTransaction.release(this.reconcileTransaction);
-    this.reconcileTransaction = null;
-  },
-
-  perform: function (method, scope, a) {
-    // Essentially calls `this.reconcileTransaction.perform(method, scope, a)`
-    // with this transaction's wrappers around it.
-    return Transaction.perform.call(this, this.reconcileTransaction.perform, this.reconcileTransaction, method, scope, a);
-  }
 });
 
-PooledClass.addPoolingTo(ReactUpdatesFlushTransaction);
-
-function batchedUpdates(callback, a, b, c, d, e) {
-  ensureInjected();
-  return batchingStrategy.batchedUpdates(callback, a, b, c, d, e);
-}
-
-/**
- * Array comparator for ReactComponents by mount ordering.
- *
- * @param {ReactComponent} c1 first component you're comparing
- * @param {ReactComponent} c2 second component you're comparing
- * @return {number} Return value usable by Array.prototype.sort().
- */
-function mountOrderComparator(c1, c2) {
-  return c1._mountOrder - c2._mountOrder;
-}
-
-function runBatchedUpdates(transaction) {
-  var len = transaction.dirtyComponentsLength;
-  !(len === dirtyComponents.length) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Expected flush transaction\'s stored dirty-components length (%s) to match dirty-components array length (%s).', len, dirtyComponents.length) : _prodInvariant('124', len, dirtyComponents.length) : void 0;
-
-  // Since reconciling a component higher in the owner hierarchy usually (not
-  // always -- see shouldComponentUpdate()) will reconcile children, reconcile
-  // them before their children by sorting the array.
-  dirtyComponents.sort(mountOrderComparator);
-
-  // Any updates enqueued while reconciling must be performed after this entire
-  // batch. Otherwise, if dirtyComponents is [A, B] where A has children B and
-  // C, B could update twice in a single batch if C's render enqueues an update
-  // to B (since B would have already updated, we should skip it, and the only
-  // way we can know to do so is by checking the batch counter).
-  updateBatchNumber++;
-
-  for (var i = 0; i < len; i++) {
-    // If a component is unmounted before pending changes apply, it will still
-    // be here, but we assume that it has cleared its _pendingCallbacks and
-    // that performUpdateIfNecessary is a noop.
-    var component = dirtyComponents[i];
-
-    var markerName;
-    if (ReactFeatureFlags.logTopLevelRenders) {
-      var namedComponent = component;
-      // Duck type TopLevelWrapper. This is probably always true.
-      if (component._currentElement.type.isReactTopLevelWrapper) {
-        namedComponent = component._renderedComponent;
-      }
-      markerName = 'React update: ' + namedComponent.getName();
-      console.time(markerName);
-    }
-
-    ReactReconciler.performUpdateIfNecessary(component, transaction.reconcileTransaction, updateBatchNumber);
-
-    if (markerName) {
-      console.timeEnd(markerName);
-    }
-  }
-}
-
-var flushBatchedUpdates = function () {
-  // ReactUpdatesFlushTransaction's wrappers will clear the dirtyComponents
-  // array and perform any updates enqueued by mount-ready handlers (i.e.,
-  // componentDidUpdate) but we need to check here too in order to catch
-  // updates enqueued by setState callbacks.
-  while (dirtyComponents.length) {
-    var transaction = ReactUpdatesFlushTransaction.getPooled();
-    transaction.perform(runBatchedUpdates, null, transaction);
-    ReactUpdatesFlushTransaction.release(transaction);
-  }
-};
-
-/**
- * Mark a component as needing a rerender, adding an optional callback to a
- * list of functions which will be executed once the rerender occurs.
- */
-function enqueueUpdate(component) {
-  ensureInjected();
-
-  // Various parts of our code (such as ReactCompositeComponent's
-  // _renderValidatedComponent) assume that calls to render aren't nested;
-  // verify that that's the case. (This is called by each top-level update
-  // function, like setState, forceUpdate, etc.; creation and
-  // destruction of top-level components is guarded in ReactMount.)
-
-  if (!batchingStrategy.isBatchingUpdates) {
-    batchingStrategy.batchedUpdates(enqueueUpdate, component);
-    return;
-  }
-
-  dirtyComponents.push(component);
-  if (component._updateBatchNumber == null) {
-    component._updateBatchNumber = updateBatchNumber + 1;
-  }
-}
-
-var ReactUpdatesInjection = {
-  injectReconcileTransaction: function (ReconcileTransaction) {
-    !ReconcileTransaction ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactUpdates: must provide a reconcile transaction class') : _prodInvariant('126') : void 0;
-    ReactUpdates.ReactReconcileTransaction = ReconcileTransaction;
-  },
-
-  injectBatchingStrategy: function (_batchingStrategy) {
-    !_batchingStrategy ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactUpdates: must provide a batching strategy') : _prodInvariant('127') : void 0;
-    !(typeof _batchingStrategy.batchedUpdates === 'function') ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactUpdates: must provide a batchedUpdates() function') : _prodInvariant('128') : void 0;
-    !(typeof _batchingStrategy.isBatchingUpdates === 'boolean') ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactUpdates: must provide an isBatchingUpdates boolean attribute') : _prodInvariant('129') : void 0;
-    batchingStrategy = _batchingStrategy;
-  },
-
-  getBatchingStrategy: function () {
-    return batchingStrategy;
-  }
-};
-
-var ReactUpdates = {
-  /**
-   * React references `ReactReconcileTransaction` using this property in order
-   * to allow dependency injection.
-   *
-   * @internal
-   */
-  ReactReconcileTransaction: null,
-
-  batchedUpdates: batchedUpdates,
-  enqueueUpdate: enqueueUpdate,
-  flushBatchedUpdates: flushBatchedUpdates,
-  injection: ReactUpdatesInjection
-};
-
-module.exports = ReactUpdates;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+module.exports = ReactBrowserEventEmitter;
 
 /***/ }),
-/* 32 */
+/* 28 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4354,9 +4057,9 @@ module.exports = ReactUpdates;
 
 
 var SyntheticUIEvent = __webpack_require__(25);
-var ViewportMetrics = __webpack_require__(71);
+var ViewportMetrics = __webpack_require__(68);
 
-var getEventModifierState = __webpack_require__(48);
+var getEventModifierState = __webpack_require__(43);
 
 /**
  * @interface MouseEvent
@@ -4414,7 +4117,7 @@ SyntheticUIEvent.augmentClass(SyntheticMouseEvent, MouseEventInterface);
 module.exports = SyntheticMouseEvent;
 
 /***/ }),
-/* 33 */
+/* 29 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4431,7 +4134,7 @@ module.exports = SyntheticMouseEvent;
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
 var invariant = __webpack_require__(1);
 
@@ -4645,7 +4348,7 @@ module.exports = TransactionImpl;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 34 */
+/* 30 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4773,48 +4476,7 @@ function escapeTextContentForBrowser(text) {
 module.exports = escapeTextContentForBrowser;
 
 /***/ }),
-/* 35 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-
-
-function getComponentName(instanceOrFiber) {
-  if (typeof instanceOrFiber.getName === 'function') {
-    // Stack reconciler
-    var instance = instanceOrFiber;
-    return instance.getName();
-  }
-  if (typeof instanceOrFiber.tag === 'number') {
-    // Fiber reconciler
-    var fiber = instanceOrFiber;
-    var type = fiber.type;
-
-    if (typeof type === 'string') {
-      return type;
-    }
-    if (typeof type === 'function') {
-      return type.displayName || type.name;
-    }
-  }
-  return null;
-}
-
-module.exports = getComponentName;
-
-/***/ }),
-/* 36 */
+/* 31 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4831,12 +4493,12 @@ module.exports = getComponentName;
 
 
 var ExecutionEnvironment = __webpack_require__(6);
-var DOMNamespaces = __webpack_require__(39);
+var DOMNamespaces = __webpack_require__(34);
 
 var WHITESPACE_TEST = /^[ \r\n\t\f]/;
 var NONVISIBLE_TEST = /<(!--|link|noscript|meta|script|style)[ \r\n\t\f\/>]/;
 
-var createMicrosoftUnsafeLocalFunction = __webpack_require__(46);
+var createMicrosoftUnsafeLocalFunction = __webpack_require__(41);
 
 // SVG temp container for IE lacking innerHTML
 var reusableSVGContainer;
@@ -4917,104 +4579,80 @@ if (ExecutionEnvironment.canUseDOM) {
 module.exports = setInnerHTML;
 
 /***/ }),
-/* 37 */
+/* 32 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/*
-object-assign
-(c) Sindre Sorhus
-@license MIT
-*/
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @typechecks
+ * 
+ */
+
+/*eslint-disable no-self-compare */
 
 
-/* eslint-disable no-unused-vars */
-var getOwnPropertySymbols = Object.getOwnPropertySymbols;
+
 var hasOwnProperty = Object.prototype.hasOwnProperty;
-var propIsEnumerable = Object.prototype.propertyIsEnumerable;
 
-function toObject(val) {
-	if (val === null || val === undefined) {
-		throw new TypeError('Object.assign cannot be called with null or undefined');
-	}
-
-	return Object(val);
+/**
+ * inlined Object.is polyfill to avoid requiring consumers ship their own
+ * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is
+ */
+function is(x, y) {
+  // SameValue algorithm
+  if (x === y) {
+    // Steps 1-5, 7-10
+    // Steps 6.b-6.e: +0 != -0
+    // Added the nonzero y check to make Flow happy, but it is redundant
+    return x !== 0 || y !== 0 || 1 / x === 1 / y;
+  } else {
+    // Step 6.a: NaN == NaN
+    return x !== x && y !== y;
+  }
 }
 
-function shouldUseNative() {
-	try {
-		if (!Object.assign) {
-			return false;
-		}
+/**
+ * Performs equality by iterating through keys on an object and returning false
+ * when any key has values which are not strictly equal between the arguments.
+ * Returns true when the values of all keys are strictly equal.
+ */
+function shallowEqual(objA, objB) {
+  if (is(objA, objB)) {
+    return true;
+  }
 
-		// Detect buggy property enumeration order in older V8 versions.
+  if (typeof objA !== 'object' || objA === null || typeof objB !== 'object' || objB === null) {
+    return false;
+  }
 
-		// https://bugs.chromium.org/p/v8/issues/detail?id=4118
-		var test1 = new String('abc');  // eslint-disable-line no-new-wrappers
-		test1[5] = 'de';
-		if (Object.getOwnPropertyNames(test1)[0] === '5') {
-			return false;
-		}
+  var keysA = Object.keys(objA);
+  var keysB = Object.keys(objB);
 
-		// https://bugs.chromium.org/p/v8/issues/detail?id=3056
-		var test2 = {};
-		for (var i = 0; i < 10; i++) {
-			test2['_' + String.fromCharCode(i)] = i;
-		}
-		var order2 = Object.getOwnPropertyNames(test2).map(function (n) {
-			return test2[n];
-		});
-		if (order2.join('') !== '0123456789') {
-			return false;
-		}
+  if (keysA.length !== keysB.length) {
+    return false;
+  }
 
-		// https://bugs.chromium.org/p/v8/issues/detail?id=3056
-		var test3 = {};
-		'abcdefghijklmnopqrst'.split('').forEach(function (letter) {
-			test3[letter] = letter;
-		});
-		if (Object.keys(Object.assign({}, test3)).join('') !==
-				'abcdefghijklmnopqrst') {
-			return false;
-		}
+  // Test for A's keys different from B.
+  for (var i = 0; i < keysA.length; i++) {
+    if (!hasOwnProperty.call(objB, keysA[i]) || !is(objA[keysA[i]], objB[keysA[i]])) {
+      return false;
+    }
+  }
 
-		return true;
-	} catch (err) {
-		// We don't expect any of the above to throw, but better to be safe.
-		return false;
-	}
+  return true;
 }
 
-module.exports = shouldUseNative() ? Object.assign : function (target, source) {
-	var from;
-	var to = toObject(target);
-	var symbols;
-
-	for (var s = 1; s < arguments.length; s++) {
-		from = Object(arguments[s]);
-
-		for (var key in from) {
-			if (hasOwnProperty.call(from, key)) {
-				to[key] = from[key];
-			}
-		}
-
-		if (getOwnPropertySymbols) {
-			symbols = getOwnPropertySymbols(from);
-			for (var i = 0; i < symbols.length; i++) {
-				if (propIsEnumerable.call(from, symbols[i])) {
-					to[symbols[i]] = from[symbols[i]];
-				}
-			}
-		}
-	}
-
-	return to;
-};
-
+module.exports = shallowEqual;
 
 /***/ }),
-/* 38 */
+/* 33 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5030,14 +4668,14 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 
 
 
-var DOMLazyTree = __webpack_require__(18);
-var Danger = __webpack_require__(98);
-var ReactDOMComponentTree = __webpack_require__(4);
+var DOMLazyTree = __webpack_require__(17);
+var Danger = __webpack_require__(103);
+var ReactDOMComponentTree = __webpack_require__(5);
 var ReactInstrumentation = __webpack_require__(8);
 
-var createMicrosoftUnsafeLocalFunction = __webpack_require__(46);
-var setInnerHTML = __webpack_require__(36);
-var setTextContent = __webpack_require__(80);
+var createMicrosoftUnsafeLocalFunction = __webpack_require__(41);
+var setInnerHTML = __webpack_require__(31);
+var setTextContent = __webpack_require__(75);
 
 function getNodeAfter(parentNode, node) {
   // Special case for text components, which return [open, close] comments
@@ -5245,7 +4883,7 @@ module.exports = DOMChildrenOperations;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 39 */
+/* 34 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5270,7 +4908,7 @@ var DOMNamespaces = {
 module.exports = DOMNamespaces;
 
 /***/ }),
-/* 40 */
+/* 35 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5286,12 +4924,12 @@ module.exports = DOMNamespaces;
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
-var ReactErrorUtils = __webpack_require__(44);
+var ReactErrorUtils = __webpack_require__(39);
 
 var invariant = __webpack_require__(1);
-var warning = __webpack_require__(3);
+var warning = __webpack_require__(2);
 
 /**
  * Injected dependencies:
@@ -5302,11 +4940,18 @@ var warning = __webpack_require__(3);
  *   and actual node references.
  */
 var ComponentTree;
+var TreeTraversal;
 var injection = {
   injectComponentTree: function (Injected) {
     ComponentTree = Injected;
     if (process.env.NODE_ENV !== 'production') {
       process.env.NODE_ENV !== 'production' ? warning(Injected && Injected.getNodeFromInstance && Injected.getInstanceFromNode, 'EventPluginUtils.injection.injectComponentTree(...): Injected ' + 'module is missing getNodeFromInstance or getInstanceFromNode.') : void 0;
+    }
+  },
+  injectTreeTraversal: function (Injected) {
+    TreeTraversal = Injected;
+    if (process.env.NODE_ENV !== 'production') {
+      process.env.NODE_ENV !== 'production' ? warning(Injected && Injected.isAncestor && Injected.getLowestCommonAncestor, 'EventPluginUtils.injection.injectTreeTraversal(...): Injected ' + 'module is missing isAncestor or getLowestCommonAncestor.') : void 0;
     }
   }
 };
@@ -5466,14 +5111,26 @@ var EventPluginUtils = {
   executeDispatchesInOrderStopAtTrue: executeDispatchesInOrderStopAtTrue,
   hasDispatches: hasDispatches,
 
-  getFiberCurrentPropsFromNode: function (node) {
-    return ComponentTree.getFiberCurrentPropsFromNode(node);
-  },
   getInstanceFromNode: function (node) {
     return ComponentTree.getInstanceFromNode(node);
   },
   getNodeFromInstance: function (node) {
     return ComponentTree.getNodeFromInstance(node);
+  },
+  isAncestor: function (a, b) {
+    return TreeTraversal.isAncestor(a, b);
+  },
+  getLowestCommonAncestor: function (a, b) {
+    return TreeTraversal.getLowestCommonAncestor(a, b);
+  },
+  getParentInstance: function (inst) {
+    return TreeTraversal.getParentInstance(inst);
+  },
+  traverseTwoPhase: function (target, fn, arg) {
+    return TreeTraversal.traverseTwoPhase(target, fn, arg);
+  },
+  traverseEnterLeave: function (from, to, fn, argFrom, argTo) {
+    return TreeTraversal.traverseEnterLeave(from, to, fn, argFrom, argTo);
   },
 
   injection: injection
@@ -5483,7 +5140,7 @@ module.exports = EventPluginUtils;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 41 */
+/* 36 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5547,7 +5204,148 @@ var KeyEscapeUtils = {
 module.exports = KeyEscapeUtils;
 
 /***/ }),
-/* 42 */
+/* 37 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(process) {/**
+ * Copyright 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+
+
+var _prodInvariant = __webpack_require__(3);
+
+var React = __webpack_require__(19);
+var ReactPropTypesSecret = __webpack_require__(67);
+
+var invariant = __webpack_require__(1);
+var warning = __webpack_require__(2);
+
+var hasReadOnlyValue = {
+  'button': true,
+  'checkbox': true,
+  'image': true,
+  'hidden': true,
+  'radio': true,
+  'reset': true,
+  'submit': true
+};
+
+function _assertSingleLink(inputProps) {
+  !(inputProps.checkedLink == null || inputProps.valueLink == null) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Cannot provide a checkedLink and a valueLink. If you want to use checkedLink, you probably don\'t want to use valueLink and vice versa.') : _prodInvariant('87') : void 0;
+}
+function _assertValueLink(inputProps) {
+  _assertSingleLink(inputProps);
+  !(inputProps.value == null && inputProps.onChange == null) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Cannot provide a valueLink and a value or onChange event. If you want to use value or onChange, you probably don\'t want to use valueLink.') : _prodInvariant('88') : void 0;
+}
+
+function _assertCheckedLink(inputProps) {
+  _assertSingleLink(inputProps);
+  !(inputProps.checked == null && inputProps.onChange == null) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Cannot provide a checkedLink and a checked property or onChange event. If you want to use checked or onChange, you probably don\'t want to use checkedLink') : _prodInvariant('89') : void 0;
+}
+
+var propTypes = {
+  value: function (props, propName, componentName) {
+    if (!props[propName] || hasReadOnlyValue[props.type] || props.onChange || props.readOnly || props.disabled) {
+      return null;
+    }
+    return new Error('You provided a `value` prop to a form field without an ' + '`onChange` handler. This will render a read-only field. If ' + 'the field should be mutable use `defaultValue`. Otherwise, ' + 'set either `onChange` or `readOnly`.');
+  },
+  checked: function (props, propName, componentName) {
+    if (!props[propName] || props.onChange || props.readOnly || props.disabled) {
+      return null;
+    }
+    return new Error('You provided a `checked` prop to a form field without an ' + '`onChange` handler. This will render a read-only field. If ' + 'the field should be mutable use `defaultChecked`. Otherwise, ' + 'set either `onChange` or `readOnly`.');
+  },
+  onChange: React.PropTypes.func
+};
+
+var loggedTypeFailures = {};
+function getDeclarationErrorAddendum(owner) {
+  if (owner) {
+    var name = owner.getName();
+    if (name) {
+      return ' Check the render method of `' + name + '`.';
+    }
+  }
+  return '';
+}
+
+/**
+ * Provide a linked `value` attribute for controlled forms. You should not use
+ * this outside of the ReactDOM controlled form components.
+ */
+var LinkedValueUtils = {
+  checkPropTypes: function (tagName, props, owner) {
+    for (var propName in propTypes) {
+      if (propTypes.hasOwnProperty(propName)) {
+        var error = propTypes[propName](props, propName, tagName, 'prop', null, ReactPropTypesSecret);
+      }
+      if (error instanceof Error && !(error.message in loggedTypeFailures)) {
+        // Only monitor this failure once because there tends to be a lot of the
+        // same error.
+        loggedTypeFailures[error.message] = true;
+
+        var addendum = getDeclarationErrorAddendum(owner);
+        process.env.NODE_ENV !== 'production' ? warning(false, 'Failed form propType: %s%s', error.message, addendum) : void 0;
+      }
+    }
+  },
+
+  /**
+   * @param {object} inputProps Props for form component
+   * @return {*} current value of the input either from value prop or link.
+   */
+  getValue: function (inputProps) {
+    if (inputProps.valueLink) {
+      _assertValueLink(inputProps);
+      return inputProps.valueLink.value;
+    }
+    return inputProps.value;
+  },
+
+  /**
+   * @param {object} inputProps Props for form component
+   * @return {*} current checked status of the input either from checked prop
+   *             or link.
+   */
+  getChecked: function (inputProps) {
+    if (inputProps.checkedLink) {
+      _assertCheckedLink(inputProps);
+      return inputProps.checkedLink.value;
+    }
+    return inputProps.checked;
+  },
+
+  /**
+   * @param {object} inputProps Props for form component
+   * @param {SyntheticEvent} event change event to handle
+   */
+  executeOnChange: function (inputProps, event) {
+    if (inputProps.valueLink) {
+      _assertValueLink(inputProps);
+      return inputProps.valueLink.requestChange(event.target.value);
+    } else if (inputProps.checkedLink) {
+      _assertCheckedLink(inputProps);
+      return inputProps.checkedLink.requestChange(event.target.checked);
+    } else if (inputProps.onChange) {
+      return inputProps.onChange.call(undefined, event);
+    }
+  }
+};
+
+module.exports = LinkedValueUtils;
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 38 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5564,7 +5362,7 @@ module.exports = KeyEscapeUtils;
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
 var invariant = __webpack_require__(1);
 
@@ -5599,87 +5397,7 @@ module.exports = ReactComponentEnvironment;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 43 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-var React = __webpack_require__(21);
-
-var warning = __webpack_require__(3);
-
-var hasReadOnlyValue = {
-  'button': true,
-  'checkbox': true,
-  'image': true,
-  'hidden': true,
-  'radio': true,
-  'reset': true,
-  'submit': true
-};
-
-var propTypes = {
-  value: function (props, propName, componentName) {
-    if (!props[propName] || hasReadOnlyValue[props.type] || props.onChange || props.readOnly || props.disabled) {
-      return null;
-    }
-    return new Error('You provided a `value` prop to a form field without an ' + '`onChange` handler. This will render a read-only field. If ' + 'the field should be mutable use `defaultValue`. Otherwise, ' + 'set either `onChange` or `readOnly`.');
-  },
-  checked: function (props, propName, componentName) {
-    if (!props[propName] || props.onChange || props.readOnly || props.disabled) {
-      return null;
-    }
-    return new Error('You provided a `checked` prop to a form field without an ' + '`onChange` handler. This will render a read-only field. If ' + 'the field should be mutable use `defaultChecked`. Otherwise, ' + 'set either `onChange` or `readOnly`.');
-  },
-  onChange: React.PropTypes.func
-};
-
-var loggedTypeFailures = {};
-function getDeclarationErrorAddendum(ownerName) {
-  if (ownerName) {
-    return '\n\nCheck the render method of `' + ownerName + '`.';
-  }
-  return '';
-}
-
-/**
- * Provide a linked `value` attribute for controlled forms. You should not use
- * this outside of the ReactDOM controlled form components.
- */
-var ReactControlledValuePropTypes = {
-  checkPropTypes: function (tagName, props, ownerName) {
-    for (var propName in propTypes) {
-      if (propTypes.hasOwnProperty(propName)) {
-        var error = propTypes[propName](props, propName, tagName, 'prop');
-      }
-      if (error instanceof Error && !(error.message in loggedTypeFailures)) {
-        // Only monitor this failure once because there tends to be a lot of the
-        // same error.
-        loggedTypeFailures[error.message] = true;
-
-        var addendum = getDeclarationErrorAddendum(ownerName);
-        process.env.NODE_ENV !== 'production' ? warning(false, 'Failed form propType: %s%s', error.message, addendum) : void 0;
-      }
-    }
-  }
-};
-
-module.exports = ReactControlledValuePropTypes;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 44 */
+/* 39 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5703,7 +5421,8 @@ var caughtError = null;
  *
  * @param {String} name of the guard to use for logging or debugging
  * @param {Function} func The function to invoke
- * @param {*} a Argument
+ * @param {*} a First argument
+ * @param {*} b Second argument
  */
 function invokeGuardedCallback(name, func, a) {
   try {
@@ -5745,12 +5464,11 @@ if (process.env.NODE_ENV !== 'production') {
   if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof document !== 'undefined' && typeof document.createEvent === 'function') {
     var fakeNode = document.createElement('react');
     ReactErrorUtils.invokeGuardedCallback = function (name, func, a) {
-      var boundFunc = function () {
-        func(a);
-      };
+      var boundFunc = func.bind(null, a);
       var evtType = 'react-' + name;
       fakeNode.addEventListener(evtType, boundFunc, false);
       var evt = document.createEvent('Event');
+      // $FlowFixMe https://github.com/facebook/flow/issues/2336
       evt.initEvent(evtType, false, false);
       fakeNode.dispatchEvent(evt);
       fakeNode.removeEventListener(evtType, boundFunc, false);
@@ -5762,7 +5480,7 @@ module.exports = ReactErrorUtils;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 45 */
+/* 40 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5778,16 +5496,31 @@ module.exports = ReactErrorUtils;
 
 
 
-var ReactCurrentOwner = __webpack_require__(9);
-var ReactInstanceMap = __webpack_require__(19);
-var ReactInstrumentation = __webpack_require__(8);
-var ReactUpdates = __webpack_require__(31);
+var _prodInvariant = __webpack_require__(3);
 
-var warning = __webpack_require__(3);
-var validateCallback = __webpack_require__(82);
+var ReactCurrentOwner = __webpack_require__(11);
+var ReactInstanceMap = __webpack_require__(24);
+var ReactInstrumentation = __webpack_require__(8);
+var ReactUpdates = __webpack_require__(10);
+
+var invariant = __webpack_require__(1);
+var warning = __webpack_require__(2);
 
 function enqueueUpdate(internalInstance) {
   ReactUpdates.enqueueUpdate(internalInstance);
+}
+
+function formatUnexpectedArgument(arg) {
+  var type = typeof arg;
+  if (type !== 'object') {
+    return type;
+  }
+  var displayName = arg.constructor && arg.constructor.name || type;
+  var keys = Object.keys(arg);
+  if (keys.length > 0 && keys.length < 20) {
+    return displayName + ' (keys: ' + keys.join(', ') + ')';
+  }
+  return displayName;
 }
 
 function getInternalInstanceReadyForUpdate(publicInstance, callerName) {
@@ -5798,7 +5531,7 @@ function getInternalInstanceReadyForUpdate(publicInstance, callerName) {
       // Only warn when we have a callerName. Otherwise we should be silent.
       // We're probably calling from enqueueCallback. We don't want to warn
       // there because we already warned for the corresponding lifecycle method.
-      process.env.NODE_ENV !== 'production' ? warning(!callerName, '%s(...): Can only update a mounted or mounting component. ' + 'This usually means you called %s() on an unmounted component. ' + 'This is a no-op.\n\nPlease check the code for the %s component.', callerName, callerName, ctor && (ctor.displayName || ctor.name) || 'ReactClass') : void 0;
+      process.env.NODE_ENV !== 'production' ? warning(!callerName, '%s(...): Can only update a mounted or mounting component. ' + 'This usually means you called %s() on an unmounted component. ' + 'This is a no-op. Please check the code for the %s component.', callerName, callerName, ctor && (ctor.displayName || ctor.name) || 'ReactClass') : void 0;
     }
     return null;
   }
@@ -5842,6 +5575,40 @@ var ReactUpdateQueue = {
     }
   },
 
+  /**
+   * Enqueue a callback that will be executed after all the pending updates
+   * have processed.
+   *
+   * @param {ReactClass} publicInstance The instance to use as `this` context.
+   * @param {?function} callback Called after state is updated.
+   * @param {string} callerName Name of the calling function in the public API.
+   * @internal
+   */
+  enqueueCallback: function (publicInstance, callback, callerName) {
+    ReactUpdateQueue.validateCallback(callback, callerName);
+    var internalInstance = getInternalInstanceReadyForUpdate(publicInstance);
+
+    // Previously we would throw an error if we didn't have an internal
+    // instance. Since we want to make it a no-op instead, we mirror the same
+    // behavior we have in other enqueue* methods.
+    // We also need to ignore callbacks in componentWillMount. See
+    // enqueueUpdates.
+    if (!internalInstance) {
+      return null;
+    }
+
+    if (internalInstance._pendingCallbacks) {
+      internalInstance._pendingCallbacks.push(callback);
+    } else {
+      internalInstance._pendingCallbacks = [callback];
+    }
+    // TODO: The callback here is ignored when setState is called from
+    // componentWillMount. Either fix it or disallow doing so completely in
+    // favor of getInitialState. Alternatively, we can disallow
+    // componentWillMount during server-side rendering.
+    enqueueUpdate(internalInstance);
+  },
+
   enqueueCallbackInternal: function (internalInstance, callback) {
     if (internalInstance._pendingCallbacks) {
       internalInstance._pendingCallbacks.push(callback);
@@ -5862,24 +5629,13 @@ var ReactUpdateQueue = {
    * `componentWillUpdate` and `componentDidUpdate`.
    *
    * @param {ReactClass} publicInstance The instance that should rerender.
-   * @param {?function} callback Called after component is updated.
-   * @param {?string} Name of the calling function in the public API.
    * @internal
    */
-  enqueueForceUpdate: function (publicInstance, callback, callerName) {
+  enqueueForceUpdate: function (publicInstance) {
     var internalInstance = getInternalInstanceReadyForUpdate(publicInstance, 'forceUpdate');
 
     if (!internalInstance) {
       return;
-    }
-
-    if (callback) {
-      validateCallback(callback, callerName);
-      if (internalInstance._pendingCallbacks) {
-        internalInstance._pendingCallbacks.push(callback);
-      } else {
-        internalInstance._pendingCallbacks = [callback];
-      }
     }
 
     internalInstance._pendingForceUpdate = true;
@@ -5896,11 +5652,9 @@ var ReactUpdateQueue = {
    *
    * @param {ReactClass} publicInstance The instance that should rerender.
    * @param {object} completeState Next state.
-   * @param {?function} callback Called after state is updated.
-   * @param {?string} Name of the calling function in the public API.
    * @internal
    */
-  enqueueReplaceState: function (publicInstance, completeState, callback, callerName) {
+  enqueueReplaceState: function (publicInstance, completeState) {
     var internalInstance = getInternalInstanceReadyForUpdate(publicInstance, 'replaceState');
 
     if (!internalInstance) {
@@ -5909,15 +5663,6 @@ var ReactUpdateQueue = {
 
     internalInstance._pendingStateQueue = [completeState];
     internalInstance._pendingReplaceState = true;
-
-    if (callback) {
-      validateCallback(callback, callerName);
-      if (internalInstance._pendingCallbacks) {
-        internalInstance._pendingCallbacks.push(callback);
-      } else {
-        internalInstance._pendingCallbacks = [callback];
-      }
-    }
 
     enqueueUpdate(internalInstance);
   },
@@ -5930,11 +5675,9 @@ var ReactUpdateQueue = {
    *
    * @param {ReactClass} publicInstance The instance that should rerender.
    * @param {object} partialState Next partial state to be merged with state.
-   * @param {?function} callback Called after state is updated.
-   * @param {?string} Name of the calling function in the public API.
    * @internal
    */
-  enqueueSetState: function (publicInstance, partialState, callback, callerName) {
+  enqueueSetState: function (publicInstance, partialState) {
     if (process.env.NODE_ENV !== 'production') {
       ReactInstrumentation.debugTool.onSetState();
       process.env.NODE_ENV !== 'production' ? warning(partialState != null, 'setState(...): You passed an undefined or null state object; ' + 'instead, use forceUpdate().') : void 0;
@@ -5949,15 +5692,6 @@ var ReactUpdateQueue = {
     var queue = internalInstance._pendingStateQueue || (internalInstance._pendingStateQueue = []);
     queue.push(partialState);
 
-    if (callback) {
-      validateCallback(callback, callerName);
-      if (internalInstance._pendingCallbacks) {
-        internalInstance._pendingCallbacks.push(callback);
-      } else {
-        internalInstance._pendingCallbacks = [callback];
-      }
-    }
-
     enqueueUpdate(internalInstance);
   },
 
@@ -5966,6 +5700,10 @@ var ReactUpdateQueue = {
     // TODO: introduce _pendingContext instead of setting it directly.
     internalInstance._context = nextContext;
     enqueueUpdate(internalInstance);
+  },
+
+  validateCallback: function (callback, callerName) {
+    !(!callback || typeof callback === 'function') ? process.env.NODE_ENV !== 'production' ? invariant(false, '%s(...): Expected the last optional `callback` argument to be a function. Instead received: %s.', callerName, formatUnexpectedArgument(callback)) : _prodInvariant('122', callerName, formatUnexpectedArgument(callback)) : void 0;
   }
 
 };
@@ -5974,7 +5712,7 @@ module.exports = ReactUpdateQueue;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 46 */
+/* 41 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6011,7 +5749,7 @@ var createMicrosoftUnsafeLocalFunction = function (func) {
 module.exports = createMicrosoftUnsafeLocalFunction;
 
 /***/ }),
-/* 47 */
+/* 42 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6066,7 +5804,7 @@ function getEventCharCode(nativeEvent) {
 module.exports = getEventCharCode;
 
 /***/ }),
-/* 48 */
+/* 43 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6114,7 +5852,7 @@ function getEventModifierState(nativeEvent) {
 module.exports = getEventModifierState;
 
 /***/ }),
-/* 49 */
+/* 44 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6154,7 +5892,7 @@ function getEventTarget(nativeEvent) {
 module.exports = getEventTarget;
 
 /***/ }),
-/* 50 */
+/* 45 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6219,7 +5957,7 @@ function isEventSupported(eventNameSuffix, capture) {
 module.exports = isEventSupported;
 
 /***/ }),
-/* 51 */
+/* 46 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6266,7 +6004,7 @@ function shouldUpdateReactComponent(prevElement, nextElement) {
 module.exports = shouldUpdateReactComponent;
 
 /***/ }),
-/* 52 */
+/* 47 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6282,18 +6020,14 @@ module.exports = shouldUpdateReactComponent;
 
 
 
-var _assign = __webpack_require__(5);
+var _assign = __webpack_require__(4);
 
-var emptyFunction = __webpack_require__(13);
-var getComponentName = __webpack_require__(35);
-var warning = __webpack_require__(3);
+var emptyFunction = __webpack_require__(9);
+var warning = __webpack_require__(2);
 
 var validateDOMNesting = emptyFunction;
 
 if (process.env.NODE_ENV !== 'production') {
-  var _require = __webpack_require__(24),
-      getCurrentFiberStackAddendum = _require.getCurrentFiberStackAddendum;
-
   // This validation code was written based on the HTML5 parsing spec:
   // https://html.spec.whatwg.org/multipage/syntax.html#has-an-element-in-scope
   //
@@ -6306,8 +6040,6 @@ if (process.env.NODE_ENV !== 'production') {
   // first, causing a confusing mess.
 
   // https://html.spec.whatwg.org/multipage/syntax.html#special
-
-
   var specialTags = ['address', 'applet', 'area', 'article', 'aside', 'base', 'basefont', 'bgsound', 'blockquote', 'body', 'br', 'button', 'caption', 'center', 'col', 'colgroup', 'dd', 'details', 'dir', 'div', 'dl', 'dt', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'iframe', 'img', 'input', 'isindex', 'li', 'link', 'listing', 'main', 'marquee', 'menu', 'menuitem', 'meta', 'nav', 'noembed', 'noframes', 'noscript', 'object', 'ol', 'p', 'param', 'plaintext', 'pre', 'script', 'section', 'select', 'source', 'style', 'summary', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'title', 'tr', 'track', 'ul', 'wbr', 'xmp'];
 
   // https://html.spec.whatwg.org/multipage/syntax.html#has-an-element-in-scope
@@ -6502,11 +6234,16 @@ if (process.env.NODE_ENV !== 'production') {
       case 'section':
       case 'summary':
       case 'ul':
+
       case 'pre':
       case 'listing':
+
       case 'table':
+
       case 'hr':
+
       case 'xmp':
+
       case 'h1':
       case 'h2':
       case 'h3':
@@ -6557,42 +6294,6 @@ if (process.env.NODE_ENV !== 'production') {
     return stack;
   };
 
-  var getOwnerInfo = function (childInstance, childTag, ancestorInstance, ancestorTag, isParent) {
-    var childOwner = childInstance && childInstance._currentElement._owner;
-    var ancestorOwner = ancestorInstance && ancestorInstance._currentElement._owner;
-
-    var childOwners = findOwnerStack(childOwner);
-    var ancestorOwners = findOwnerStack(ancestorOwner);
-
-    var minStackLen = Math.min(childOwners.length, ancestorOwners.length);
-    var i;
-
-    var deepestCommon = -1;
-    for (i = 0; i < minStackLen; i++) {
-      if (childOwners[i] === ancestorOwners[i]) {
-        deepestCommon = i;
-      } else {
-        break;
-      }
-    }
-
-    var UNKNOWN = '(unknown)';
-    var childOwnerNames = childOwners.slice(deepestCommon + 1).map(function (inst) {
-      return getComponentName(inst) || UNKNOWN;
-    });
-    var ancestorOwnerNames = ancestorOwners.slice(deepestCommon + 1).map(function (inst) {
-      return getComponentName(inst) || UNKNOWN;
-    });
-    var ownerInfo = [].concat(
-    // If the parent and child instances have a common owner ancestor, start
-    // with that -- otherwise we just start with the parent's owners.
-    deepestCommon !== -1 ? getComponentName(childOwners[deepestCommon]) || UNKNOWN : [], ancestorOwnerNames, ancestorTag,
-    // If we're warning about an invalid (non-parent) ancestry, add '...'
-    isParent ? [] : ['...'], childOwnerNames, childTag).join(' > ');
-
-    return ownerInfo;
-  };
-
   var didWarn = {};
 
   validateDOMNesting = function (childTag, childText, childInstance, ancestorInfo) {
@@ -6607,48 +6308,72 @@ if (process.env.NODE_ENV !== 'production') {
 
     var invalidParent = isTagValidWithParent(childTag, parentTag) ? null : parentInfo;
     var invalidAncestor = invalidParent ? null : findInvalidAncestorForTag(childTag, ancestorInfo);
-    var invalidParentOrAncestor = invalidParent || invalidAncestor;
-    if (!invalidParentOrAncestor) {
-      return;
-    }
+    var problematic = invalidParent || invalidAncestor;
 
-    var ancestorInstance = invalidParentOrAncestor.instance;
-    var ancestorTag = invalidParentOrAncestor.tag;
-    var addendum;
+    if (problematic) {
+      var ancestorTag = problematic.tag;
+      var ancestorInstance = problematic.instance;
 
-    if (childInstance != null) {
-      addendum = ' See ' + getOwnerInfo(childInstance, childTag, ancestorInstance, ancestorTag, Boolean(invalidParent)) + '.';
-    } else {
-      addendum = getCurrentFiberStackAddendum();
-    }
+      var childOwner = childInstance && childInstance._currentElement._owner;
+      var ancestorOwner = ancestorInstance && ancestorInstance._currentElement._owner;
 
-    var warnKey = !!invalidParent + '|' + childTag + '|' + ancestorTag + '|' + addendum;
-    if (didWarn[warnKey]) {
-      return;
-    }
-    didWarn[warnKey] = true;
+      var childOwners = findOwnerStack(childOwner);
+      var ancestorOwners = findOwnerStack(ancestorOwner);
 
-    var tagDisplayName = childTag;
-    var whitespaceInfo = '';
-    if (childTag === '#text') {
-      if (/\S/.test(childText)) {
-        tagDisplayName = 'Text nodes';
+      var minStackLen = Math.min(childOwners.length, ancestorOwners.length);
+      var i;
+
+      var deepestCommon = -1;
+      for (i = 0; i < minStackLen; i++) {
+        if (childOwners[i] === ancestorOwners[i]) {
+          deepestCommon = i;
+        } else {
+          break;
+        }
+      }
+
+      var UNKNOWN = '(unknown)';
+      var childOwnerNames = childOwners.slice(deepestCommon + 1).map(function (inst) {
+        return inst.getName() || UNKNOWN;
+      });
+      var ancestorOwnerNames = ancestorOwners.slice(deepestCommon + 1).map(function (inst) {
+        return inst.getName() || UNKNOWN;
+      });
+      var ownerInfo = [].concat(
+      // If the parent and child instances have a common owner ancestor, start
+      // with that -- otherwise we just start with the parent's owners.
+      deepestCommon !== -1 ? childOwners[deepestCommon].getName() || UNKNOWN : [], ancestorOwnerNames, ancestorTag,
+      // If we're warning about an invalid (non-parent) ancestry, add '...'
+      invalidAncestor ? ['...'] : [], childOwnerNames, childTag).join(' > ');
+
+      var warnKey = !!invalidParent + '|' + childTag + '|' + ancestorTag + '|' + ownerInfo;
+      if (didWarn[warnKey]) {
+        return;
+      }
+      didWarn[warnKey] = true;
+
+      var tagDisplayName = childTag;
+      var whitespaceInfo = '';
+      if (childTag === '#text') {
+        if (/\S/.test(childText)) {
+          tagDisplayName = 'Text nodes';
+        } else {
+          tagDisplayName = 'Whitespace text nodes';
+          whitespaceInfo = ' Make sure you don\'t have any extra whitespace between tags on ' + 'each line of your source code.';
+        }
       } else {
-        tagDisplayName = 'Whitespace text nodes';
-        whitespaceInfo = ' Make sure you don\'t have any extra whitespace between tags on ' + 'each line of your source code.';
+        tagDisplayName = '<' + childTag + '>';
       }
-    } else {
-      tagDisplayName = '<' + childTag + '>';
-    }
 
-    if (invalidParent) {
-      var info = '';
-      if (ancestorTag === 'table' && childTag === 'tr') {
-        info += ' Add a <tbody> to your code to match the DOM tree generated by ' + 'the browser.';
+      if (invalidParent) {
+        var info = '';
+        if (ancestorTag === 'table' && childTag === 'tr') {
+          info += ' Add a <tbody> to your code to match the DOM tree generated by ' + 'the browser.';
+        }
+        process.env.NODE_ENV !== 'production' ? warning(false, 'validateDOMNesting(...): %s cannot appear as a child of <%s>.%s ' + 'See %s.%s', tagDisplayName, ancestorTag, whitespaceInfo, ownerInfo, info) : void 0;
+      } else {
+        process.env.NODE_ENV !== 'production' ? warning(false, 'validateDOMNesting(...): %s cannot appear as a descendant of ' + '<%s>. See %s.', tagDisplayName, ancestorTag, ownerInfo) : void 0;
       }
-      process.env.NODE_ENV !== 'production' ? warning(false, 'validateDOMNesting(...): %s cannot appear as a child of <%s>.%s%s%s', tagDisplayName, ancestorTag, whitespaceInfo, info, addendum) : void 0;
-    } else {
-      process.env.NODE_ENV !== 'production' ? warning(false, 'validateDOMNesting(...): %s cannot appear as a descendant of ' + '<%s>.%s', tagDisplayName, ancestorTag, addendum) : void 0;
     }
   };
 
@@ -6667,33 +6392,7 @@ module.exports = validateDOMNesting;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 53 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-var emptyObject = {};
-
-if (process.env.NODE_ENV !== 'production') {
-  Object.freeze(emptyObject);
-}
-
-module.exports = emptyObject;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 54 */
+/* 48 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6709,14 +6408,14 @@ module.exports = emptyObject;
 
 
 
-var _prodInvariant = __webpack_require__(14);
+var _prodInvariant = __webpack_require__(16);
 
-var ReactNoopUpdateQueue = __webpack_require__(55);
+var ReactNoopUpdateQueue = __webpack_require__(49);
 
-var canDefineProperty = __webpack_require__(57);
-var emptyObject = __webpack_require__(60);
-var invariant = __webpack_require__(15);
-var warning = __webpack_require__(10);
+var canDefineProperty = __webpack_require__(51);
+var emptyObject = __webpack_require__(21);
+var invariant = __webpack_require__(1);
+var warning = __webpack_require__(2);
 
 /**
  * Base class helpers for the updating state of a component.
@@ -6759,7 +6458,10 @@ ReactComponent.prototype.isReactComponent = {};
  */
 ReactComponent.prototype.setState = function (partialState, callback) {
   !(typeof partialState === 'object' || typeof partialState === 'function' || partialState == null) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'setState(...): takes an object of state variables to update or a function which returns an object of state variables.') : _prodInvariant('85') : void 0;
-  this.updater.enqueueSetState(this, partialState, callback, 'setState');
+  this.updater.enqueueSetState(this, partialState);
+  if (callback) {
+    this.updater.enqueueCallback(this, callback, 'setState');
+  }
 };
 
 /**
@@ -6777,7 +6479,10 @@ ReactComponent.prototype.setState = function (partialState, callback) {
  * @protected
  */
 ReactComponent.prototype.forceUpdate = function (callback) {
-  this.updater.enqueueForceUpdate(this, callback, 'forceUpdate');
+  this.updater.enqueueForceUpdate(this);
+  if (callback) {
+    this.updater.enqueueCallback(this, callback, 'forceUpdate');
+  }
 };
 
 /**
@@ -6811,7 +6516,7 @@ module.exports = ReactComponent;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 55 */
+/* 49 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6827,12 +6532,12 @@ module.exports = ReactComponent;
 
 
 
-var warning = __webpack_require__(10);
+var warning = __webpack_require__(2);
 
 function warnNoop(publicInstance, callerName) {
   if (process.env.NODE_ENV !== 'production') {
     var constructor = publicInstance.constructor;
-    process.env.NODE_ENV !== 'production' ? warning(false, '%s(...): Can only update a mounted or mounting component. ' + 'This usually means you called %s() on an unmounted component. ' + 'This is a no-op.\n\nPlease check the code for the %s component.', callerName, callerName, constructor && (constructor.displayName || constructor.name) || 'ReactClass') : void 0;
+    process.env.NODE_ENV !== 'production' ? warning(false, '%s(...): Can only update a mounted or mounting component. ' + 'This usually means you called %s() on an unmounted component. ' + 'This is a no-op. Please check the code for the %s component.', callerName, callerName, constructor && (constructor.displayName || constructor.name) || 'ReactClass') : void 0;
   }
 }
 
@@ -6853,6 +6558,16 @@ var ReactNoopUpdateQueue = {
   },
 
   /**
+   * Enqueue a callback that will be executed after all the pending updates
+   * have processed.
+   *
+   * @param {ReactClass} publicInstance The instance to use as `this` context.
+   * @param {?function} callback Called after state is updated.
+   * @internal
+   */
+  enqueueCallback: function (publicInstance, callback) {},
+
+  /**
    * Forces an update. This should only be invoked when it is known with
    * certainty that we are **not** in a DOM transaction.
    *
@@ -6863,11 +6578,9 @@ var ReactNoopUpdateQueue = {
    * `componentWillUpdate` and `componentDidUpdate`.
    *
    * @param {ReactClass} publicInstance The instance that should rerender.
-   * @param {?function} callback Called after component is updated.
-   * @param {?string} Name of the calling function in the public API.
    * @internal
    */
-  enqueueForceUpdate: function (publicInstance, callback, callerName) {
+  enqueueForceUpdate: function (publicInstance) {
     warnNoop(publicInstance, 'forceUpdate');
   },
 
@@ -6880,11 +6593,9 @@ var ReactNoopUpdateQueue = {
    *
    * @param {ReactClass} publicInstance The instance that should rerender.
    * @param {object} completeState Next state.
-   * @param {?function} callback Called after component is updated.
-   * @param {?string} Name of the calling function in the public API.
    * @internal
    */
-  enqueueReplaceState: function (publicInstance, completeState, callback, callerName) {
+  enqueueReplaceState: function (publicInstance, completeState) {
     warnNoop(publicInstance, 'replaceState');
   },
 
@@ -6896,11 +6607,9 @@ var ReactNoopUpdateQueue = {
    *
    * @param {ReactClass} publicInstance The instance that should rerender.
    * @param {object} partialState Next partial state to be merged with state.
-   * @param {?function} callback Called after component is updated.
-   * @param {?string} Name of the calling function in the public API.
    * @internal
    */
-  enqueueSetState: function (publicInstance, partialState, callback, callerName) {
+  enqueueSetState: function (publicInstance, partialState) {
     warnNoop(publicInstance, 'setState');
   }
 };
@@ -6909,7 +6618,7 @@ module.exports = ReactNoopUpdateQueue;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 56 */
+/* 50 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6940,7 +6649,7 @@ module.exports = ReactPropTypeLocationNames;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 57 */
+/* 51 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6972,7 +6681,7 @@ module.exports = canDefineProperty;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 58 */
+/* 52 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7018,77 +6727,169 @@ function getIteratorFn(maybeIterable) {
 module.exports = getIteratorFn;
 
 /***/ }),
-/* 59 */
+/* 53 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-
+/* WEBPACK VAR INJECTION */(function(process) {
 
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @typechecks
  */
 
-function makeEmptyFunction(arg) {
-  return function () {
-    return arg;
-  };
-}
+var emptyFunction = __webpack_require__(9);
 
 /**
- * This function accepts and discards inputs; it has no side effects. This is
- * primarily useful idiomatically for overridable function endpoints which
- * always need to be callable, since JS lacks a null-call idiom ala Cocoa.
+ * Upstream version of event listener. Does not take into account specific
+ * nature of platform.
  */
-var emptyFunction = function emptyFunction() {};
+var EventListener = {
+  /**
+   * Listen to DOM events during the bubble phase.
+   *
+   * @param {DOMEventTarget} target DOM element to register listener on.
+   * @param {string} eventType Event type, e.g. 'click' or 'mouseover'.
+   * @param {function} callback Callback function.
+   * @return {object} Object with a `remove` method.
+   */
+  listen: function listen(target, eventType, callback) {
+    if (target.addEventListener) {
+      target.addEventListener(eventType, callback, false);
+      return {
+        remove: function remove() {
+          target.removeEventListener(eventType, callback, false);
+        }
+      };
+    } else if (target.attachEvent) {
+      target.attachEvent('on' + eventType, callback);
+      return {
+        remove: function remove() {
+          target.detachEvent('on' + eventType, callback);
+        }
+      };
+    }
+  },
 
-emptyFunction.thatReturns = makeEmptyFunction;
-emptyFunction.thatReturnsFalse = makeEmptyFunction(false);
-emptyFunction.thatReturnsTrue = makeEmptyFunction(true);
-emptyFunction.thatReturnsNull = makeEmptyFunction(null);
-emptyFunction.thatReturnsThis = function () {
-  return this;
+  /**
+   * Listen to DOM events during the capture phase.
+   *
+   * @param {DOMEventTarget} target DOM element to register listener on.
+   * @param {string} eventType Event type, e.g. 'click' or 'mouseover'.
+   * @param {function} callback Callback function.
+   * @return {object} Object with a `remove` method.
+   */
+  capture: function capture(target, eventType, callback) {
+    if (target.addEventListener) {
+      target.addEventListener(eventType, callback, true);
+      return {
+        remove: function remove() {
+          target.removeEventListener(eventType, callback, true);
+        }
+      };
+    } else {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Attempted to listen to events during the capture phase on a ' + 'browser that does not support the capture phase. Your application ' + 'will not receive some events.');
+      }
+      return {
+        remove: emptyFunction
+      };
+    }
+  },
+
+  registerDefault: function registerDefault() {}
 };
-emptyFunction.thatReturnsArgument = function (arg) {
-  return arg;
-};
 
-module.exports = emptyFunction;
-
-/***/ }),
-/* 60 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-var emptyObject = {};
-
-if (process.env.NODE_ENV !== 'production') {
-  Object.freeze(emptyObject);
-}
-
-module.exports = emptyObject;
+module.exports = EventListener;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 61 */
+/* 54 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+
+
+/**
+ * @param {DOMElement} node input/textarea to focus
+ */
+
+function focusNode(node) {
+  // IE8 can throw "Can't move focus to the control because it is invisible,
+  // not enabled, or of a type that does not accept the focus." for all kinds of
+  // reasons that are too expensive and fragile to test.
+  try {
+    node.focus();
+  } catch (e) {}
+}
+
+module.exports = focusNode;
+
+/***/ }),
+/* 55 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @typechecks
+ */
+
+/* eslint-disable fb-www/typeof-undefined */
+
+/**
+ * Same as document.activeElement but wraps in a try-catch block. In IE it is
+ * not safe to call document.activeElement if there is nothing focused.
+ *
+ * The activeElement will be null only if the document or document body is not
+ * yet defined.
+ */
+function getActiveElement() /*?DOMElement*/{
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  try {
+    return document.activeElement || document.body;
+  } catch (e) {
+    return document.body;
+  }
+}
+
+module.exports = getActiveElement;
+
+/***/ }),
+/* 56 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7241,7 +7042,132 @@ var CSSProperty = {
 module.exports = CSSProperty;
 
 /***/ }),
-/* 62 */
+/* 57 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(process) {/**
+ * Copyright 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * 
+ */
+
+
+
+var _prodInvariant = __webpack_require__(3);
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var PooledClass = __webpack_require__(14);
+
+var invariant = __webpack_require__(1);
+
+/**
+ * A specialized pseudo-event module to help keep track of components waiting to
+ * be notified when their DOM representations are available for use.
+ *
+ * This implements `PooledClass`, so you should never need to instantiate this.
+ * Instead, use `CallbackQueue.getPooled()`.
+ *
+ * @class ReactMountReady
+ * @implements PooledClass
+ * @internal
+ */
+
+var CallbackQueue = function () {
+  function CallbackQueue(arg) {
+    _classCallCheck(this, CallbackQueue);
+
+    this._callbacks = null;
+    this._contexts = null;
+    this._arg = arg;
+  }
+
+  /**
+   * Enqueues a callback to be invoked when `notifyAll` is invoked.
+   *
+   * @param {function} callback Invoked when `notifyAll` is invoked.
+   * @param {?object} context Context to call `callback` with.
+   * @internal
+   */
+
+
+  CallbackQueue.prototype.enqueue = function enqueue(callback, context) {
+    this._callbacks = this._callbacks || [];
+    this._callbacks.push(callback);
+    this._contexts = this._contexts || [];
+    this._contexts.push(context);
+  };
+
+  /**
+   * Invokes all enqueued callbacks and clears the queue. This is invoked after
+   * the DOM representation of a component has been created or updated.
+   *
+   * @internal
+   */
+
+
+  CallbackQueue.prototype.notifyAll = function notifyAll() {
+    var callbacks = this._callbacks;
+    var contexts = this._contexts;
+    var arg = this._arg;
+    if (callbacks && contexts) {
+      !(callbacks.length === contexts.length) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Mismatched list of contexts in callback queue') : _prodInvariant('24') : void 0;
+      this._callbacks = null;
+      this._contexts = null;
+      for (var i = 0; i < callbacks.length; i++) {
+        callbacks[i].call(contexts[i], arg);
+      }
+      callbacks.length = 0;
+      contexts.length = 0;
+    }
+  };
+
+  CallbackQueue.prototype.checkpoint = function checkpoint() {
+    return this._callbacks ? this._callbacks.length : 0;
+  };
+
+  CallbackQueue.prototype.rollback = function rollback(len) {
+    if (this._callbacks && this._contexts) {
+      this._callbacks.length = len;
+      this._contexts.length = len;
+    }
+  };
+
+  /**
+   * Resets the internal queue.
+   *
+   * @internal
+   */
+
+
+  CallbackQueue.prototype.reset = function reset() {
+    this._callbacks = null;
+    this._contexts = null;
+  };
+
+  /**
+   * `PooledClass` looks for this.
+   */
+
+
+  CallbackQueue.prototype.destructor = function destructor() {
+    this.reset();
+  };
+
+  return CallbackQueue;
+}();
+
+module.exports = PooledClass.addPoolingTo(CallbackQueue);
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 58 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7257,12 +7183,12 @@ module.exports = CSSProperty;
 
 
 
-var DOMProperty = __webpack_require__(12);
-var ReactDOMComponentTree = __webpack_require__(4);
+var DOMProperty = __webpack_require__(13);
+var ReactDOMComponentTree = __webpack_require__(5);
 var ReactInstrumentation = __webpack_require__(8);
 
-var quoteAttributeValueForBrowser = __webpack_require__(162);
-var warning = __webpack_require__(3);
+var quoteAttributeValueForBrowser = __webpack_require__(167);
+var warning = __webpack_require__(2);
 
 var VALID_ATTRIBUTE_NAME_REGEX = new RegExp('^[' + DOMProperty.ATTRIBUTE_NAME_START_CHAR + '][' + DOMProperty.ATTRIBUTE_NAME_CHAR + ']*$');
 var illegalAttributeNameCache = {};
@@ -7370,7 +7296,7 @@ var DOMPropertyOperations = {
       if (mutationMethod) {
         mutationMethod(node, value);
       } else if (shouldIgnoreValue(propertyInfo, value)) {
-        DOMPropertyOperations.deleteValueForProperty(node, name);
+        this.deleteValueForProperty(node, name);
         return;
       } else if (propertyInfo.mustUseProperty) {
         // Contrary to `setAttribute`, object properties are properly
@@ -7484,121 +7410,7 @@ module.exports = DOMPropertyOperations;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 63 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = {
-  ImpureClass: 0,
-  PureClass: 1,
-  StatelessFunctional: 2
-}; /**
-    * Copyright 2013-present, Facebook, Inc.
-    * All rights reserved.
-    *
-    * This source code is licensed under the BSD-style license found in the
-    * LICENSE file in the root directory of this source tree. An additional grant
-    * of patent rights can be found in the PATENTS file in the same directory.
-    *
-    * @providesModule ReactCompositeComponentTypes
-    * 
-    */
-
-/***/ }),
-/* 64 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-var _prodInvariant = __webpack_require__(2);
-
-var EventPluginUtils = __webpack_require__(40);
-
-var invariant = __webpack_require__(1);
-
-// Use to restore controlled state after a change event has fired.
-
-var fiberHostComponent = null;
-
-var ReactControlledComponentInjection = {
-  injectFiberControlledHostComponent: function (hostComponentImpl) {
-    // The fiber implementation doesn't use dynamic dispatch so we need to
-    // inject the implementation.
-    fiberHostComponent = hostComponentImpl;
-  }
-};
-
-var restoreTarget = null;
-var restoreQueue = null;
-
-function restoreStateOfTarget(target) {
-  // We perform this translation at the end of the event loop so that we
-  // always receive the correct fiber here
-  var internalInstance = EventPluginUtils.getInstanceFromNode(target);
-  if (!internalInstance) {
-    // Unmounted
-    return;
-  }
-  if (typeof internalInstance.tag === 'number') {
-    invariant(fiberHostComponent && typeof fiberHostComponent.restoreControlledState === 'function', 'Fiber needs to be injected to handle a fiber target for controlled ' + 'events.');
-    var props = EventPluginUtils.getFiberCurrentPropsFromNode(internalInstance.stateNode);
-    fiberHostComponent.restoreControlledState(internalInstance.stateNode, internalInstance.type, props);
-    return;
-  }
-  invariant(typeof internalInstance.restoreControlledState === 'function', 'The internal instance must be a React host component.');
-  // If it is not a Fiber, we can just use dynamic dispatch.
-  internalInstance.restoreControlledState();
-}
-
-var ReactControlledComponent = {
-  injection: ReactControlledComponentInjection,
-
-  enqueueStateRestore: function (target) {
-    if (restoreTarget) {
-      if (restoreQueue) {
-        restoreQueue.push(target);
-      } else {
-        restoreQueue = [target];
-      }
-    } else {
-      restoreTarget = target;
-    }
-  },
-  restoreStateIfNeeded: function () {
-    if (!restoreTarget) {
-      return;
-    }
-    var target = restoreTarget;
-    var queuedTargets = restoreQueue;
-    restoreTarget = null;
-    restoreQueue = null;
-
-    restoreStateOfTarget(target);
-    if (queuedTargets) {
-      for (var i = 0; i < queuedTargets.length; i++) {
-        restoreStateOfTarget(queuedTargets[i]);
-      }
-    }
-  }
-};
-
-module.exports = ReactControlledComponent;
-
-/***/ }),
-/* 65 */
+/* 59 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7621,7 +7433,7 @@ var ReactDOMComponentFlags = {
 module.exports = ReactDOMComponentFlags;
 
 /***/ }),
-/* 66 */
+/* 60 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7637,20 +7449,35 @@ module.exports = ReactDOMComponentFlags;
 
 
 
-var _assign = __webpack_require__(5);
+var _assign = __webpack_require__(4);
 
-var ReactControlledValuePropTypes = __webpack_require__(43);
-var ReactDOMComponentTree = __webpack_require__(4);
+var LinkedValueUtils = __webpack_require__(37);
+var ReactDOMComponentTree = __webpack_require__(5);
+var ReactUpdates = __webpack_require__(10);
 
-var warning = __webpack_require__(3);
+var warning = __webpack_require__(2);
 
+var didWarnValueLink = false;
 var didWarnValueDefaultValue = false;
+
+function updateOptionsIfPendingUpdateAndMounted() {
+  if (this._rootNodeID && this._wrapperState.pendingUpdate) {
+    this._wrapperState.pendingUpdate = false;
+
+    var props = this._currentElement.props;
+    var value = LinkedValueUtils.getValue(props);
+
+    if (value != null) {
+      updateOptions(this, Boolean(props.multiple), value);
+    }
+  }
+}
 
 function getDeclarationErrorAddendum(owner) {
   if (owner) {
     var name = owner.getName();
     if (name) {
-      return '\n\nCheck the render method of `' + name + '`.';
+      return ' Check the render method of `' + name + '`.';
     }
   }
   return '';
@@ -7664,7 +7491,12 @@ var valuePropNames = ['value', 'defaultValue'];
  */
 function checkSelectPropTypes(inst, props) {
   var owner = inst._currentElement._owner;
-  ReactControlledValuePropTypes.checkPropTypes('select', props, owner ? owner.getName() : null);
+  LinkedValueUtils.checkPropTypes('select', props, owner);
+
+  if (props.valueLink !== undefined && !didWarnValueLink) {
+    process.env.NODE_ENV !== 'production' ? warning(false, '`valueLink` prop on `select` is deprecated; set `value` and `onChange` instead.') : void 0;
+    didWarnValueLink = true;
+  }
 
   for (var i = 0; i < valuePropNames.length; i++) {
     var propName = valuePropNames[i];
@@ -7687,26 +7519,27 @@ function checkSelectPropTypes(inst, props) {
  * @private
  */
 function updateOptions(inst, multiple, propValue) {
+  var selectedValue, i;
   var options = ReactDOMComponentTree.getNodeFromInstance(inst).options;
 
   if (multiple) {
-    var selectedValue = {};
-    for (var i = 0; i < propValue.length; i++) {
+    selectedValue = {};
+    for (i = 0; i < propValue.length; i++) {
       selectedValue['' + propValue[i]] = true;
     }
-    for (var _i = 0; _i < options.length; _i++) {
-      var selected = selectedValue.hasOwnProperty(options[_i].value);
-      if (options[_i].selected !== selected) {
-        options[_i].selected = selected;
+    for (i = 0; i < options.length; i++) {
+      var selected = selectedValue.hasOwnProperty(options[i].value);
+      if (options[i].selected !== selected) {
+        options[i].selected = selected;
       }
     }
   } else {
     // Do not set `select.value` as exact behavior isn't consistent across all
     // browsers for all cases.
-    var _selectedValue = '' + propValue;
-    for (var _i2 = 0; _i2 < options.length; _i2++) {
-      if (options[_i2].value === _selectedValue) {
-        options[_i2].selected = true;
+    selectedValue = '' + propValue;
+    for (i = 0; i < options.length; i++) {
+      if (options[i].value === selectedValue) {
+        options[i].selected = true;
         return;
       }
     }
@@ -7734,6 +7567,7 @@ function updateOptions(inst, multiple, propValue) {
 var ReactDOMSelect = {
   getHostProps: function (inst, props) {
     return _assign({}, props, {
+      onChange: inst._wrapperState.onChange,
       value: undefined
     });
   },
@@ -7743,10 +7577,12 @@ var ReactDOMSelect = {
       checkSelectPropTypes(inst, props);
     }
 
-    var value = props.value;
+    var value = LinkedValueUtils.getValue(props);
     inst._wrapperState = {
+      pendingUpdate: false,
       initialValue: value != null ? value : props.defaultValue,
       listeners: null,
+      onChange: _handleChange.bind(inst),
       wasMultiple: Boolean(props.multiple)
     };
 
@@ -7772,8 +7608,9 @@ var ReactDOMSelect = {
     var wasMultiple = inst._wrapperState.wasMultiple;
     inst._wrapperState.wasMultiple = Boolean(props.multiple);
 
-    var value = props.value;
+    var value = LinkedValueUtils.getValue(props);
     if (value != null) {
+      inst._wrapperState.pendingUpdate = false;
       updateOptions(inst, Boolean(props.multiple), value);
     } else if (wasMultiple !== Boolean(props.multiple)) {
       // For simplicity, reapply `defaultValue` if `multiple` is toggled.
@@ -7784,25 +7621,25 @@ var ReactDOMSelect = {
         updateOptions(inst, Boolean(props.multiple), props.multiple ? [] : '');
       }
     }
-  },
-
-  restoreControlledState: function (inst) {
-    if (inst._rootNodeID) {
-      var props = inst._currentElement.props;
-      var value = props.value;
-
-      if (value != null) {
-        updateOptions(inst, Boolean(props.multiple), value);
-      }
-    }
   }
 };
+
+function _handleChange(event) {
+  var props = this._currentElement.props;
+  var returnValue = LinkedValueUtils.executeOnChange(props, event);
+
+  if (this._rootNodeID) {
+    this._wrapperState.pendingUpdate = true;
+  }
+  ReactUpdates.asap(updateOptionsIfPendingUpdateAndMounted, this);
+  return returnValue;
+}
 
 module.exports = ReactDOMSelect;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 67 */
+/* 61 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7837,7 +7674,34 @@ ReactEmptyComponent.injection = ReactEmptyComponentInjection;
 module.exports = ReactEmptyComponent;
 
 /***/ }),
-/* 68 */
+/* 62 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * Copyright 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * 
+ */
+
+
+
+var ReactFeatureFlags = {
+  // When true, call console.time() before and .timeEnd() after each top-level
+  // render (both initial renders and updates). Useful when looking at prod-mode
+  // timeline profiles in Chrome, for example.
+  logTopLevelRenders: false
+};
+
+module.exports = ReactFeatureFlags;
+
+/***/ }),
+/* 63 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7853,7 +7717,7 @@ module.exports = ReactEmptyComponent;
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
 var invariant = __webpack_require__(1);
 
@@ -7911,7 +7775,7 @@ module.exports = ReactHostComponent;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 69 */
+/* 64 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7927,11 +7791,11 @@ module.exports = ReactHostComponent;
 
 
 
-var ReactDOMSelection = __webpack_require__(116);
+var ReactDOMSelection = __webpack_require__(121);
 
-var containsNode = __webpack_require__(166);
-var focusNode = __webpack_require__(83);
-var getActiveElement = __webpack_require__(84);
+var containsNode = __webpack_require__(86);
+var focusNode = __webpack_require__(54);
+var getActiveElement = __webpack_require__(55);
 
 function isInDocument(node) {
   return containsNode(document.documentElement, node);
@@ -7971,27 +7835,7 @@ var ReactInputSelection = {
       if (ReactInputSelection.hasSelectionCapabilities(priorFocusedElem)) {
         ReactInputSelection.setSelection(priorFocusedElem, priorSelectionRange);
       }
-
-      // Focusing a node can change the scroll position, which is undesirable
-      var ancestors = [];
-      var ancestor = priorFocusedElem;
-      while (ancestor = ancestor.parentNode) {
-        if (ancestor.nodeType === 1) {
-          ancestors.push({
-            element: ancestor,
-            left: ancestor.scrollLeft,
-            top: ancestor.scrollTop
-          });
-        }
-      }
-
       focusNode(priorFocusedElem);
-
-      for (var i = 0; i < ancestors.length; i++) {
-        var info = ancestors[i];
-        info.element.scrollLeft = info.left;
-        info.element.scrollTop = info.top;
-      }
     }
   },
 
@@ -8060,7 +7904,551 @@ var ReactInputSelection = {
 module.exports = ReactInputSelection;
 
 /***/ }),
-/* 70 */
+/* 65 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(process) {/**
+ * Copyright 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+
+
+var _prodInvariant = __webpack_require__(3);
+
+var DOMLazyTree = __webpack_require__(17);
+var DOMProperty = __webpack_require__(13);
+var React = __webpack_require__(19);
+var ReactBrowserEventEmitter = __webpack_require__(27);
+var ReactCurrentOwner = __webpack_require__(11);
+var ReactDOMComponentTree = __webpack_require__(5);
+var ReactDOMContainerInfo = __webpack_require__(113);
+var ReactDOMFeatureFlags = __webpack_require__(115);
+var ReactFeatureFlags = __webpack_require__(62);
+var ReactInstanceMap = __webpack_require__(24);
+var ReactInstrumentation = __webpack_require__(8);
+var ReactMarkupChecksum = __webpack_require__(135);
+var ReactReconciler = __webpack_require__(18);
+var ReactUpdateQueue = __webpack_require__(40);
+var ReactUpdates = __webpack_require__(10);
+
+var emptyObject = __webpack_require__(21);
+var instantiateReactComponent = __webpack_require__(73);
+var invariant = __webpack_require__(1);
+var setInnerHTML = __webpack_require__(31);
+var shouldUpdateReactComponent = __webpack_require__(46);
+var warning = __webpack_require__(2);
+
+var ATTR_NAME = DOMProperty.ID_ATTRIBUTE_NAME;
+var ROOT_ATTR_NAME = DOMProperty.ROOT_ATTRIBUTE_NAME;
+
+var ELEMENT_NODE_TYPE = 1;
+var DOC_NODE_TYPE = 9;
+var DOCUMENT_FRAGMENT_NODE_TYPE = 11;
+
+var instancesByReactRootID = {};
+
+/**
+ * Finds the index of the first character
+ * that's not common between the two given strings.
+ *
+ * @return {number} the index of the character where the strings diverge
+ */
+function firstDifferenceIndex(string1, string2) {
+  var minLen = Math.min(string1.length, string2.length);
+  for (var i = 0; i < minLen; i++) {
+    if (string1.charAt(i) !== string2.charAt(i)) {
+      return i;
+    }
+  }
+  return string1.length === string2.length ? -1 : minLen;
+}
+
+/**
+ * @param {DOMElement|DOMDocument} container DOM element that may contain
+ * a React component
+ * @return {?*} DOM element that may have the reactRoot ID, or null.
+ */
+function getReactRootElementInContainer(container) {
+  if (!container) {
+    return null;
+  }
+
+  if (container.nodeType === DOC_NODE_TYPE) {
+    return container.documentElement;
+  } else {
+    return container.firstChild;
+  }
+}
+
+function internalGetID(node) {
+  // If node is something like a window, document, or text node, none of
+  // which support attributes or a .getAttribute method, gracefully return
+  // the empty string, as if the attribute were missing.
+  return node.getAttribute && node.getAttribute(ATTR_NAME) || '';
+}
+
+/**
+ * Mounts this component and inserts it into the DOM.
+ *
+ * @param {ReactComponent} componentInstance The instance to mount.
+ * @param {DOMElement} container DOM element to mount into.
+ * @param {ReactReconcileTransaction} transaction
+ * @param {boolean} shouldReuseMarkup If true, do not insert markup
+ */
+function mountComponentIntoNode(wrapperInstance, container, transaction, shouldReuseMarkup, context) {
+  var markerName;
+  if (ReactFeatureFlags.logTopLevelRenders) {
+    var wrappedElement = wrapperInstance._currentElement.props.child;
+    var type = wrappedElement.type;
+    markerName = 'React mount: ' + (typeof type === 'string' ? type : type.displayName || type.name);
+    console.time(markerName);
+  }
+
+  var markup = ReactReconciler.mountComponent(wrapperInstance, transaction, null, ReactDOMContainerInfo(wrapperInstance, container), context, 0 /* parentDebugID */
+  );
+
+  if (markerName) {
+    console.timeEnd(markerName);
+  }
+
+  wrapperInstance._renderedComponent._topLevelWrapper = wrapperInstance;
+  ReactMount._mountImageIntoNode(markup, container, wrapperInstance, shouldReuseMarkup, transaction);
+}
+
+/**
+ * Batched mount.
+ *
+ * @param {ReactComponent} componentInstance The instance to mount.
+ * @param {DOMElement} container DOM element to mount into.
+ * @param {boolean} shouldReuseMarkup If true, do not insert markup
+ */
+function batchedMountComponentIntoNode(componentInstance, container, shouldReuseMarkup, context) {
+  var transaction = ReactUpdates.ReactReconcileTransaction.getPooled(
+  /* useCreateElement */
+  !shouldReuseMarkup && ReactDOMFeatureFlags.useCreateElement);
+  transaction.perform(mountComponentIntoNode, null, componentInstance, container, transaction, shouldReuseMarkup, context);
+  ReactUpdates.ReactReconcileTransaction.release(transaction);
+}
+
+/**
+ * Unmounts a component and removes it from the DOM.
+ *
+ * @param {ReactComponent} instance React component instance.
+ * @param {DOMElement} container DOM element to unmount from.
+ * @final
+ * @internal
+ * @see {ReactMount.unmountComponentAtNode}
+ */
+function unmountComponentFromNode(instance, container, safely) {
+  if (process.env.NODE_ENV !== 'production') {
+    ReactInstrumentation.debugTool.onBeginFlush();
+  }
+  ReactReconciler.unmountComponent(instance, safely);
+  if (process.env.NODE_ENV !== 'production') {
+    ReactInstrumentation.debugTool.onEndFlush();
+  }
+
+  if (container.nodeType === DOC_NODE_TYPE) {
+    container = container.documentElement;
+  }
+
+  // http://jsperf.com/emptying-a-node
+  while (container.lastChild) {
+    container.removeChild(container.lastChild);
+  }
+}
+
+/**
+ * True if the supplied DOM node has a direct React-rendered child that is
+ * not a React root element. Useful for warning in `render`,
+ * `unmountComponentAtNode`, etc.
+ *
+ * @param {?DOMElement} node The candidate DOM node.
+ * @return {boolean} True if the DOM element contains a direct child that was
+ * rendered by React but is not a root element.
+ * @internal
+ */
+function hasNonRootReactChild(container) {
+  var rootEl = getReactRootElementInContainer(container);
+  if (rootEl) {
+    var inst = ReactDOMComponentTree.getInstanceFromNode(rootEl);
+    return !!(inst && inst._hostParent);
+  }
+}
+
+/**
+ * True if the supplied DOM node is a React DOM element and
+ * it has been rendered by another copy of React.
+ *
+ * @param {?DOMElement} node The candidate DOM node.
+ * @return {boolean} True if the DOM has been rendered by another copy of React
+ * @internal
+ */
+function nodeIsRenderedByOtherInstance(container) {
+  var rootEl = getReactRootElementInContainer(container);
+  return !!(rootEl && isReactNode(rootEl) && !ReactDOMComponentTree.getInstanceFromNode(rootEl));
+}
+
+/**
+ * True if the supplied DOM node is a valid node element.
+ *
+ * @param {?DOMElement} node The candidate DOM node.
+ * @return {boolean} True if the DOM is a valid DOM node.
+ * @internal
+ */
+function isValidContainer(node) {
+  return !!(node && (node.nodeType === ELEMENT_NODE_TYPE || node.nodeType === DOC_NODE_TYPE || node.nodeType === DOCUMENT_FRAGMENT_NODE_TYPE));
+}
+
+/**
+ * True if the supplied DOM node is a valid React node element.
+ *
+ * @param {?DOMElement} node The candidate DOM node.
+ * @return {boolean} True if the DOM is a valid React DOM node.
+ * @internal
+ */
+function isReactNode(node) {
+  return isValidContainer(node) && (node.hasAttribute(ROOT_ATTR_NAME) || node.hasAttribute(ATTR_NAME));
+}
+
+function getHostRootInstanceInContainer(container) {
+  var rootEl = getReactRootElementInContainer(container);
+  var prevHostInstance = rootEl && ReactDOMComponentTree.getInstanceFromNode(rootEl);
+  return prevHostInstance && !prevHostInstance._hostParent ? prevHostInstance : null;
+}
+
+function getTopLevelWrapperInContainer(container) {
+  var root = getHostRootInstanceInContainer(container);
+  return root ? root._hostContainerInfo._topLevelWrapper : null;
+}
+
+/**
+ * Temporary (?) hack so that we can store all top-level pending updates on
+ * composites instead of having to worry about different types of components
+ * here.
+ */
+var topLevelRootCounter = 1;
+var TopLevelWrapper = function () {
+  this.rootID = topLevelRootCounter++;
+};
+TopLevelWrapper.prototype.isReactComponent = {};
+if (process.env.NODE_ENV !== 'production') {
+  TopLevelWrapper.displayName = 'TopLevelWrapper';
+}
+TopLevelWrapper.prototype.render = function () {
+  return this.props.child;
+};
+TopLevelWrapper.isReactTopLevelWrapper = true;
+
+/**
+ * Mounting is the process of initializing a React component by creating its
+ * representative DOM elements and inserting them into a supplied `container`.
+ * Any prior content inside `container` is destroyed in the process.
+ *
+ *   ReactMount.render(
+ *     component,
+ *     document.getElementById('container')
+ *   );
+ *
+ *   <div id="container">                   <-- Supplied `container`.
+ *     <div data-reactid=".3">              <-- Rendered reactRoot of React
+ *       // ...                                 component.
+ *     </div>
+ *   </div>
+ *
+ * Inside of `container`, the first element rendered is the "reactRoot".
+ */
+var ReactMount = {
+
+  TopLevelWrapper: TopLevelWrapper,
+
+  /**
+   * Used by devtools. The keys are not important.
+   */
+  _instancesByReactRootID: instancesByReactRootID,
+
+  /**
+   * This is a hook provided to support rendering React components while
+   * ensuring that the apparent scroll position of its `container` does not
+   * change.
+   *
+   * @param {DOMElement} container The `container` being rendered into.
+   * @param {function} renderCallback This must be called once to do the render.
+   */
+  scrollMonitor: function (container, renderCallback) {
+    renderCallback();
+  },
+
+  /**
+   * Take a component that's already mounted into the DOM and replace its props
+   * @param {ReactComponent} prevComponent component instance already in the DOM
+   * @param {ReactElement} nextElement component instance to render
+   * @param {DOMElement} container container to render into
+   * @param {?function} callback function triggered on completion
+   */
+  _updateRootComponent: function (prevComponent, nextElement, nextContext, container, callback) {
+    ReactMount.scrollMonitor(container, function () {
+      ReactUpdateQueue.enqueueElementInternal(prevComponent, nextElement, nextContext);
+      if (callback) {
+        ReactUpdateQueue.enqueueCallbackInternal(prevComponent, callback);
+      }
+    });
+
+    return prevComponent;
+  },
+
+  /**
+   * Render a new component into the DOM. Hooked by hooks!
+   *
+   * @param {ReactElement} nextElement element to render
+   * @param {DOMElement} container container to render into
+   * @param {boolean} shouldReuseMarkup if we should skip the markup insertion
+   * @return {ReactComponent} nextComponent
+   */
+  _renderNewRootComponent: function (nextElement, container, shouldReuseMarkup, context) {
+    // Various parts of our code (such as ReactCompositeComponent's
+    // _renderValidatedComponent) assume that calls to render aren't nested;
+    // verify that that's the case.
+    process.env.NODE_ENV !== 'production' ? warning(ReactCurrentOwner.current == null, '_renderNewRootComponent(): Render methods should be a pure function ' + 'of props and state; triggering nested component updates from ' + 'render is not allowed. If necessary, trigger nested updates in ' + 'componentDidUpdate. Check the render method of %s.', ReactCurrentOwner.current && ReactCurrentOwner.current.getName() || 'ReactCompositeComponent') : void 0;
+
+    !isValidContainer(container) ? process.env.NODE_ENV !== 'production' ? invariant(false, '_registerComponent(...): Target container is not a DOM element.') : _prodInvariant('37') : void 0;
+
+    ReactBrowserEventEmitter.ensureScrollValueMonitoring();
+    var componentInstance = instantiateReactComponent(nextElement, false);
+
+    // The initial render is synchronous but any updates that happen during
+    // rendering, in componentWillMount or componentDidMount, will be batched
+    // according to the current batching strategy.
+
+    ReactUpdates.batchedUpdates(batchedMountComponentIntoNode, componentInstance, container, shouldReuseMarkup, context);
+
+    var wrapperID = componentInstance._instance.rootID;
+    instancesByReactRootID[wrapperID] = componentInstance;
+
+    return componentInstance;
+  },
+
+  /**
+   * Renders a React component into the DOM in the supplied `container`.
+   *
+   * If the React component was previously rendered into `container`, this will
+   * perform an update on it and only mutate the DOM as necessary to reflect the
+   * latest React component.
+   *
+   * @param {ReactComponent} parentComponent The conceptual parent of this render tree.
+   * @param {ReactElement} nextElement Component element to render.
+   * @param {DOMElement} container DOM element to render into.
+   * @param {?function} callback function triggered on completion
+   * @return {ReactComponent} Component instance rendered in `container`.
+   */
+  renderSubtreeIntoContainer: function (parentComponent, nextElement, container, callback) {
+    !(parentComponent != null && ReactInstanceMap.has(parentComponent)) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'parentComponent must be a valid React Component') : _prodInvariant('38') : void 0;
+    return ReactMount._renderSubtreeIntoContainer(parentComponent, nextElement, container, callback);
+  },
+
+  _renderSubtreeIntoContainer: function (parentComponent, nextElement, container, callback) {
+    ReactUpdateQueue.validateCallback(callback, 'ReactDOM.render');
+    !React.isValidElement(nextElement) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactDOM.render(): Invalid component element.%s', typeof nextElement === 'string' ? ' Instead of passing a string like \'div\', pass ' + 'React.createElement(\'div\') or <div />.' : typeof nextElement === 'function' ? ' Instead of passing a class like Foo, pass ' + 'React.createElement(Foo) or <Foo />.' :
+    // Check if it quacks like an element
+    nextElement != null && nextElement.props !== undefined ? ' This may be caused by unintentionally loading two independent ' + 'copies of React.' : '') : _prodInvariant('39', typeof nextElement === 'string' ? ' Instead of passing a string like \'div\', pass ' + 'React.createElement(\'div\') or <div />.' : typeof nextElement === 'function' ? ' Instead of passing a class like Foo, pass ' + 'React.createElement(Foo) or <Foo />.' : nextElement != null && nextElement.props !== undefined ? ' This may be caused by unintentionally loading two independent ' + 'copies of React.' : '') : void 0;
+
+    process.env.NODE_ENV !== 'production' ? warning(!container || !container.tagName || container.tagName.toUpperCase() !== 'BODY', 'render(): Rendering components directly into document.body is ' + 'discouraged, since its children are often manipulated by third-party ' + 'scripts and browser extensions. This may lead to subtle ' + 'reconciliation issues. Try rendering into a container element created ' + 'for your app.') : void 0;
+
+    var nextWrappedElement = React.createElement(TopLevelWrapper, { child: nextElement });
+
+    var nextContext;
+    if (parentComponent) {
+      var parentInst = ReactInstanceMap.get(parentComponent);
+      nextContext = parentInst._processChildContext(parentInst._context);
+    } else {
+      nextContext = emptyObject;
+    }
+
+    var prevComponent = getTopLevelWrapperInContainer(container);
+
+    if (prevComponent) {
+      var prevWrappedElement = prevComponent._currentElement;
+      var prevElement = prevWrappedElement.props.child;
+      if (shouldUpdateReactComponent(prevElement, nextElement)) {
+        var publicInst = prevComponent._renderedComponent.getPublicInstance();
+        var updatedCallback = callback && function () {
+          callback.call(publicInst);
+        };
+        ReactMount._updateRootComponent(prevComponent, nextWrappedElement, nextContext, container, updatedCallback);
+        return publicInst;
+      } else {
+        ReactMount.unmountComponentAtNode(container);
+      }
+    }
+
+    var reactRootElement = getReactRootElementInContainer(container);
+    var containerHasReactMarkup = reactRootElement && !!internalGetID(reactRootElement);
+    var containerHasNonRootReactChild = hasNonRootReactChild(container);
+
+    if (process.env.NODE_ENV !== 'production') {
+      process.env.NODE_ENV !== 'production' ? warning(!containerHasNonRootReactChild, 'render(...): Replacing React-rendered children with a new root ' + 'component. If you intended to update the children of this node, ' + 'you should instead have the existing children update their state ' + 'and render the new components instead of calling ReactDOM.render.') : void 0;
+
+      if (!containerHasReactMarkup || reactRootElement.nextSibling) {
+        var rootElementSibling = reactRootElement;
+        while (rootElementSibling) {
+          if (internalGetID(rootElementSibling)) {
+            process.env.NODE_ENV !== 'production' ? warning(false, 'render(): Target node has markup rendered by React, but there ' + 'are unrelated nodes as well. This is most commonly caused by ' + 'white-space inserted around server-rendered markup.') : void 0;
+            break;
+          }
+          rootElementSibling = rootElementSibling.nextSibling;
+        }
+      }
+    }
+
+    var shouldReuseMarkup = containerHasReactMarkup && !prevComponent && !containerHasNonRootReactChild;
+    var component = ReactMount._renderNewRootComponent(nextWrappedElement, container, shouldReuseMarkup, nextContext)._renderedComponent.getPublicInstance();
+    if (callback) {
+      callback.call(component);
+    }
+    return component;
+  },
+
+  /**
+   * Renders a React component into the DOM in the supplied `container`.
+   * See https://facebook.github.io/react/docs/top-level-api.html#reactdom.render
+   *
+   * If the React component was previously rendered into `container`, this will
+   * perform an update on it and only mutate the DOM as necessary to reflect the
+   * latest React component.
+   *
+   * @param {ReactElement} nextElement Component element to render.
+   * @param {DOMElement} container DOM element to render into.
+   * @param {?function} callback function triggered on completion
+   * @return {ReactComponent} Component instance rendered in `container`.
+   */
+  render: function (nextElement, container, callback) {
+    return ReactMount._renderSubtreeIntoContainer(null, nextElement, container, callback);
+  },
+
+  /**
+   * Unmounts and destroys the React component rendered in the `container`.
+   * See https://facebook.github.io/react/docs/top-level-api.html#reactdom.unmountcomponentatnode
+   *
+   * @param {DOMElement} container DOM element containing a React component.
+   * @return {boolean} True if a component was found in and unmounted from
+   *                   `container`
+   */
+  unmountComponentAtNode: function (container) {
+    // Various parts of our code (such as ReactCompositeComponent's
+    // _renderValidatedComponent) assume that calls to render aren't nested;
+    // verify that that's the case. (Strictly speaking, unmounting won't cause a
+    // render but we still don't expect to be in a render call here.)
+    process.env.NODE_ENV !== 'production' ? warning(ReactCurrentOwner.current == null, 'unmountComponentAtNode(): Render methods should be a pure function ' + 'of props and state; triggering nested component updates from render ' + 'is not allowed. If necessary, trigger nested updates in ' + 'componentDidUpdate. Check the render method of %s.', ReactCurrentOwner.current && ReactCurrentOwner.current.getName() || 'ReactCompositeComponent') : void 0;
+
+    !isValidContainer(container) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'unmountComponentAtNode(...): Target container is not a DOM element.') : _prodInvariant('40') : void 0;
+
+    if (process.env.NODE_ENV !== 'production') {
+      process.env.NODE_ENV !== 'production' ? warning(!nodeIsRenderedByOtherInstance(container), 'unmountComponentAtNode(): The node you\'re attempting to unmount ' + 'was rendered by another copy of React.') : void 0;
+    }
+
+    var prevComponent = getTopLevelWrapperInContainer(container);
+    if (!prevComponent) {
+      // Check if the node being unmounted was rendered by React, but isn't a
+      // root node.
+      var containerHasNonRootReactChild = hasNonRootReactChild(container);
+
+      // Check if the container itself is a React root node.
+      var isContainerReactRoot = container.nodeType === 1 && container.hasAttribute(ROOT_ATTR_NAME);
+
+      if (process.env.NODE_ENV !== 'production') {
+        process.env.NODE_ENV !== 'production' ? warning(!containerHasNonRootReactChild, 'unmountComponentAtNode(): The node you\'re attempting to unmount ' + 'was rendered by React and is not a top-level container. %s', isContainerReactRoot ? 'You may have accidentally passed in a React root node instead ' + 'of its container.' : 'Instead, have the parent component update its state and ' + 'rerender in order to remove this component.') : void 0;
+      }
+
+      return false;
+    }
+    delete instancesByReactRootID[prevComponent._instance.rootID];
+    ReactUpdates.batchedUpdates(unmountComponentFromNode, prevComponent, container, false);
+    return true;
+  },
+
+  _mountImageIntoNode: function (markup, container, instance, shouldReuseMarkup, transaction) {
+    !isValidContainer(container) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'mountComponentIntoNode(...): Target container is not valid.') : _prodInvariant('41') : void 0;
+
+    if (shouldReuseMarkup) {
+      var rootElement = getReactRootElementInContainer(container);
+      if (ReactMarkupChecksum.canReuseMarkup(markup, rootElement)) {
+        ReactDOMComponentTree.precacheNode(instance, rootElement);
+        return;
+      } else {
+        var checksum = rootElement.getAttribute(ReactMarkupChecksum.CHECKSUM_ATTR_NAME);
+        rootElement.removeAttribute(ReactMarkupChecksum.CHECKSUM_ATTR_NAME);
+
+        var rootMarkup = rootElement.outerHTML;
+        rootElement.setAttribute(ReactMarkupChecksum.CHECKSUM_ATTR_NAME, checksum);
+
+        var normalizedMarkup = markup;
+        if (process.env.NODE_ENV !== 'production') {
+          // because rootMarkup is retrieved from the DOM, various normalizations
+          // will have occurred which will not be present in `markup`. Here,
+          // insert markup into a <div> or <iframe> depending on the container
+          // type to perform the same normalizations before comparing.
+          var normalizer;
+          if (container.nodeType === ELEMENT_NODE_TYPE) {
+            normalizer = document.createElement('div');
+            normalizer.innerHTML = markup;
+            normalizedMarkup = normalizer.innerHTML;
+          } else {
+            normalizer = document.createElement('iframe');
+            document.body.appendChild(normalizer);
+            normalizer.contentDocument.write(markup);
+            normalizedMarkup = normalizer.contentDocument.documentElement.outerHTML;
+            document.body.removeChild(normalizer);
+          }
+        }
+
+        var diffIndex = firstDifferenceIndex(normalizedMarkup, rootMarkup);
+        var difference = ' (client) ' + normalizedMarkup.substring(diffIndex - 20, diffIndex + 20) + '\n (server) ' + rootMarkup.substring(diffIndex - 20, diffIndex + 20);
+
+        !(container.nodeType !== DOC_NODE_TYPE) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'You\'re trying to render a component to the document using server rendering but the checksum was invalid. This usually means you rendered a different component type or props on the client from the one on the server, or your render() methods are impure. React cannot handle this case due to cross-browser quirks by rendering at the document root. You should look for environment dependent code in your components and ensure the props are the same client and server side:\n%s', difference) : _prodInvariant('42', difference) : void 0;
+
+        if (process.env.NODE_ENV !== 'production') {
+          process.env.NODE_ENV !== 'production' ? warning(false, 'React attempted to reuse markup in a container but the ' + 'checksum was invalid. This generally means that you are ' + 'using server rendering and the markup generated on the ' + 'server was not what the client was expecting. React injected ' + 'new markup to compensate which works but you have lost many ' + 'of the benefits of server rendering. Instead, figure out ' + 'why the markup being generated is different on the client ' + 'or server:\n%s', difference) : void 0;
+        }
+      }
+    }
+
+    !(container.nodeType !== DOC_NODE_TYPE) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'You\'re trying to render a component to the document but you didn\'t use server rendering. We can\'t do this without using server rendering due to cross-browser quirks. See ReactDOMServer.renderToString() for server rendering.') : _prodInvariant('43') : void 0;
+
+    if (transaction.useCreateElement) {
+      while (container.lastChild) {
+        container.removeChild(container.lastChild);
+      }
+      DOMLazyTree.insertTreeBefore(container, markup, null);
+    } else {
+      setInnerHTML(container, markup);
+      ReactDOMComponentTree.precacheNode(instance, container.firstChild);
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      var hostNode = ReactDOMComponentTree.getInstanceFromNode(container.firstChild);
+      if (hostNode._debugID !== 0) {
+        ReactInstrumentation.debugTool.onHostOperation({
+          instanceID: hostNode._debugID,
+          type: 'mount',
+          payload: markup.toString()
+        });
+      }
+    }
+  }
+};
+
+module.exports = ReactMount;
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 66 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8077,9 +8465,9 @@ module.exports = ReactInputSelection;
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
-var React = __webpack_require__(21);
+var React = __webpack_require__(19);
 
 var invariant = __webpack_require__(1);
 
@@ -8106,7 +8494,29 @@ module.exports = ReactNodeTypes;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 71 */
+/* 67 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * Copyright 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * 
+ */
+
+
+
+var ReactPropTypesSecret = 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED';
+
+module.exports = ReactPropTypesSecret;
+
+/***/ }),
+/* 68 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8138,7 +8548,7 @@ var ViewportMetrics = {
 module.exports = ViewportMetrics;
 
 /***/ }),
-/* 72 */
+/* 69 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8155,7 +8565,7 @@ module.exports = ViewportMetrics;
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
 var invariant = __webpack_require__(1);
 
@@ -8202,82 +8612,7 @@ module.exports = accumulateInto;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 73 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {
-
-var _prodInvariant = __webpack_require__(2);
-
-/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-var ReactCurrentOwner = __webpack_require__(9);
-var ReactInstanceMap = __webpack_require__(19);
-
-var getComponentName = __webpack_require__(35);
-var invariant = __webpack_require__(1);
-var warning = __webpack_require__(3);
-
-var findFiber = function (arg) {
-  invariant(false, 'Missing injection for fiber findDOMNode');
-};
-var findStack = function (arg) {
-  invariant(false, 'Missing injection for stack findDOMNode');
-};
-
-var findDOMNode = function (componentOrElement) {
-  if (process.env.NODE_ENV !== 'production') {
-    var owner = ReactCurrentOwner.current;
-    if (owner !== null && '_warnedAboutRefsInRender' in owner) {
-      process.env.NODE_ENV !== 'production' ? warning(owner._warnedAboutRefsInRender, '%s is accessing findDOMNode inside its render(). ' + 'render() should be a pure function of props and state. It should ' + 'never access something that requires stale data from the previous ' + 'render, such as refs. Move this logic to componentDidMount and ' + 'componentDidUpdate instead.', getComponentName(owner) || 'A component') : void 0;
-      owner._warnedAboutRefsInRender = true;
-    }
-  }
-  if (componentOrElement == null) {
-    return null;
-  }
-  if (componentOrElement.nodeType === 1) {
-    return componentOrElement;
-  }
-
-  var inst = ReactInstanceMap.get(componentOrElement);
-  if (inst) {
-    if (typeof inst.tag === 'number') {
-      return findFiber(inst);
-    } else {
-      return findStack(inst);
-    }
-  }
-
-  if (typeof componentOrElement.render === 'function') {
-    invariant(false, 'Unable to find node on an unmounted component.');
-  } else {
-    invariant(false, 'Element appears to be neither ReactComponent nor DOMNode. Keys: %s', Object.keys(componentOrElement));
-  }
-};
-
-findDOMNode._injectFiber = function (fn) {
-  findFiber = fn;
-};
-findDOMNode._injectStack = function (fn) {
-  findStack = fn;
-};
-
-module.exports = findDOMNode;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 74 */
+/* 70 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8300,8 +8635,6 @@ module.exports = findDOMNode;
  * simple utility that allows us to reason about a collection of items, but
  * handling the case when there is exactly one item (and we do not need to
  * allocate an array).
- * @param {function} cb Callback invoked with each element or a collection.
- * @param {?} [scope] Scope used as `this` in a callback.
  */
 
 function forEachAccumulated(arr, cb, scope) {
@@ -8315,7 +8648,7 @@ function forEachAccumulated(arr, cb, scope) {
 module.exports = forEachAccumulated;
 
 /***/ }),
-/* 75 */
+/* 71 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8331,7 +8664,7 @@ module.exports = forEachAccumulated;
 
 
 
-var ReactNodeTypes = __webpack_require__(70);
+var ReactNodeTypes = __webpack_require__(66);
 
 function getHostComponentFromComposite(inst) {
   var type;
@@ -8350,7 +8683,7 @@ function getHostComponentFromComposite(inst) {
 module.exports = getHostComponentFromComposite;
 
 /***/ }),
-/* 76 */
+/* 72 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8388,154 +8721,7 @@ function getTextContentAccessor() {
 module.exports = getTextContentAccessor;
 
 /***/ }),
-/* 77 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-
-
-var ReactDOMComponentTree = __webpack_require__(4);
-
-function isCheckable(elem) {
-  var type = elem.type;
-  var nodeName = elem.nodeName;
-  return nodeName && nodeName.toLowerCase() === 'input' && (type === 'checkbox' || type === 'radio');
-}
-
-function getTracker(inst) {
-  if (typeof inst.tag === 'number') {
-    inst = inst.stateNode;
-  }
-  return inst._wrapperState.valueTracker;
-}
-
-function attachTracker(inst, tracker) {
-  inst._wrapperState.valueTracker = tracker;
-}
-
-function detachTracker(inst) {
-  delete inst._wrapperState.valueTracker;
-}
-
-function getValueFromNode(node) {
-  var value;
-  if (node) {
-    value = isCheckable(node) ? '' + node.checked : node.value;
-  }
-  return value;
-}
-
-function trackValueOnNode(node, inst) {
-  var valueField = isCheckable(node) ? 'checked' : 'value';
-  var descriptor = Object.getOwnPropertyDescriptor(node.constructor.prototype, valueField);
-
-  var currentValue = '' + node[valueField];
-
-  // if someone has already defined a value or Safari, then bail
-  // and don't track value will cause over reporting of changes,
-  // but it's better then a hard failure
-  // (needed for certain tests that spyOn input values and Safari)
-  if (node.hasOwnProperty(valueField) || typeof descriptor.get !== 'function' || typeof descriptor.set !== 'function') {
-    return;
-  }
-
-  Object.defineProperty(node, valueField, {
-    enumerable: descriptor.enumerable,
-    configurable: true,
-    get: function () {
-      return descriptor.get.call(this);
-    },
-    set: function (value) {
-      currentValue = '' + value;
-      descriptor.set.call(this, value);
-    }
-  });
-
-  var tracker = {
-    getValue: function () {
-      return currentValue;
-    },
-    setValue: function (value) {
-      currentValue = '' + value;
-    },
-    stopTracking: function () {
-      detachTracker(inst);
-      delete node[valueField];
-    }
-  };
-  return tracker;
-}
-
-var inputValueTracking = {
-  // exposed for testing
-  _getTrackerFromNode: function (node) {
-    return getTracker(ReactDOMComponentTree.getInstanceFromNode(node));
-  },
-
-
-  trackNode: function (node) {
-    if (node._wrapperState.valueTracker) {
-      return;
-    }
-    node._wrapperState.valueTracker = trackValueOnNode(node, node);
-  },
-
-  track: function (inst) {
-    if (getTracker(inst)) {
-      return;
-    }
-    var node = ReactDOMComponentTree.getNodeFromInstance(inst);
-    attachTracker(inst, trackValueOnNode(node, inst));
-  },
-
-  updateValueIfChanged: function (inst) {
-    if (!inst) {
-      return false;
-    }
-    var tracker = getTracker(inst);
-
-    if (!tracker) {
-      if (typeof inst.tag === 'number') {
-        inputValueTracking.trackNode(inst.stateNode);
-      } else {
-        inputValueTracking.track(inst);
-      }
-      return true;
-    }
-
-    var lastValue = tracker.getValue();
-    var nextValue = getValueFromNode(ReactDOMComponentTree.getNodeFromInstance(inst));
-
-    if (nextValue !== lastValue) {
-      tracker.setValue(nextValue);
-      return true;
-    }
-
-    return false;
-  },
-  stopTracking: function (inst) {
-    var tracker = getTracker(inst);
-    if (tracker) {
-      tracker.stopTracking();
-    }
-  }
-};
-
-module.exports = inputValueTracking;
-
-/***/ }),
-/* 78 */
+/* 73 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8551,16 +8737,16 @@ module.exports = inputValueTracking;
 
 
 
-var _prodInvariant = __webpack_require__(2),
-    _assign = __webpack_require__(5);
+var _prodInvariant = __webpack_require__(3),
+    _assign = __webpack_require__(4);
 
-var ReactCompositeComponent = __webpack_require__(104);
-var ReactEmptyComponent = __webpack_require__(67);
-var ReactHostComponent = __webpack_require__(68);
+var ReactCompositeComponent = __webpack_require__(110);
+var ReactEmptyComponent = __webpack_require__(61);
+var ReactHostComponent = __webpack_require__(63);
 
-var getNextDebugID = __webpack_require__(159);
+var getNextDebugID = __webpack_require__(164);
 var invariant = __webpack_require__(1);
-var warning = __webpack_require__(3);
+var warning = __webpack_require__(2);
 
 // To avoid a cyclic dependency, we create the final class in this module
 var ReactCompositeComponentWrapper = function (element) {
@@ -8574,7 +8760,7 @@ function getDeclarationErrorAddendum(owner) {
   if (owner) {
     var name = owner.getName();
     if (name) {
-      return '\n\nCheck the render method of `' + name + '`.';
+      return ' Check the render method of `' + name + '`.';
     }
   }
   return '';
@@ -8669,7 +8855,7 @@ module.exports = instantiateReactComponent;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 79 */
+/* 74 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8725,7 +8911,7 @@ function isTextInputElement(elem) {
 module.exports = isTextInputElement;
 
 /***/ }),
-/* 80 */
+/* 75 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8742,8 +8928,8 @@ module.exports = isTextInputElement;
 
 
 var ExecutionEnvironment = __webpack_require__(6);
-var escapeTextContentForBrowser = __webpack_require__(34);
-var setInnerHTML = __webpack_require__(36);
+var escapeTextContentForBrowser = __webpack_require__(30);
+var setInnerHTML = __webpack_require__(31);
 
 /**
  * Set the textContent property of a node, ensuring that whitespace is preserved
@@ -8782,7 +8968,7 @@ if (ExecutionEnvironment.canUseDOM) {
 module.exports = setTextContent;
 
 /***/ }),
-/* 81 */
+/* 76 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8798,15 +8984,15 @@ module.exports = setTextContent;
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
-var ReactCurrentOwner = __webpack_require__(9);
-var REACT_ELEMENT_TYPE = __webpack_require__(123);
+var ReactCurrentOwner = __webpack_require__(11);
+var REACT_ELEMENT_TYPE = __webpack_require__(129);
 
-var getIteratorFn = __webpack_require__(158);
+var getIteratorFn = __webpack_require__(163);
 var invariant = __webpack_require__(1);
-var KeyEscapeUtils = __webpack_require__(41);
-var warning = __webpack_require__(3);
+var KeyEscapeUtils = __webpack_require__(36);
+var warning = __webpack_require__(2);
 
 var SEPARATOR = '.';
 var SUBSEPARATOR = ':';
@@ -8898,7 +9084,7 @@ function traverseAllChildrenImpl(children, nameSoFar, callback, traverseContext)
           if (ReactCurrentOwner.current) {
             var mapsAsChildrenOwnerName = ReactCurrentOwner.current.getName();
             if (mapsAsChildrenOwnerName) {
-              mapsAsChildrenAddendum = '\n\nCheck the render method of `' + mapsAsChildrenOwnerName + '`.';
+              mapsAsChildrenAddendum = ' Check the render method of `' + mapsAsChildrenOwnerName + '`.';
             }
           }
           process.env.NODE_ENV !== 'production' ? warning(didWarnAboutMaps, 'Using Maps as children is not yet fully supported. It is an ' + 'experimental feature that might be removed. Convert it to a ' + 'sequence / iterable of keyed ReactElements instead.%s', mapsAsChildrenAddendum) : void 0;
@@ -8918,10 +9104,13 @@ function traverseAllChildrenImpl(children, nameSoFar, callback, traverseContext)
       var addendum = '';
       if (process.env.NODE_ENV !== 'production') {
         addendum = ' If you meant to render a collection of children, use an array ' + 'instead or wrap the object using createFragment(object) from the ' + 'React add-ons.';
+        if (children._isReactElement) {
+          addendum = ' It looks like you\'re using an element created by a different ' + 'version of React. Make sure to use only one copy of React.';
+        }
         if (ReactCurrentOwner.current) {
           var name = ReactCurrentOwner.current.getName();
           if (name) {
-            addendum += '\n\nCheck the render method of `' + name + '`.';
+            addendum += ' Check the render method of `' + name + '`.';
           }
         }
       }
@@ -8961,194 +9150,7 @@ module.exports = traverseAllChildren;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 82 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-
-
-var _prodInvariant = __webpack_require__(2);
-
-var invariant = __webpack_require__(1);
-
-function formatUnexpectedArgument(arg) {
-  var type = typeof arg;
-  if (type !== 'object') {
-    return type;
-  }
-  var displayName = arg.constructor && arg.constructor.name || type;
-  var keys = Object.keys(arg);
-  if (keys.length > 0 && keys.length < 20) {
-    return displayName + ' (keys: ' + keys.join(', ') + ')';
-  }
-  return displayName;
-}
-
-function validateCallback(callback, callerName) {
-  !(!callback || typeof callback === 'function') ? process.env.NODE_ENV !== 'production' ? invariant(false, '%s(...): Expected the last optional `callback` argument to be a function. Instead received: %s.', callerName, formatUnexpectedArgument(callback)) : _prodInvariant('122', callerName, formatUnexpectedArgument(callback)) : void 0;
-}
-
-module.exports = validateCallback;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 83 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-/**
- * @param {DOMElement} node input/textarea to focus
- */
-
-function focusNode(node) {
-  // IE8 can throw "Can't move focus to the control because it is invisible,
-  // not enabled, or of a type that does not accept the focus." for all kinds of
-  // reasons that are too expensive and fragile to test.
-  try {
-    node.focus();
-  } catch (e) {}
-}
-
-module.exports = focusNode;
-
-/***/ }),
-/* 84 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * @typechecks
- */
-
-/* eslint-disable fb-www/typeof-undefined */
-
-/**
- * Same as document.activeElement but wraps in a try-catch block. In IE it is
- * not safe to call document.activeElement if there is nothing focused.
- *
- * The activeElement will be null only if the document or document body is not
- * yet defined.
- */
-function getActiveElement() /*?DOMElement*/{
-  if (typeof document === 'undefined') {
-    return null;
-  }
-  try {
-    return document.activeElement || document.body;
-  } catch (e) {
-    return document.body;
-  }
-}
-
-module.exports = getActiveElement;
-
-/***/ }),
-/* 85 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * @typechecks
- * 
- */
-
-/*eslint-disable no-self-compare */
-
-
-
-var hasOwnProperty = Object.prototype.hasOwnProperty;
-
-/**
- * inlined Object.is polyfill to avoid requiring consumers ship their own
- * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is
- */
-function is(x, y) {
-  // SameValue algorithm
-  if (x === y) {
-    // Steps 1-5, 7-10
-    // Steps 6.b-6.e: +0 != -0
-    // Added the nonzero y check to make Flow happy, but it is redundant
-    return x !== 0 || y !== 0 || 1 / x === 1 / y;
-  } else {
-    // Step 6.a: NaN == NaN
-    return x !== x && y !== y;
-  }
-}
-
-/**
- * Performs equality by iterating through keys on an object and returning false
- * when any key has values which are not strictly equal between the arguments.
- * Returns true when the values of all keys are strictly equal.
- */
-function shallowEqual(objA, objB) {
-  if (is(objA, objB)) {
-    return true;
-  }
-
-  if (typeof objA !== 'object' || objA === null || typeof objB !== 'object' || objB === null) {
-    return false;
-  }
-
-  var keysA = Object.keys(objA);
-  var keysB = Object.keys(objB);
-
-  if (keysA.length !== keysB.length) {
-    return false;
-  }
-
-  // Test for A's keys different from B.
-  for (var i = 0; i < keysA.length; i++) {
-    if (!hasOwnProperty.call(objB, keysA[i]) || !is(objA[keysA[i]], objB[keysA[i]])) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-module.exports = shallowEqual;
-
-/***/ }),
-/* 86 */
+/* 77 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -9173,7 +9175,7 @@ var REACT_ELEMENT_TYPE = typeof Symbol === 'function' && Symbol['for'] && Symbol
 module.exports = REACT_ELEMENT_TYPE;
 
 /***/ }),
-/* 87 */
+/* 78 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -9196,33 +9198,22 @@ module.exports = REACT_ELEMENT_TYPE;
 
 
 
-var ReactCurrentOwner = __webpack_require__(9);
+var ReactCurrentOwner = __webpack_require__(11);
 var ReactComponentTreeHook = __webpack_require__(7);
-var ReactElement = __webpack_require__(17);
+var ReactElement = __webpack_require__(15);
 
-var checkReactTypeSpec = __webpack_require__(187);
+var checkReactTypeSpec = __webpack_require__(177);
 
-var canDefineProperty = __webpack_require__(57);
-var getComponentName = __webpack_require__(88);
-var getIteratorFn = __webpack_require__(58);
-var warning = __webpack_require__(10);
+var canDefineProperty = __webpack_require__(51);
+var getIteratorFn = __webpack_require__(52);
+var warning = __webpack_require__(2);
 
 function getDeclarationErrorAddendum() {
   if (ReactCurrentOwner.current) {
-    var name = getComponentName(ReactCurrentOwner.current);
+    var name = ReactCurrentOwner.current.getName();
     if (name) {
-      return '\n\nCheck the render method of `' + name + '`.';
+      return ' Check the render method of `' + name + '`.';
     }
-  }
-  return '';
-}
-
-function getSourceInfoErrorAddendum(elementProps) {
-  if (elementProps !== null && elementProps !== undefined && elementProps.__source !== undefined) {
-    var source = elementProps.__source;
-    var fileName = source.fileName.replace(/^.*[\\\/]/, '');
-    var lineNumber = source.lineNumber;
-    return '\n\nCheck your code at ' + fileName + ':' + lineNumber + '.';
   }
   return '';
 }
@@ -9240,7 +9231,7 @@ function getCurrentComponentErrorInfo(parentType) {
   if (!info) {
     var parentName = typeof parentType === 'string' ? parentType : parentType.displayName || parentType.name;
     if (parentName) {
-      info = '\n\nCheck the top-level render call using <' + parentName + '>.';
+      info = ' Check the top-level render call using <' + parentName + '>.';
     }
   }
   return info;
@@ -9277,7 +9268,7 @@ function validateExplicitKey(element, parentType) {
   var childOwner = '';
   if (element && element._owner && element._owner !== ReactCurrentOwner.current) {
     // Give the component that originally created this child.
-    childOwner = ' It was passed a child from ' + getComponentName(element._owner) + '.';
+    childOwner = ' It was passed a child from ' + element._owner.getName() + '.';
   }
 
   process.env.NODE_ENV !== 'production' ? warning(false, 'Each child in an array or iterator should have a unique "key" prop.' + '%s%s See https://fb.me/react-warning-keys for more information.%s', currentComponentErrorInfo, childOwner, ReactComponentTreeHook.getCurrentStackAddendum(element)) : void 0;
@@ -9357,16 +9348,7 @@ var ReactElementValidator = {
         if (type === undefined || typeof type === 'object' && type !== null && Object.keys(type).length === 0) {
           info += ' You likely forgot to export your component from the file ' + 'it\'s defined in.';
         }
-
-        var sourceInfo = getSourceInfoErrorAddendum(props);
-        if (sourceInfo) {
-          info += sourceInfo;
-        } else {
-          info += getDeclarationErrorAddendum();
-        }
-
-        info += ReactComponentTreeHook.getCurrentStackAddendum();
-
+        info += getDeclarationErrorAddendum();
         process.env.NODE_ENV !== 'production' ? warning(false, 'React.createElement: type is invalid -- expected a string (for ' + 'built-in components) or a class/function (for composite ' + 'components) but got: %s.%s', type == null ? type : typeof type, info) : void 0;
       }
     }
@@ -9433,7 +9415,7 @@ module.exports = ReactElementValidator;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 88 */
+/* 79 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -9450,51 +9432,1085 @@ module.exports = ReactElementValidator;
 
 
 
-function getComponentName(instanceOrFiber) {
-  if (typeof instanceOrFiber.getName === 'function') {
-    // Stack reconciler
-    var instance = instanceOrFiber;
-    return instance.getName();
-  }
-  if (typeof instanceOrFiber.tag === 'number') {
-    // Fiber reconciler
-    var fiber = instanceOrFiber;
-    var type = fiber.type;
+var ReactPropTypesSecret = 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED';
 
-    if (typeof type === 'string') {
-      return type;
-    }
-    if (typeof type === 'function') {
-      return type.displayName || type.name;
-    }
+module.exports = ReactPropTypesSecret;
+
+/***/ }),
+/* 80 */
+/***/ (function(module, exports) {
+
+module.exports = [
+	{
+		"fileName": "lec1.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #1\n8/25/2016\n\n1 Abstract Measure Theory\nLet S be a set. Capital letters A, B, C · · · ⊂ S denote subsets. Lowercase letters s ∈ S denote\nelements. Calligraphic leters A,B,C,· · · ,F,· · · ,S,· · · ⊂ 2S denote collections of subsets.\nDeﬁnition 1.1. S is a ﬁeld (or algebra) if S is closed under Boolean operations.\ni.e.\nA, B ∈ S, then:\n(a) A ∪ B ∈ S\n(b) A ∩ B ∈ S\n(c) A \\ B ∈ S\nAlso S (cid:54)= ∅.\n\nif\n\nThere are 16 total possible Boolean operations, each a disjoint union of sets from\n\n{A \\ B, A ∩ B, B \\ A, S \\ (A ∪ B)} hence isomorphic to a binary string of length 4.\nExample 1.2. F = {∅,S} is a ﬁeld.\n\nF = {∅, A, Ac,S}.\n\nExercise 1.3. Show that to show S is a ﬁeld, it sufﬁces to check ∀A, B ∈ S, Ac, A ∪ B ∈ S.\nLemma 1.4. Let S1,S2 be ﬁelds. Then S1 ∩ S2 is a ﬁeld (Not true for S1 ∪ S2).\nMore generally, if (Sθ)θ∈Θ is any collection of ﬁelds on S, ∩θ∈ΘSθ is a ﬁeld.\n\nDeﬁnition 1.5. Let A be any collection of subsets of S. Then\n\nF (A) :=\n\nF\n\n(1.1)\n\n(cid:92)\n\nF a ﬁeld\nF⊃A\n\nis a ﬁeld, called the ﬁeld generated by A.\nExercise 1.6. (HW 1) Show that F (A) is the collection of subsets that can be obtained from\nsets in A via a ﬁnite number of Boolean operations.\n\n1\n\n\fExample 1.7. S = R, A collection of (−∞, x] for x ∈ R. F (A) = union of disjoint\nhalf-open intervals\n\nExample 1.8. S = [0, 1]2. A = rectangles (x1, x2] × (y1, y2]\n\nDeﬁnition 1.9. S is a σ-ﬁeld (σ-algebra) if:\n(a) S is a ﬁeld\n(b) S is closed under countable unions and intersections\nExercise 1.10. Sufﬁces to show closed under increasing unions i.e. Ai ∈ S, A1 ⊂ A2 ⊂ · · · ,\nthen ∪iAi ∈ S.\nDeﬁnition 1.11. Let A ⊂ 2S, then\n\nσ(A) :=\n\nG\n\n(1.2)\n\n(cid:92)\n\nG σ-ﬁeld\nG⊃A\n\nis a σ-ﬁed, called the σ-ﬁeld generated by A.\nDeﬁnition 1.12. A measurable space is (S,S) where S is a set, S a σ-ﬁeld on S.\n\nIf S is a topological space and G the collection of open sets, then σ(G) is called the Borel\n\nσ-ﬁeld on S.\nExample 1.13. On Rd, the Borel σ-ﬁeld is the same as the σ-ﬁeld generated by the d-\ndimensional cubes ∏d\n\ni=1(xi, yi).\n\n2\n\n\f"
+	},
+	{
+		"fileName": "lec10.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #10\n9/27/2016\n\n1 Truncation\nCorollary 1.1. (of SLLN). Take i.i.d. (Xi) where EX+ = ¥, EX\n1 Xi. Then\nSn a.s.! ¥.\nProof. Fix large B < ¥. Deﬁne Yi = Xi1Xi(cid:20)B, Yi (cid:20) Xi. (Yi) iid, EjYij < ¥, so can apply\nSLLN to (Yi).\n(cid:229)n\n\n< ¥. Let Sn = (cid:229)n\n\n(cid:0)\n\nn\n\na.s.! EY = EX1X(cid:20)B\n=) 1\n1 Yi\nnSn (cid:21) lim inf 1\n=) lim infn\n(cid:229)n\n1 Yi\nTrue for each B, so letting B \" ¥\n\nn\n\n1\n\na.s.= EX1X(cid:20)B\n\nE[X1X(cid:20)B] \" (cid:0)EX\n\n(cid:0)\n\n+ EX+ = +¥\n\n(1.1)\n\n=) lim infn\n\n1\n\nnSn (cid:21) ¥\n\nLemma 1.2. (Deterministic) Reals s0 = 0, Sn\nn\nm(t) = maxfn : Sn (cid:20) tg. Note m(t) (cid:21) h(t) (cid:0) 1. Then h(t)\n\nt\n\n! a 2 (0, ¥). Let h(t) = minfn : sn (cid:21) tg,\n\n! 1\n\na and m(t)\nt\n\n! 1\n\na as t ! ¥.\n\nFigure 1: Depiction of h(t) and m(t)\n\n1\n\n\fProof. Fix ϵ > 0. Sn (cid:20) (a + ϵ)ne.v.\n\n=) h(t) (cid:21) t\na=ϵe.v.\n=) lim inft\n(cid:21) 1\nh(t)\na+ϵ\nt\n=)\n(cid:21) 1\nlim inft\nϵ#0\na\nSimilarly m(t) (cid:20) t\n=) lim supt\nAltogether\n\na(cid:0)ϵe.v.\n(cid:20) 1\na\n\nm(t)\n\nh(t)\n\nt\n\nt\n\n1\na\n\n(cid:20) lim inf\n\nt\n\nh(t)\n\nt\n\n(cid:20) lim inf\n\nt\n\nm(t)\n\nt\n\n(cid:20) lim sup\n\nt\n\nm(t)\n\nt\n\n(cid:20) 1\na\n\n(1.2)\n\nCorollary 1.3. (renewal SLLN) (Xi) iid. EX = m 2 (0, ¥), Sn = (cid:229)n\n\nDeﬁne Nt = maxfn : Sn (cid:20) tg, Ht = minfn : Sn (cid:21) tg.\nThen N(t)\nt\n\nm a.s. as t ! ¥.\nProof. Use SLLN and Deterministic Lemma.\n\nm and H(t)\nt\n\n! 1\n\n! 1\n\n1 Xi.\n\nConsider light bulbs have IID lifetimes X1, X2,(cid:1) (cid:1) (cid:1) > 0. New bulb at time 0, Nt =\n# bulbs replaced by time t. Renewal SLLN says if average lifetime is 1/2 year, then you\nshould replace at 2 per year. TODO: ???\n\n2 Martingales\nRandom variables Xi = (Ω,F, P) ! R are measurable functions. Givne X0, X1,(cid:1) (cid:1) (cid:1) , Xn,\ndeﬁne Fn = s(X0,(cid:1) (cid:1) (cid:1) , Xn) which is comprised of events of the form fw : (X0(w),(cid:1) (cid:1) (cid:1) , Xn(w)) 2\nBg for some measurable B (cid:26) Rn+1, Fn (cid:26) F for every n. We sometimes interpret Fn as\n“information at time n.”\nDeﬁnition 2.1. A stopping time is a r.v. T : (Ω,F, P) ! f0, 1, 2,(cid:1) (cid:1) (cid:1) g [ f¥g such that\n\nfT = ng 2 Fn, 0 (cid:20) n < ¥\n\nProposition 2.2. This is equivalent to\n\nfT (cid:20) ng 2 Fn, 0 (cid:20) n < ¥\n\nProof. Given eq. (2.1),\n\nfT (cid:20) ng = fT = 0g [ fT = 1g [ (cid:1) (cid:1) (cid:1) [ fT = ng 2 Fn\n\nso all are 2 Fn.\n\nConversely, given eq. (2.2)\n\nare also all 2 Fn.\n\nfT = ng = fT (cid:20) ng n fT (cid:20) n (cid:0) 1g 2 Fn\n\n2\n\n(2.1)\n\n(2.2)\n\n(2.3)\n\n(2.4)\n\n\fi=0\n\nfXi 2 Bg 2 Fn.\n\nExample 2.3. T = minfn : Xn 2 Bg for measurable B (cid:26) R1 is a stopping time, because\nfT (cid:20) ng = [n\ni=1 Xi. Then s(X1,(cid:1) (cid:1) (cid:1) , Xn) =\nExample 2.4. Arbitrary X1, X2,(cid:1) (cid:1) (cid:1) , Xn, deﬁne S0 = 0, Sm = (cid:229)m\ns(S0, S1,(cid:1) (cid:1) (cid:1) , Sn) = Fn ((X1,(cid:1) (cid:1) (cid:1) , Xi) ! Si through summing, (Si, Si(cid:0)1) ! Xi through dif-\nferences) and so T = minfn : Sn (cid:21) bg is a stopping time.\nExample 2.5. Given X1,(cid:1) (cid:1) (cid:1) , XN, given N, T = maxfn : n (cid:20) N, Xn (cid:21) ag is not a stopping\ntime.\nProposition 2.6 (Wald’s equation/identity/formula). (Xi) iid, EX = m < ¥, Sn = (cid:229)n\nT a stopping time with ET < ¥. Then ESt = mET\n\ni=1 Xi,\n\nNote: Undergraduate result assumed T is independent of (X).\n\nEYi holds provided (cid:229)¥\ni\n\ni Yi = (cid:229)¥\ni\ni Yi and dominated by RV (cid:229)¥\ni\n\nEjYij < ¥\n\njYij. Use dominated convergence.\n\nRemark 2.7. E (cid:229)¥\ni Yi ! (cid:229)¥\nProof. (cid:229)n\nProof of Wald’s.\n\nSn =\n\n¥\n(cid:229)\n1\n\n¥\nXi1i(cid:20)n =) ST =\n(cid:229)\nXi1i(cid:20)T\n|\n{z\n}\n1\n= fT (cid:20) i (cid:0) 1g 2 Fi(cid:0)1\nfi (cid:20) Tgc\n2Fi(cid:0)1\n=) fi (cid:20) Tg independent of Xi\nE[Xi1i(cid:20)T] = mP(T (cid:21) i)\n=) ¥\n(cid:229)\nE[Xi11(cid:20)T] = mET\ni\n\n(2.5)\n\n(2.6)\n\n(2.7)\n(2.8)\n\n(2.9)\n\nBy earlier fact, to show\n\n¥\n(cid:229)\nE[St] = E\n1\nEjXij1i(cid:20)T < ¥\n\nsufﬁces to show (cid:229)¥\n1\n\nBy applying eq. (2.9) jXij\n=) (cid:229)¥\n\nE[jXij1i(cid:20)T] = (EjXj)ET < ¥\n\nXi1i(cid:20)T\n\n?=\n\n¥\n(cid:229)\n1\n\nE[Xi11(cid:20)T] = mET\n\n(2.10)\n\ni=1\n\nLemma 2.8 (Fatou’s lemma). Arbitrary Xn (cid:21) 0. Then E[lim infn Xn] (cid:20) lim infn EXn (cid:20) ¥.\nCorollary 2.9. Arbitrary Xn (cid:21) 0. If Xn\n\na.s.! X¥, then EX¥ (cid:20) lim infn EXn (cid:20) ¥.\n\nTODO: Fatou’s automatically gives us a lower bound.\n\nRecall overaggrssive “gambling favorable game” example Xn > 0, Xn\n\na.s.! 0 and\nEXn ! ¥.\nProof. Deﬁne YN = infn(cid:21)N Xn. Then 0 (cid:20) YN \" lim inf Xn. By monotone convergence, 0 (cid:20)\nEYn \" E(lim inf Xn). Since Yn (cid:20) Xn, =) E(lim inf Xn) = lim infN EYn (cid:20) lim infN EXn\n\n3\n\n\f3 Back to renewal theory\nUnder assumptions of corollary 1.3, we also assume X (cid:21) 0 a.s.. Then E\nt ! ¥\nProof. Fatou’s lemma:\n\n1\nm\n\nSo enough to show upper bound\n\n[\n[\n\n]\n]\n\nN(t)\n\nt\n\nN(t)\n\n]\n\nt\n\n(cid:20) 1\nm\n\n(cid:20) lim inf\nt!¥\nt2N\n= lim inf\nt!¥\n\nE\n\nE\n\n[\n\nlim sup\n\nE\n\nt\n\nN(t)\n\nt\n\n[\n\n]\n\nN(t)\n\nt\n\n! 1\n\nm as\n\n(3.1)\n\n(3.2)\n\n(3.3)\n\nX > 0 =) N(t) + 1 = minfn : Sn > tg is a stopping time.\n(Truncation) Consider minfN(t) + 1, m), can check a stopping time. Applying Wald’s\n\nidentity\n\nESminfN(t)+1,m) = mE minfN(t) + 1, m)\n\n(Untruncate) Letting m \" ¥ yields\n\nESN(t)+1 = mE(N(t) + 1) (cid:20) ¥\n\nFix k. Let ˆXi = min(Xi, k), ˆSn = ˆN(t).\n=) ˆSn (cid:20) Sn =) ˆN(t) (cid:21) N(t).\nWe can apply eq. (3.5) to ( ˆxi)\n\nE( ˆN(t) + 1)\nE min(X, k) = E ˆSN(t)+1 (cid:20) t + k < ¥\n\n=) E(N(t) + 1)\n(cid:20)\nEN(t)\n\n=) lim sup\n\nt\n\n(cid:20) (t + k)\n\n(cid:2)\n\n1\n\nt\n1\n\nE min(X, k)\ntrue 8k\n\nt\n\nt\n\nE min(X, k)\n\nLet k \" ¥ shows (cid:20) 1\n\nEX = 1\nm.\n\n4\n\n(3.4)\n\n(3.5)\n\n(3.6)\n(3.7)\n\n(3.8)\n\n(3.9)\n\n\f"
+	},
+	{
+		"fileName": "lec11.pdf.txt",
+		"content": "1 Miscellaneous measure-theory related topics\nTheorem 1.1 (Kolmogorov 0-1 Law). (X1, X2,· · · ) with any range space.\n\nDeﬁne τn = σ(Xn, Xn+1, Xn+2,· · · ).\nDeﬁne the tail σ-ﬁeld\n\n(cid:92)\n\nτ =\n\nτn\n\nn≥1\nIf (X1, X2,· · · ) independent, then τ is trivial i.e.\n\nProof. Deﬁne Fn−1 = σ(X1,· · · , Xn−1).\n\n∀A ∈ τ, P(A) ∈ {0, 1}\n\nFeynman Liang\nSTAT 205A\nLecture #11\n9/29/2016\n\n(1.1)\n\n(1.2)\n\n(1.3)\n(1.4)\n(1.5)\nTODO: Dynkin? π − λ Lemma =⇒ σ(∪nFn) = σ(X1, X2,· · · ) independent of τ (1.6)\n(1.7)\n(1.8)\n(1.9)\n\nFn−1 is independent of τn\n=⇒ Fn−1 independent of τ\n=⇒ ﬁeld ∪n Fn independent of τ\n=⇒ τ is independent of τ\n\nA ∈ τ =⇒ P(A ∩ A) = P(A)P(A) = P(A)\nx2 = x =⇒ x = 0 or 1\n\nLemma 1.2. If A is a trivial σ-ﬁeld, X an A-measurable RV with values in [−∞, ∞], then ∃x0\nsuch that P(X = x0) = 1.\nProof. Deﬁne x0 = inf{x : P(X ≤ x)}. TODO: Finish\n\n1.1 Modes of convergence for R-valued RVs\n\nAlmost-sure convergence Xn\n\na.s.→ X means P(ω : Xn(ω) → X(ω)} = 1\n\nConverges in Lp space Xn\n\n∞)\n\nLp→ X means E|Xn − X|p → 0 and supn\n\nE|Xn|p < ∞ (1 ≤ p <\n\nConverges in probability Xn\n\np→ X means P(|Xn − X| > \u0001) → 0 as n → ∞, ∀\u0001 > 0\n\n1\n\n\f(a) Lp→ implies\n\np→, not conversely\n\nExample 1.3. U uniform on [0, 1]. Xn = n1U≤ 1\n\nn\n\n. Xn\n\np→ 0, EXn = 1, but Xn (cid:54)→ 0\n\n(b) a.s.→ implies\n\nProof. Xn\n\np→, not conversely\na.s.→ X means\n\n0 = P(|Xn − X| ≥ \u0001 i.o.) ≥ lim sup\n=⇒ Xn\n\np→ X\n\nn\n\nP(|Xn − X| ≥ \u0001) = 0\n\nExample 1.4. Take independent events (An) with P(An) → 0 =⇒ 1An\n\np→ 0.\n\n∑\nn\n\nP(An) = ∞ =⇒\n\n(BC 2)\n\nP(An i.o.) = 1\n\n=⇒ 1An (cid:54)a.s.→ 0\n\nRecall the dominated convergence theorem, restated here\n\n(1.10)\n\n(1.11)\n\n(1.12)\n\n(1.13)\n\na.s.→ X, if ∃Y ≥ 0 with EY < ∞ and |Xn| ≤ Y for all n, then E|Xn − X| → 0\n\nTheorem 1.5. If Xn\nand EXn → EX.\nLemma 1.6. If Xn\n\nProof. Choose nj inductively: nj = min(cid:8)n > nj−1 : P(|Xn − X| ≥ 2−j) ≤ 2−j(cid:9).\n\np→ X then ∃ subsequence n1 < n2 < n3 < · · · such that Xnj\n\na.s.→ X as j → ∞.\n\n< ∞\n|Xnj − X| ≤ 2−j ult. in j a.s.\n\nP(|Xnj − X| ≥ 2−j) ≤ 1\n∑\n2\nj\n=⇒\n(BC 1)\n⇐⇒ Xnj\n\na.s.→ X\n\n(1.14)\n\n(1.15)\n\n(1.16)\n\nRemark 1.7. Related to fact “a.s. convergence” not convergence in a metric.\n\nCorollary 1.8. The dominated convergence theorem (DCT) remains true under assumption Xn\nX.\nProof. Suppose false: ∃ε > 0 and a subsequence m1 < m2 < · · · such that E|Xmj − X| ≥ ε\nfor all j.\na.s.→ X and\nE|Xnj − X| ≥ \u0001 for all j, contradicting DCT.\n\np→ X so lemma implies ∃ subsequence nj of mj such that Xnj\n\nNow Xmj\n\np→\n\n2\n\n\f1.2 2 views of integration calculus\n\na f (x)dx = a number\n0 f (y)dy ⇐⇒ f (x) = dF(x)\n\n(1) Given f , a, b,(cid:82) b\n(2) F(x) =(cid:82) x\n[0, ∞). For A ∈ S, deﬁne ν(A) =(cid:82)\n\nA hdµ ≤ ∞.\nProposition 1.9. ν is a σ-ﬁnite measure on (S,S).\nProof. µ σ-ﬁnite =⇒ ∃An ↑ S, µ(An) < ∞.\n\ndx\n\nAn operator f (cid:55)→ F, opposite of F (cid:55)→ F(cid:48).\nThe analogue of dF(x)\nConsider a measurable space (S,S). Fix a σ-ﬁnite µ. Consider measurable h : S →\ndx\n\ninvolves measures, not functions.\n\nDeﬁne Bn = An ∩ {s : h(s) ≤ n}. Then Bn ↑ S and ν(Bn) ≤ n, µ(An) ≤ ∞.\nThe two measures ν and µ have a relationship:\n\nDeﬁnition 1.10. ν is absolutely continuous wrt µ, written ν (cid:28) µ, if\n\n∀A ∈ S : µ(A) = 0 =⇒ ν(A) = 0\n\n(1.17)\nTheorem 1.11 (Radon-Nikodym). If µ and ν are σ-ﬁnite measures on (S,S), if ν (cid:28) µ, then ∃\nmeasurable h : S → [0, ∞] such that\n\n(cid:90)\n\n∀A ∈ S : ν(A) =\n\nhdµ\n\nA\n\n(1.18)\n\nProof. Two ways: (1) See MT Text, (2) Via martingales, later\nDeﬁnition 1.12. We write h from theorem 1.11 as h = dν\ndensity of ν with respect to µ\n\ndµ and call it the Radon-Nikodym\n\nIn particular, if µ is a probability measure on R1, µ (cid:28) Leb, then h = dµ\n\ndLeb exists: the\n\ndensity function.\n\n1.3 Probability measures on R\nKnow 1-1 correspondence between probability measures µ and distribution functions F\n\nF(x) = µ(−∞, x]\n\nThere are three basic types of PMs µ\n(1) µ (cid:28) Leb, so can be described by density f\n(cid:90) x\n\nHere, f can be any measurable function with f ≥ 0 and(cid:82) ∞\n\nF(x) =\n\nf (y)dy\n\n−∞\n\n−∞ f (x)dx = 1\n\n3\n\n(1.19)\n\n(1.20)\n\n\f(2) µ is purely atomic (discrete):\n\n∃ countable set of atoms x1, x2,· · · and ∑i µ({xi}) = 1, =⇒ µ(R \\ ∪i{xi}) = 0\nExample 1.13 (Uniform distribution on Cantor set). x ∈ [0, 1], write out binary\nexpansion x = 0.10110100 . . . = 0.b1(x)b2(x)b3(x) . . ..\n\nPut together gives measurable map H : [0, 1] → [0, 1]. Take U uniform [0, 1]. What is\nthe distribution of H(U)?\n\nF(x) = P(H(U) ≤ u)\n\n(1.21)\n\nThe set of possible values of H = “base-3 expansion has no 1” = cantor set = C and\nLeb(C) = 0 while P(H(U) ∈ C) = 1.\n\n(3) µ is a singular measure:\n\n∃A such that Leb(A) = 0, µ(A) = 1 but no atoms.\n\nProposition 1.14. Any PM µ on R1 has a unique decomposition\n\nwhere µ1 admits a density, µ2 is purely atomic, and µ3 is singular, ai ≥ 0, ∑3\n\n1 ai = 1.\n\nµ = a1µ1 + a2µ2 + a3µ3\n\n(1.22)\n\n4\n\n\f"
+	},
+	{
+		"fileName": "lec12.pdf.txt",
+		"content": "1 Large Deviation Theorem\nIf an ∼ ceβn as n → ∞, then 1\n(cid:16) Sn\nToday β < 0. \u0018\u0018\u0018\u0018\u0018: decay\ngrowth\nIID (Xi). Sn = ∑n\nn ≥ a\nConsider P\n\n(cid:17)\ni Xi. EX = µ. Fix a > µ, P(X ≥ a) > 0.\n\nn log an → β = “asymptotic growth rate.”\n\n. This → 0 as n → ∞ by WLLN. How fast? We already have\n\nProposition 1.1 (General large-deviation inequality).\n\nP(Y ≥ y) ≤ inf\nθ≥0\n\nEeθY\neθy\n\nDeﬁnition 1.2. The transform of X\n\nφ(θ) = E exp(θX)\n\nAssume θ∗ = sup{θ : φ(θ) < ∞} > 0. Going back to “how fast?”\nBy general LD inequality and independence of Xi\n\n(cid:18) Sn\n\nn\n\nP\n\n(cid:19)\n\n≥ a\n\nFeynman Liang\nSTAT 205A\nLecture #12\n10/4/2016\n\n(1.1)\n\n(1.2)\n\n(1.3)\n\n(1.4)\n\n(1.5)\n\n(1.6)\n\n(1.7)\n\n(1.8)\n\n(1.9)\n\nE ∏n\n\ni=1 exp(θXi)\nexp(θan)\n\n= inf\nθ\nE exp(θXi)\n\n= P(Sn ≥ an)\n≤ inf\n(cid:18)\n\nE exp(θSn)\nexp(θan)\n∏n\n\n(cid:19)n\n\n= inf\nθ\n\ni=1\n\nθ\n\nexp(θan)\n\nφ(θ)\neθa\n\ninf\n=\nθ\n[log φ(θ) − aθ]\n≤ inf\n\nθ\n\n(cid:18) Sn\n(cid:18) Sn\n\nn\n\nn\n\n(cid:19)\n≥ a\n(cid:19)\n\n≥ a\n\n1\n\n≤ inf\n\nθ\n\n[log φ(θ) − aθ]\n\n[log φ(θ) − aθ]\n\n= inf\nθ\n\n(cid:18) Sn\n\nn\n\n(cid:19)\n\n≥ a\n\n1\nn\n\nlog P\n\nSo we have\n\n∀n :\n\n1\nn\n\nlog P\n\nTheorem 1.3. As n → ∞\n\nlim\n\n1\nn\n\nlog P\n\n\fHow to justify “?” in detail?\nProof. Know eθX−1\n\nθ → X as θ ↓ 0. Want: E\n\nConvergence Theorem.\n\nTool for going from sequence convergence to convergence of an expectation: Dominated\n\nEeθX ?= E d\ndθ\n(cid:48)(0+) = EX\nθ = 0 : φ\n\neθX = E[XeθX]\n\n∀θ\n\n(1.10)\n\n(1.11)\n\n(cid:104) eθX−1\n\nθ\n\n(cid:105) → EX.\n\n(cid:90) θx\n(cid:90) 0\n\n0\n\nx > 0 :eθX − 1 =\nx < 0 :|eθx − 1| =\n\neydy ≤ θxeθx]\neydy ≤ |θx|\n=⇒ |eθx − 1| ≤ θ|x| max(1, eθx)\n\nθx\n\n1.1 Proof outline\nThree steps:\n\n(a) Analysis of φ(θ)\n\n(b) Tilting lemma\n\n(c) Put together\nLemma 1.4. φ(cid:48)(0+) = µ\n\nd\ndθ\n\nφ(θ) =\n\nd\ndθ\n\nFor 0 < θ ≤ θ0\n\n(cid:20)eθX − 1\n\n(cid:21)\n\nθ\n\nE\n\n≤ |X| max(1, eθ0X)\n\nHypothesis: ∃θ1 such that EEθ1X < ∞.\nChoose θ0 < θ1\n\n=⇒ E(cid:2)|X| max(1, eθX)(cid:3) < ∞\n\n(cid:105) (cid:28) |X| max(1, eθX) and |X| max(1, eθX) is integrable.\n\n(cid:104) eθX−1\n\nNow E\nθ\nApplyl DCT.\n\nLemma 1.5. φ(cid:48)(0+) = µ and for 0 < θ < θ∗\n\n(cid:48)(θ) = E[XeθX]\nφ\n(cid:48)(cid:48)(θ) = E[X2eθX]\n\nφ\n\nProof. Write out as integrals, apply Fubini-Tonelli theorem.\n\n2\n\n(1.12)\n\n(1.13)\n\n(1.14)\n\n(1.15)\n\n(1.16)\n(1.17)\n\n\f(1.18)\n\n(1.19)\n\n(1.20)\n\n(1.21)\n\n(1.22)\n\n(1.23)\n\n(1.24)\n\n(1.25)\n\n(1.26)\n(1.27)\n(1.28)\n\nSuppose X discrete (so φ(θ) = ∑x eθxP(X = x)). Fix θ. Deﬁne a dist for ˆX by\n\nP( ˆX = x) =\n\neθxP(X = x)\n\nφ(θ)\n\n∑x xeθxP(X = x)\n\nφ(θ)\n\nlog φ(θ)\n\nd\ndθ\n\n=\n\n=\n\nE ˆX = ∑\nx\nEXeθX\nφ(θ)\nE[X2eθX]\n\nxP( ˆX = x) =\nφ(cid:48)(θ)\n=\nφ(θ)\nφ(cid:48)(cid:48)(θ)\nφ(θ)\n\nE( ˆX2) =\n(cid:18) φ(cid:48)(θ)\nVar( ˆX) = E( ˆX2) − (E ˆX)2\n(cid:19)\n\n(cid:18) φ(cid:48)(θ)\n\n(cid:19)2\n\nφ(θ)\n\nφ(θ)\n\n=\n\n−\n\nφ(cid:48)(cid:48)(θ)\nφ(θ)\nd\ndθ\n\n=\n\n=\n\nφ(θ)\n\n=\n\nlog φ(θ)\n\nd\ndθ\n\nThe transform of X, φ(θ), encodes information abouut the moments.\nFor general X, deﬁne distribution of ˆX by Radon-Nikodyn density ( dν\ndµ)\n\ndP( ˆX ∈ ·)\ndP(X ∈ ·)\n\n(x) =\n\neθx\nφ(θ)\n\nLemma 1.6. E ˆX = d\n1.1.1 Study G(θ) = log φ(θ) − aθ\n\ndθ log φ(θ), Var ˆX = d2\n\ndθ2 log θ\n\nG(cid:48)(0+) = (log φ(θ))(cid:48) − a = µ − a\nG(cid:48)(cid:48)(θ) = VarXθ > 0 on 0 < θ < θ\nG(0) = 0\n\n∗\n\nSo G is strictly convex on (0, θ∗). Easy to show G(θ) → ∞ as θ → ∞.\n\n3\n\n\fFind infθ of G(θ) by solving G(cid:48)(θ) = 0 =⇒ φ(cid:48)(θ)\n\nφ(θ) = a.\n\nCase 1: ∃ solution θa ∈ (0, θ∗) of equation φ(cid:48)(θ)\nAssume case 1. Choose θ ∈ (θa, θ∗). Consider tilded distribution ˆX = ˆXθ.\n\nφ(θ) = a\n\nd\ndθ\nTODO: ??? E ˆX > a and E ˆXθ ↓ a as θ ↓ θa [Check!].\n\nlog φ(θ) >\n\nE ˆX =\n\nd\ndθ\n\nFix b > E ˆXθ.\nTrick: Apply WLLN to tilted ( ˆXi)\n\nlog φ(θ) |θ=θa\n\nP( ˆX1 = x1,· · · , ˆXn = xn)\nP(X1 = x1,· · · , Xn = xn)\n\n=\n\neθ ∑n\ni xi\nφn(θ)\n\n=⇒\n\nP( ˆSn = s)\nP(Sn = s)\n\n(cid:123)(cid:122)\n\n(cid:125)\n\n(cid:124)\n\ninterp as Radon-Nikodyn density\n\nP(y1 ≤ ˆSn ≤ y2)\nP(y1 ≤ Sn ≤ y2)\nP(a ≤ Sn\nn\nP(a ≤ Sn\nn\n\n≤ eθy2\nφn(θ)\n\n≤ b) ≥ e−θbn φn(θ)\n≤ b) → 1\n\nas n → ∞\n\nwhere we use y1 = an, y2 = bn.\n\nlim inf\nn→∞\n\n1\nn\n\nlog P(\n\nSn\nn\n\n≥ a) ≥ −bθ + log φ(θ)\n\nLet θ ↓ θa.\n\nlim inf\nn→∞\n\n1\nn\n\nlog P(\n\nSn\nn\n\n≥ a) ≥ −bθa + log φ(θa)\n\n4\n\n=\n\neθs\nφn(θ)\n\n(1.29)\n\n(1.30)\n\n(1.31)\n\n(1.32)\n\n(1.33)\n\n(1.34)\n\n(1.35)\n\n\fTrue ∀b > a, let b ↓ a\n\nlim inf\nn→∞\n\n1\nn\n\nlog P(\n\nSn\nn\n\n≥ a) ≥ −aθa + log φ(θa) = G(θa)\n\n(1.36)\n\nWhy is it called tilting?\n\n2\n\nIntro to next lecture\n\nSuppose X, Y continuous.\nTODO: Format better\n\nP(x, y) = P(X = x, Y = y) ↔\n\nfX(x) density of X\nconditional dist of Y given X = xpY|X(y|x) = P(Y = y|X = x) ↔ y (cid:55)→ fY|X(y|x) conditional density of Y given X = x\n\n(2.2)\n\nmarginal distpX(x) = P(X = x) ↔\n\nf (x, y) joint density\n\n(2.1)\n\n(2.3)\n\n(2.4)\n\nreltiaonp(x, y) = pX(x)pY|X(y, x) ↔\n\n5\n\n\f"
+	},
+	{
+		"fileName": "lec13.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #13\n10/6/2016\n\n1 Conditional Distributions\nDeﬁnition 1.1. Given measurable spaces (S1,S1) and (S2,S2), deﬁne the product measurable\nspace\n\n(S1 × S2,S1 ⊗ S2) = σ(A × B : A ∈ S1, B ∈ S2)\n\nRandom variables\n\nX = (Ω,F, P (cid:55)→ (S1,S1))\nY = (Ω,F, P (cid:55)→ (S2,S2))\n\n(1.1)\n\n(1.2)\n(1.3)\n\n(X, Y) is a RV with values in S1 × S2, has a distribution µ: a PM on S1 × S2.\nX has a distribution µ1: a PM on S1.\nWhat is conditional distribution of Y given G?\nOld write-up on web page: If S1 = S2 = S countable, then P(Y = y | X = x) = f (y | x)\n\nhas properties:\n\n• f (y | x) ≥ 0\n• ∑y f (y | x) = x for all x\n• P(X = x, Y = y) = P(X = x)P(Y = y | X = x)\n\nDeﬁnition 1.2. A kernel Q from S1 to S2 is a map Q : (S1 × S2) → [0, 1] such that\n(a) For ﬁxed s1, B (cid:55)→ Q(s1, B) is a PM on S2\n(b) For ﬁxed B ∈ S2, s1 (cid:55)→ Q(s1, B) is a measurable function S1 → R\nWarning: for h : S1 × S2 → R\n(a) h is measurable\n\n(b)\n\n∀s1 : s2 → h(s1, s2) is measurable S2 → R\n∀s2 : s1 → h(s1, s2) is measurable S1 → R\n\n(1.4)\n(1.5)\n\n(a) =⇒ (b) but not vice versa.\nExample 1.3. S1 = S2 = [0, 1], h(x, x) = 1x∈A, h(x, y) = 0. Non-measurable on A ⊂ [0, 1]\n\nWe interpret P(Y ∈ B|X = s1) = Q(s1, B).\n\n1\n\n\fProposition 1.4. Given PM µ on S1 × S2, a PM µ1 on S1, and a kernel Q from S1 to S2, TFAE:\n\n(cid:17)\n\nµ1(ds1) provided h ≥ 0 or h\n\nBR1 µ(A × B) =(cid:82)\nBR2 µ(D) =(cid:82)\nBR3 (cid:82)\n\nS1\n\nS1×S2\n\nis µ-integrable\n\nA Q(s1, B)µ1(ds1) ∀A ∈ S1,∀B ∈ S2\nQ(s1, Ds1)µ1(ds1) ∀D ∈ S1 ⊗ S2\n\n) =(cid:82)\n\n(cid:16)(cid:82)\n\n˜s(cid:124)(cid:123)(cid:122)(cid:125)\n\n˜s=(s1,s2)\n\nh(s1, s2)µ(d\n\nS1\n\nh(s1, s2)Q(s1, ds2)\n\nS2\n\nHere, Ds1 := {s2 : (s1, s2) ∈ D} ⊂ S2.\n\nLemma 1.5. For each D ∈ S1 ⊗ S2,\n(a) Ds1 ∈ S2 for all s1 ∈ S1\n(b) map s1 (cid:55)→ Q(s1, Ds1) is measurable\nProof. Let D be collection of all D satisfying (i,ii).\nD is a λ-class. For D ∈ D have (Dc)s1 = {s2 : (s1, s2) (cid:54)∈ D} = (Ds1)c ∈ S2 so Dc ∈ D.\nCan also show D closed under increasing limits using closure of S2 and PM Q(s,·) under\nincreasing limits:\n\nDn ↑ D =⇒ Dn\ns1\n\n(1.6)\nLet I = {A × B : A ∈ S1, B ∈ S2} be generated by rectangles. As D = A × B implies\nBy deﬁnition 1.1, S1 ⊗ S2 = σ(I). By Dynkin’s π − λ theorem, σ(I) ⊂ D.\n\nthat ∀s1 ∈ S1 : Ds1 = B ∈ S2, we have I ⊂ D.\n\n↑ Ds1 =⇒ Q(s1, Dn\ns1\n\n) ↑ Q(s1, Ds1)\n\nTheorem 1.6 (Easy theorem). Given a PM µ1 on S1, given a kernel Q from S1 to S2, the deﬁnition\n\n(cid:90)\n\nµ(D) =\n\ndeﬁnes a PM µ on S1 × S2.\n\nQ(s1, Ds1)µ1(ds1) D ∈ S1 ⊗ S2\n\nS1\n\n(1.7)\n\n2\n\n\fProof.\n\nµ(S1 × S2) =\n\n(cid:90)\n\nS1\n\n\u001a\u001a>1\nµ1(ds1) = µ1(S1) = 1\n\n(cid:124)\n\n(cid:123)(cid:122)\n\nQ(s1, S2)\n\u001a\n\u001a\n\n\u001a\nPM\n\n\u001a\n\n(cid:125)\n\nµ(E) ≥ 0 and µ(∅ = 0) follow from Q(s1,·) and µ1 being measures, as does countable\nadditivity: if {Ei} are pairwise disjoint\n\nµ\n\nEi\n\n=\n\nQ(s1, (∪iEi)s1)µ1(ds1) =\n\nS1\n\n∑\ni\n\nS1\n\nQ(s1, (Ei)s1)µ1(ds1) = ∑\n\ni\n\nµ(Ei)\n\n(1.9)\n\n(cid:33)\n\n(cid:90)\n\n(cid:32)(cid:91)\n\ni\n\n(cid:90)\n\n(1.8)\n\n(1.10)\n\n(1.11)\n\n(1.12)\n\nTheorem 1.7 (Hard theorem). Given PM µ on S1 × S2, deﬁne marginal PM µ1 on S1 by\nµ1(A) = µ(A × S2).\n\nIf S2 is a Borel space, then ∃ kernel Q from S1 to S2 such that proposition 1.4 hold.\n\nProof. Fix B ∈ S2. Consider ν(A) := µ(A × B), A ∈ S1. ν is a (sub-probability) measure\non S1.\n\nν(A) = µ(A × B) ≤ µ(A × S2) = µ1(A) =⇒ ν (cid:28) µ1\n\nConsider the Radon-Nikodyn density\n\ndν\ndµ1\n\n(s1) = Q(s1, B)\n\n(def of Q(s1, B))\n\nwhich satisﬁes the properties\n\ns1 (cid:55)→ Q(s1, B) is measurable\n\n(cid:90)\n\n(cid:90)\n\nS1\n\ndν\ndµ1\n\nA\n\n(s1)µ1(ds1) ⇐⇒ µ(A × B) =\n\nν(A) =\n\n(1.13)\nThese hold for any B ∈ S2, so Q(s1, B) satisﬁes the ﬁrst property of a kernel Q : S1 × S2 →\nR and BR1.\nIt remains to show that Q satisﬁes the second property of a kernel, namely B (cid:55)→ Q(s1, B)\nis a PM on S2 ∀s1 ∈ S1.\n\nQ(s1, B)µ1(ds1) ∀A ∈ S1\n\nIssue: If h1\nAs S2 is a Borel space, wlog assume S2 = R. For each rational r ∈ Q do construction\nfor B = (−∞, r].\nWrite F(s, r) = Q(s1, (−∞, r]). Note\n\nA h2dµ1.\n\na.e.= h2 (wrt µ1), then(cid:82)\n\nA h1dµ1 =(cid:82)\n\ns1 (cid:55)→ F(s1, r)is measurable\n\nµ(A × (−∞, r1]) =\n\nF(s1, r)µ1(ds1) ∀A ∈ S1\n\n(1.14)\n\n(1.15)\n\n(cid:90)\n\nA\n\n3\n\n\fConsider r1 < r2 ∈ Q. For any A ∈ S1\n(cid:90)\n\nA\n\nµ(A × (r1, r2]) =\n\n(F(s1, r2) − F(s1, r1))µ(ds1) ≥ 0\n\nso\n\nF(s1, r2) ≥ F(s1, r1)\n\na.e.in S1\n\n(1.16)\n\n(1.17)\n\nModify F(s1, r) on null-set to make monotone on rationals: Redeﬁne F(s1, r) over the\nnull set {s1 : F(s1, r2) < F(s1, r1)} such that F(s1, r) = Φ(r) is monotone for r ∈ Q. Repeat\nfor all rational pairs (r1, r2) to get a version of F(s1, r) such that for any s1 ∈ A, r (cid:55)→ F(s1, r)\nis monotone on rationals. (A)\nSince F is monotone on rationals and F(s1, r) = Q(s1, (−∞, r]) where B (cid:55)→ Q(s, B) is a\n\nprobability measure\n\n(cid:41)\n\nConsider rn ↓ r ∈ Q.\n\nlimr↑∞ F(s1, r) = 1 ∀s1\nlimr↓∞ F(s1, r) = 0 ∀s1\n\nµ(A × (r1, rn]) → 0 ∀A\nF(s1, rn) ↓ F(s1, r) a.e.\n\n(B)\n\n(cid:41)\n\n(C)\n\n(1.18)\n\n(1.19)\n\nModify on another null-set rn ↓ r ∈ Q =⇒ F(s1, rn) ↓ F(s1, r) ∀s1.\nRemark 1.8 (Deterministic Fact). If r (cid:55)→ F(r) rational has properties (A), (B), (C), then\n\nis a distribution function\n\nUse fact to deﬁne\n\nwhere\n\nF(r)\n\nˆF(x) = lim\nr↓x\nr>x\nr∈Q\n\nˆF(r) = F(r)\n\nˆF(s1x, x) = lim\nr↓x\n\nf (s1, r) ∀x ∈ R\n\ns1 → ˆF(s1, x) is measurable\nx → ˆF(s1, x) is a dist function\n\nDeﬁne Q by Q(s1,·) is the PM with distribution function F(s1, x).\n\n4\n\n(1.20)\n\n(1.21)\n\n(1.22)\n\n(1.23)\n(1.24)\n\n\f"
+	},
+	{
+		"fileName": "lec14.pdf.txt",
+		"content": ""
+	},
+	{
+		"fileName": "lec15.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #15\n10/13/2016\n\n1 More RVs and distributions\nCorollary 1.1. Given a PM µ on S × R.\n\nGiven a RV X : Ω → S where dist(X) = µ1 = marginal of µ.\nGiven a RV U : Ω → [0, 1], dist(U) is U[0, 1], U independent of X.\nThen ∃ f : S × [0, 1] → R such that, with Y = f (X, U), then dist(X, Y) = µ.\n\nProof. Let Q be a kernel from S to R associated with µ.\n\nLet f (s, u) be the inverse distribution function of PM Q(s,·)\nf (s, U) has distribution Q(s,·) since Q(s, B) = λ{u :\n\n(U ∼ U[0, 1] has distribution λ = Lebesgue measure).\n\nCheck that this f works:\nP(X ∈ A, Y ∈ B) = P(X ∈ A, f (X, U) ∈ B)\n\n(cid:90) (cid:90)\n(cid:90)\n\n=\n\n=\n\nFubini\n=\n\nDef of Q\n\n1X∈A\nµ(A × B)\n\n(cid:19)\n1X∈A1 f (X,U)∈Bµ(dx) ⊗ λ(du)\n\n(cid:18)(cid:90)\n\n1 f (X,U)∈Bλ(du)\n\nµ(dx) =\n\nf (s, u) ∈ B} for all B ∈ B\n\n(cid:90)\n\nA\n\nQ(x, B)µ(dx)\n\n(1.1)\n\n(1.2)\n\n(1.3)\n\n(1.4)\n\nThis theorem, along with the following, justiﬁes Markov chains in MT setting.\n˜πn,m : (x1, x2,· · · , xn) → (x1,· · · , xm), πn,m the\nNotation: Let 1 ≤ m < n < ∞,\nassociated map P (Rn) → P (Rm) such that dist(X1,· · · , Xn) → dist(X1,· · · , Xm).\nTheorem 1.2 (Kolmogorov Extension (Consistency) Theorem). Given PMs µn on Rn, 1 ≤\nn < ∞, which are consistent in the sense πn,mµn = µm, 1 ≤ m < n < ∞.\nThen ∃ a PM µ∞ on R∞ such that π∞,mµ∞ = µm, 1 ≤ m < ∞.\nProof. Take U1, U2,· · · independent U[0, 1]. Deﬁne X1 = F−1\n(U1). Inductively, suppose\nwe have deﬁned X = (X1,· · · , Xn) as functions of (U1,· · · , Un) such that dist(Xn) = µn.\n˜Xn+1 =\n( ˜Xn, Xn+1)) = µn+1. To do that, apply the corollary with S = Rn, X = ˜Xn, U = Un+1,\nµ = µn+1 on Rn × R.\nExample 1.3. Given measurable h : R → R and a PM µ that is invariant under h, i.e.\ndist(X) = µ =⇒ dist(h(X)) = µ.\nFor each n, take dist(Xn) = µ. Deﬁne Xi = h(Xi+1), 1 ≤ i ≤ n− 1, µn = dist(X1,· · · , Xn).\nTheorem =⇒ µ∞ = dist(Y1, Y2,· · · ) such that dist(Y1,· · · , Yn) = dist(X1,· · · , Xn) ∀n.\n\nWe can show ∃ fn+1 such that deﬁning Xn+1 = fn+1(Xn, Un+1) we have dist(\n\nThis constructs inﬁnite (Xn, 1 ≤ n < ∞). Deﬁne µ∞ = dist(Xn, 1 ≤ n < ∞).\n\nµ1\n\nYi = h(Yi+1) for all 1 ≤ i < ∞.\n\n1\n\n\f2\n\nIntermission: example relevant to data\n\nHypothesis: Probabilities from gambling odds are indistinguishable from “true probabili-\nties” as formalized in math.\n\nQuestion: Does this hyp make predictions that can be checked against data?\nModel: Z1 = point difference at half time. Z2 = point differencei n second half. Home\n= −Z1 (symmetric), Z1 ⊥ Z2, Z1 has continuous\n\nteam wins ⇐⇒ Z1 + Z2 > 0. Assume Zn\ndist.\n\nd\n\nP(home team wins | Z1 = z) = P(Z2 ≥ −z | Z1 = z)\n= P(Z2 ≥ −z) by indep.\n= P(Z2 ≤ z) by symmetry\n= FZ(z)\nP(home team wins | Z1) = F2(z1)\n\nd\n= U[0, 1]\n\n(2.1)\n(2.2)\n(2.3)\n(2.4)\n\n(2.5)\n\n3 Conditional Expectation in measure theory setting\n\n3.1 Undergraduate version\nX, Y R-valued, A an event.\n\nEX is a number.\nE[X | A] is a number.\nE[X | Y = y] is a number depending on y i.e. a function of y, say = h(y).\nWrite E[X | Y] = h(Y), view as a RV. Useful because of tower property: EE[X | Y] =\n\nEX.\n\nAnother way to deﬁne it is as a best least-squares estimator.\n\n3.2 Measure theory setup\n\nConsider a sub-σ-ﬁeld G ⊂ F. We will deﬁne E[X | G] to be a certain G-measurable RV.\nSuppose know information in G. Fair stake now = Y, say\n(a) Y is G-measurable\n(b) EY1G = EX1G ∀G ∈ G\n\n2\n\n\f(b) is because of the following betting strategy: Choose G ∈ G, bet if G happens, not\nif Gc happens, gain (X − Y)1G. Fair ⇐⇒ E(gain) = 0 ∀strategies ⇐⇒ E(X − Y)1G =\n0 ∀G.\n\nDeﬁne E[X | G] to be the RV Y satisfying (a) and (b).\nExistence: For G ∈ G, deﬁne ν(G) = EX1G. P(G) = 0 =⇒ ν(G) = 0. ν (cid:28) P as PMs\n\non (Ω,G).\n\nRN works for ν a signed-measure. Deﬁning property of RN density is (b).\nRadon-Nikodym =⇒ ∃ density dν\nRadon-Nikodym =⇒ G-measurable.\nUniqueness:\n\ndP (ω) = Y(ω).\n\nLemma 3.1. If Y is G-measurable, if E|Y| < ∞. If E(Y1G) ≥ 0, ∀G ∈ G, then Y ≥ 0 a.s.\nProof. If not, G := {Y < 0} has P(G) > 0 and EY1G < 0. Contradiction.\nCorollary 3.2. If Y1 and Y2 each satisfy (a) and (b), then Y1\nProof.\n\na.s.\n= Y2.\n\nE(Y1 − Y2)1G = 0 ∀G =⇒\n\nLemma\n\nY1 ≥ Y2 a.s. and Y1 ≤ Y2 a.s. =⇒ Y2\n\na.s.= Y2\n\n(3.1)\n\nLemma 3.3 (Technical Lemma).\n\nG-measurable V.\n\n(a) If Z = E[X | Y] then E[VZ] = E[VX] for all bounded\n\n(b) If Z is G-measurable, then to prove Z = E[X | Y] it sufﬁces to prove EZ1A = EX1A ∀A ∈\n\nA where A is a π-class such that G = σ(A).\n\n(a) Use def for V = 1G, monotone class theorem\n\nProof.\n(b) Dynkin π − λ lemma\n\n3\n\n\f"
+	},
+	{
+		"fileName": "lec16.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #16\n10/18/2016\n\n1 General properties of Conditional Expectation\n\n1.1 Idea\nMimic general properties of ordinary expectations\n\nE(X1 + X2) = EX1 + EX2\n\nE(cX) = cEX\n\n(1.1)\n\nbut with G-measurable RVs playing the role of constants c.\n\n1.2 Some basic properties of CE\nLet X : (Ω,F P) → R, E|X| < ∞, G ⊂ F. E[X | G] is the RV Z such that\n(a) Z is G-measurable\n(b) E[Z1G] = E[X1G] ∀G ∈ G.\nLemma 1.1. For Z = E[X | G], E[VZ] = E(VX], we have\n(a) E[X1 + X2 | G] = E[X1 | G] + E[X2 | G]\n(b) E[VX | G] = VE[X | G] for bounded G-measurable V.\n(c) If 0 ≤ Xn ↑ X a.s., then E[Xn | G] ↑ E[X | Y] a.s.\n(d) If X ≥ 0 a.s., then E[X | G] ≥ 0 a.s.\n(e) |E[X | G]| ≤ E[|X| | G] a.s.\n(f) E[E[X | G]] = EX\n(g) If X is G-measurbale, then E[X | G] = X\n\nIf G is trivial, then E[X | G] = EX.\n\n(h) Tower Property: If G ⊂ H then E[X | G] = E[E[X | H | G]].\nProof.\n\n(a) Write Zi = E[Xi | G].\n\nNeed to show Z := Z1 + Z2 = E[X1 + X2 | G]\nZ is G-measurable because Zi are G-measurable.\n(cid:123)(cid:122)\n\n(cid:124) (cid:123)(cid:122) (cid:125)\n\nE[Z1G]\n\n=E[X11G]+E[X21G]\n\n∀G ∈ G\n\n(1.2)\n\n(cid:125)\n\n(X1 + X2)1G\n=E[X11G]+E[X21G]\n\n(cid:124)\n\n1\n\n\f(b) Deﬁne Z = VE[X | G]. To show Z = E[VX | G], need to show Z, V, and E[X | G]\n\nare G-measurable.\nZ is G-measurable by Lemma applied to V1G. TODO: Check\n\nE[E[X | G]] V1G(cid:124)(cid:123)(cid:122)(cid:125)\n\nG-meas\n\n= E[X V1G(cid:124)(cid:123)(cid:122)(cid:125)\n\nG-meas\n\n] ∀G ∈ G\n\n(1.3)\n\n(c) Exercise.\n\n(d) Exercise.\n\n(e) Exercise.\n(f) G = Ω in def.\n(g) By deﬁnition.\n\nG trivial =⇒ E[X | G] constant =⇒ E[X | G] = EX\n\n(h) Write Z = E[X | G]. Need to check E[Z1G] = E[E[X | H]1G]. But LHS = E[X1G] by\ndeﬁnition of Z, and RHS = E[X1G] by deﬁnition of E[X | H] and G ∈ G =⇒ G ∈ H.\n\n(L2 setting): Now assume EX2 < ∞.\n• X (cid:55)→ E[X | G] is the orthogonal projection in Hilbert space\n\n• Cauchy-Schwarz E|VX| ≤(cid:112)(EX)2(EV)2 < ∞\n\nFrom Lemma\n\nE[(X − E[X | G]) | V] = 0\n\nfor V G-measurable and EV2 < ∞. This gives\nLemma 1.2. X − E[X | G] and V are orthogonal ∀V G-measurable.\n\nRecall Var(X) = E[X − E[X]]2.\n\nDeﬁnition 1.3. The conditional variance\n\nVar(X | G) = E[(X − E[X | G])2 | G]\n\nLemma 1.4 (Bias-variance decomposition). If Y is G-measurable, EY2 < ∞\n\nE[(X − Y)2 | G] = Var(X | G) + (E[X | G] − Y)2\n\n(1.4)\n\n(1.5)\n\n(1.6)\n\n2\n\n\fProof.\n\nE[(X − Y)2 | G] = E[X2 − 2XY + Y2 | G]\n\n= E[X2 | G] − 2YE[X | G] + Y2\n= (E[X2 | G] − E[X | G]2) + (E[X | G]2 − 2YE[X | G] + Y2)\n= Var(X | G) + (E[X | G] − Y)2\n\nLemma 1.5. Var(X) = EVar(X | G) + VarE[X | G]\nProof. Replace X by X− changes no term, so wlog assume EX = 0.\n\n(X − E[X | G])\nVar(X) = E[X2] = E[E[X2 | G]]\n(cid:125)\n(cid:124)\n\nE[X2 | G] = E\n\n\n\n2\n\n ,\n\n| G\n\nE[ab | G] = 0\n\n(cid:123)(cid:122)\n(cid:123)(cid:122)\n(cid:125)→b\n(cid:124)\n+ E[X | G]\n→a\n= E[a2 | G] + b2\n= Var(X | G) + (E[X | G])2,\nVar(X) = E[Var(X | G) + (E[X | G])2]\n(cid:123)(cid:122)\n\nE[E[X | G]] = EX = 0\n(cid:125)\n= EVar(X | G) + E[E[X | G] − 0]2\n\n(cid:124)\n\n=VarE[X|G]\n\n(1.7)\n(1.8)\n(1.9)\n(1.10)\n\n(1.11)\n\n(1.12)\n\n(1.13)\n(1.14)\n(1.15)\n(1.16)\n\nLemma 1.6 (Connection with independence). A S-valued RV X is independent of G ⇐⇒\nE[h(X) | G] = Eh(X) ∀ bounded measurable h : S → R.\nProof. ⇒. NTS E[Eh(x)1G] = E[h(X)1G] ∀G ∈ G. But Eh(X) is a consstant so LHS\n= (Eh(X))(E1G) and by independence RHS = (Eh(X))(E1G)\n\n⇐. Take h = 1B for B ⊂ S. From the same argument\n\nE[h(X)1G] = E[h(x)]E[1G]\n= P(X ∈ B, G) = P(X ∈ B)P(G)\n\n(1.17)\n(1.18)\n\nHolds ∀B, G =⇒ X and G independent.\n\n2 Background to conditional independence\n\nRecall\nDeﬁnition 2.1. X, Y independent ⇐⇒ E(h1(X)h2(Y)) = (Eh1(X))(Eh2(Y)) for all bounded\nmeas. h1, h2\n\n3\n\n\fExample 2.2. Bayes (Xi) conditionally independent given Θ\n\n(i) Random Θ, values in {PMs on R} = P (R)\n(ii) Conditional on Θ = θ ∈ P (R) take X1, X2, X3,· · · IID(θ).\n\nSimple Markov property for (Xn, n ≥ 0) Past X0:(n−1) and future Xn+1 conditionally in-\n\ndependnet given present Xn.\nP(Xn+1 = xn+1 | Xn = xn, Xn−1 = xn−1,· · · , X0 = x0) = P(Xn+1 = xn+1 | Xn = xn)\n(2.1)\n\nLocally dependent : Given (W ˜x, ˜x = (x1, x2) ∈ Z2).\n\nIdea: W ˜x depends only on W˜y : ˜y ∈ N( ˜x) and not on the other Ws.\nFormally: TODO: Conditionally indep given ...\n\n4\n\n\f"
+	},
+	{
+		"fileName": "lec17.pdf.txt",
+		"content": "1 Conditional independence/expectation\nJensen’s inequality: Eφ(X) ≥ φ(EX) if φ convex, E|X| < ∞, E|φ(X)| < ∞\n\nindependent\n\nConditional Jensen’s inequality: E[φ(X) | G] ≥ φ(E[X | G]) a.s.\nRecall in MT, independence is property of G1, G2. Random variables X and Y are\n⇐⇒ σ(X) and σ(Y) are independent\n⇐⇒ E[h1(X1)h2(X2)] = (Eh1(X1)) × (Eh2(X2)) ∀hi : Si → R bounded meas.\n⇐⇒ E[h1(X1) | X2] = Eh1(X1) a.s. ∀h1\nUndergrad version: Given discrete RV V, deﬁne P(X1 = x1 | V = v), P(X2 = x2 |\nV = v). Then construct (X1, X2, V) such that P(X1 = x2, X2 = x2 | V = v) = P(X1 =2|\nV = v) × P(X2 = x2 | V = v).\nMT version: X1 and X2, with σ-ﬁelds H1,H2, are conditionally independent given G\n\nmeans\n\nE[\n\n(cid:124) (cid:123)(cid:122) (cid:125)\n\nh1(X1)\n\nbdd H1-meas RV\n\nh2(X2) | G] = E[h1(X1) | G] × E[h2(X2) | G] ∀hi\n\nHomework later: This is equivalent to\n\nE[h1(X1) | G, X2] = E[h1(X) | G] a.s. ∀h1\n\nOnce you know G, knowing also X2 gives no extra information about X1.\n\nFeynman Liang\nSTAT 205A\nLecture #17\n10/20/2016\n\n(1.1)\n\n(1.2)\n\n1.0.1 Relation between conditional probability and conditional expectation\n\nUndergrad: Conditional probabilities and expectations are related in the following way:\n\nP(Y = y | X = x) =\nE[h(Y) | X = x] = ∑\ny\n\nP(X = x, Y = y)\n\nP(X = x)\nh(y)P(Y = y | X = x)\n\n(1.3)\n\n(1.4)\n\nGraduate: (Conditional probability) (X, Y) : (Ω,F, P) → S1 × S2 get kernel Q from S1\n(Conditional expecation) W : (Ω,F, P) → R, E|W| < ∞, G ⊂ F, E[W | G] = Z,\n\nto S2. Q(x, B) means P(Y ∈ B | X = x).\nspeciﬁed by E[Z1G] = E[W1G] ∀G ∈ G.\n\nWhere did the connection between the two go?\n\n1\n\n\fWrite I : (Ω,F ) → (Ω,G) identity function, (I, Y) : Ω → (Ω,G) × (S2,S2), α(ω, B)\nkernel associated with (I, Y), α(ω, B) means P(Y ∈ B | G)(ω). This is called the regular\nconditional distribution for Y given G.\nWrite W = h(Y), h : S(Y) → R, G = σ(X).\nWhat is E[h(Y) | X = x] in MT?\n\nh(y)α(ω, dy)\n\n(1.5)\n\nE[h(Y) | G](ω) =\n\nProof is a homework exercise.\n\n(cid:90)\n\n2 Martingales\nA σ-ﬁeld G is a collection of events. A ∈ G means A is an event.\n\nFor RV X, say X is G-measurable to mean σ(X) ⊂ G.\n\n2.1 General setup\nDeﬁnition 2.1. For a probability space (Ω,F, P), a sequence of nested sub-σ-ﬁelds F0 ⊂\nF1 ⊂ F2 ⊂ · · · ⊂ F is called a ﬁltration.\n\nWe interpret Fn as the “information known at time n.”\n\nDeﬁnition 2.2. A sequence (Xn)n≥0 is adapted to (Fn) means Xn ∈ Fn ∀n.\nDeﬁnition 2.3. A R-valued process (Xn)0≤n<∞ is a martingale (MG) if\n(a) E|Xn| < ∞ ∀n\n(b) (Xn) is adapted to (Fn)\n(c) E[Xn+1 | Fn] = Xn, 0 ≤ n < ∞\n\n• sub-martingale: E[Xn+1 | Fn] ≥ Xn, 0 ≤ n < ∞, (Xn below i.e. sub Xn+1)\n• super-martingale: E[Xn+1 | Fn] ≤ Xn, 0 ≤ n < ∞\n\nTypical uses of the theory:\n• Complicated (Yn)\n• We look for h such that h(Yn) is a MG\n• Take Fn = σ(Y0, Y1,· · · , Yn)\n• Xn = h(Yn), (Xn) is adapted to (Fn)\nConvention: If we deﬁne Xn and say “Xn is a MG”, we are taking\n\nFn = σ(X0, X1,· · · , Xn)\n\n(2.1)\n\nthis is called the natural ﬁltration.\n\n2\n\n\fExample 2.4. Let ξ1, ξ2,· · · be independent RVs, Fn = σ(ξ1,· · · , ξn) the natural ﬁltration.\n(1) If E|ξi| < ∞ and Eξi = 0 ∀i, then Sn = ∑n\n\ni=1 ξi is a MG. To check this, note\n\n] = Sn + Eξn+1 = Sn (2.2)\n\n(2) As in (1), suppose also σ2\n\nE[Sn+1 | Fn] = E[ Sn(cid:124)(cid:123)(cid:122)(cid:125)∈Fn\n\n(cid:124)\n\nindep\n\n(cid:125)\n(cid:123)(cid:122)\n+ξn+1 | Fn] = Sn + E[ξn+1 | Fn\nn − ∑n\ni < ∞. Then Qn = S2\nn+1 − S2\nn − σ2\nE[Qn+1 − Qn | Fn] = E[2 Sn(cid:124)(cid:123)(cid:122)(cid:125)∈Fn\n(cid:124)\nξn+1 | Fn] + E[ξ2\n(cid:123)(cid:122)\n(cid:124)\n\n(cid:125)\n= 2Sn E[Sn+1 | Fn]\n\ni = Eξ2\nQn+1 − Qn = S2\n\n= 0\n\n=0\n\ni=1 σ2\ni is a MG.\nn+1 − σ2\nn+1 = 2Snξn+1 + ξ2\n(cid:125)\n(cid:123)(cid:122)\nn+1 | Fn\n] − σ2\n\nn+1\n\nn+1\n\nindep\n\n(3) Suppose (xii) independent, Eξi = 1, then Mn = ∏n\n\ni=1 ξi is a MG.\n\nMn+1 = Mn(cid:124)(cid:123)(cid:122)(cid:125)∈Fn\n\nξn+1\n\nE[Mn+1 | Fn] = E[Mnξn+1 | Fn] = MnE[ξn+1 | Fn] = MnE[ξn+1] = Mn · 1 (2.7)\n\n(2.3)\n(2.4)\n\n(2.5)\n\n(2.6)\n\n(4) Take (ξi) iid. Take density functions f and g > 0. Deﬁne Ln = ∏n\n\ni=1\n\n(a) If (ξi) have density f then ∀g, (Ln) is a MG.\nn∏\n(cid:90) g(y)\n(cid:90)\n\nEYi =\n\nLn =\n\ni=1\n\nYi\n\nf (y)dy\n\nf (y)\ng(y)dy = 1\n\n=\n\nYi =\n\ng(ξi)\nf (ξi)\n\ng(ξi)\nf (ξi).\n\n(b) If (ξi) has density g then, provided ELn < ∞, (Ln) is a sub-MG.\n\n(a) =⇒ (1/Ln) is a sub MG\n\nconditional Jensen =⇒ 1/Ln = E(1/Ln | Fn) ≥\n\n1\n\nE[Ln+1 | Fn]\n\n3\n\n(2.8)\n\n(2.9)\n\n(2.10)\n\n(2.11)\n\n=⇒ E[Ln+1 | Fn] ≥ Ln sub MG\n\n(2.12)\n\n\f"
+	},
+	{
+		"fileName": "lec18.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #18\n10/25/2016\n\n1 Review\n\n• General constructions of martingales\n• Can deﬁne F∞ = σ(∪nFn) ⊂ F\n• Usually not given a RV X∞\n• When we consider XT for a stopping time T, care about {T = ∞}\n\nDeﬁnition 1.1. A ﬁltration (Fn, 0 ≤ n < ∞) on (Ω,F, P) is a nested sequence of σ-ﬁelds,\nFi ⊂ Fi+1.\nExample 1.2. Consider any X with E|X| < ∞. Then Xn = E(X | Fn), 0 ≤ n < ∞ is a\nmartingale.\n\nRandom variable (Xn, 0 ≤ n < ∞ adapted to ﬁltration Fn means Xn ∈ Fn, 0 ≤< ∞.\n\nE[Xn | Fn−1] = E[E[Xn | Fn] | Fn−1]\n\nFn−1 ⊂ Fn =⇒\n\n= E[Xn | Fn]\n\nSimilarly, for any event A, Yn = P(A | Fn) is a martingale.\n\ntower\n\n(1.1)\n(1.2)\n\n2 Doob Decomposition\nDeﬁnition 2.1. For any X = (Xn), deﬁne ∆X\nn ∈ Fn, n ≥ 1\n)martingale ⇐⇒ ∆X\nn | Fn−1) = 0 (≥ 0 for sub-martingale a.s. n ≥ 1\nE[∆X\nn , n ≥ 1) a martingale difference sequence.\n\nX0 ∈ Fn, E|X| ≤ ∞. Call (∆X\n\nn = Xn − Xn−1, n ≥ 1. Then ∆X\n\nConsider any (Xn, n ≥ 0) adapted to (Fn) and E|Xn| < ∞ ∀n. Deﬁne (Yn) by Y0 = X0,\nn |\n∆Y\nn = ∆X\nn = E[∆X\nFn−1] (drift, predictable part). Then\n\nn | Fn−1] (shocks, martingale part). Deﬁne (Zn) by Z0 = 0, ∆Z\n\nn − E[∆X\n\nn is a (sub-\n\n1. Xn = Yn + Zn a.s.\n2. (Yn) is a martingale\n3. Zn ∈ Fn−1, n ≥ 1 (Zn is predictable) and Z0 = 0 and E|Zn| < ∞\n\nThis is the unique decomposition with these properties, called the Doob decomposition.\n\nUniqueness:\n\nE[∆X\n\nn | Fn−1) = E[∆Y\n\nn | Fn−1) + E[∆Z\n\nn | Fn−1)\n\n= 0(martingale) + ∆Z\nn\n\n1\n\n(2.1)\n(2.2)\n\n\f3 Convexity Theorem\nIf (Xn) is a martingale then (Xn − X0, n ≥ 0) is a martingale. Often say “WLOG assume\nX0 = 0.”\nTheorem 3.1 (Convexity Theorem). (Xn) adapted to (Fn), φ convex function, E[φ(Xn)] < ∞\n\n1. If (Xn) is a martingale then (φ(Xn)) is a sub-martingale\n2. If (Xn) is a sub-martingale and if φ is increasing, then (φ(Xn)) is a sub-martingale.\n\nProof.\n\n(cid:125)\nE[φ(Xn+1) | Fn) ≥ φ( E[Xn+1 | Fn]\n≥Xn, sub-martingale\n\n(cid:123)(cid:122)\n\n(cid:124)\n\n) by conditional Jensen’s inequality.\n\n(3.1)\n\n≥ φ(Xn) because φ is increasing\n\n(3.2)\n\nThis checks φ(Xn) is a sub-martingale.\n\nn is a sub-martingale.\n\nExample 3.2. If (Xn) is a martingale, then (provided integrable)\n(a) |Xn|p (p ≥ 1) is a sub-martingale, x → |x|p is convex.\n(b) X2\n(c) exp(θXn) (−∞ < θ < ∞) is a sub-martingale.\n(d) max(Xn, c) is a sub-martingale.\n(e) min(Xn, c) is a super-martingale.\n\n4 Stopping times in martingales\nDeﬁnition 4.1. A RV T : Ω → {0, 1, 2, . . .} ∪ {∞} is a stopping time if\n\n{T = n} ∈ Fn, 0 ≤ n < ∞\n\n(4.1)\n\nEquivalent condition:\n\n{T ≤ n} ∈ Fn, 0 ≤ n < ∞\n\n(4.2)\nDeﬁnition 4.2. For a stopping time T, deﬁne FT (the pre-T σ-ﬁeld), as the collection of\nsets A ∈ F such that\n(a) A ∩ {T = n} ∈ Fn, 0 ≤ n < ∞\n(b) A ∩ {T ≤ n} ∈ Fn, 0 ≤ n < ∞\nMany “obvious” properties:\n(a) If (Xn) is adapted, T is a stopping time, T < ∞, then XT is FT-measurable.\n\n2\n\n\fProof. Need to show {XT ∈ B} ∈ FT for all B. Equivalently\n\n{Xt ∈ B} ∩ {T = n} ∈ Fn\n(cid:124)\n(cid:125)\n(cid:123)(cid:122)\n{Xn ∈ B}\n∈Fn, adapted\n\n(cid:124)\n(cid:125)\n(cid:123)(cid:122)\n∩ {T = n}\n∈Fn, stop time\n\n∈ Fn\n\n(4.3)\n(4.4)\n\n(b) If T1 ⊂ T2 are stopping times, FT1 ⊂ FT2.\n(c) If S and T are stopping times, then {S = T} ∈ FS ∩ FT and for A ⊂ {S = T},\n\nA ∈ FS ⇐⇒ A ∈ FT.\n\n(d) Given an adapted process (Xn) and a stopping time T, the process ˆXn = Xmin(n,T) is\n\nadapted. Call ˆX the stopped process.\n\nIf want to sum ∑T\n\nn=1 Xn, can use ∑∞\n\nn=1 Xn1T<n.\n\n5 Story: stock market\n\nYou can buy a stock at end of any day n. Xn = the price of one share at the end of day\nn. Hn = the number of shares I hold during day n (bought day n − 1 or earlier) Yn = my\naccumulated proﬁt at the end of day n\n\nQuestion: What is the relation between Xn, Hn, and Yn?\nAnswer: The relation is given by ∆Y\n\nn = Hn∆X\n\nn , Y0 = 0.\n\nDeﬁnition 5.1. We write Y = H · X (martingale transform or discrete time stochastic integral)\nTheorem 5.2 (2.7 Durett). Suppose (Xn) is adapted and (Hn) is predictable. Consider Y = H · X\n(for simplicity assume Hn is bounded).\n\n1. If (Xn) is a MG, then (Yn) is a MG.\n2. If (Xn) is a sub-MG and Hn ≥ 0, then (Yn) is a sub-MG.\n\n3\n\n\fProof. 2.\n\nn | Fn−1)\nn | Fn−1) = E[Hn∆X\n(cid:125)\n(cid:123)(cid:122)\n(cid:124)\nn | Fn−1)\nE[∆X\n≥0,sub-MG\n\n= Hn(cid:124)(cid:123)(cid:122)(cid:125)≥0\n\nE(∆Y\n\n≥ 0\n\n(5.1)\n(5.2)\n\n(5.3)\n\nHence (Yn) is a sub-MG.\nCorollary 5.3. If (Xn) is a (sub)-MG, T a stopping time, then ˆXn = Xmin(n,T) is a (sub)-MG.\nProof. Buy 1 share at end of day 0. Sell at end of day T. Hn = 10≤n≤T. (Hn) is predictable\nbecause {n ≤ T} = {T ≤ n − 1}c ∈ Fn−1. The process Y = H · X is explicitly Yn =\nXmin(n,T) − X0. Apply Theorem.\n\n4\n\n\f"
+	},
+	{
+		"fileName": "lec19.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #19\n10/27/2016\n\n1 Last class\n(Xn) sub-MG wrt (Fn), i.e. E[Xn | Fn−1] ≥ Xn−1.\n\n(Hn) predictable process, bounded. Interpret Hn = # shares held on day n.\nDeﬁne Y = H · X by Y0 = 0, ∆Y\nn = Hn∆X\nn\nThen (Yn) is a sub-MG provided Hn ≥ 0\n\nRemark 1.1. If E[Z1A] ≥ 0 for all A ∈ G, then E[Z | G] ≥ 0 a.s.\n\n2 Today\nCorollary 2.1. (Xn) a sub-MG. 0 ≤ T1 ≤ T2 ≤ t0 stopping times. Then E[XT2 | FT1] ≥ XT1\nProof. Fix event A ∈ FT1. Strategy:\n\nIf A happens, buy 1 share at T1, sell at T2.\nIf A doesn’t happen, do nothing.\n\nIn math: Hn = 1A1T1<n≤T2.\nWant to check H is predictable, that is\nA ∩ {T1 < n ≤ T2} ∈ Fn−1\n(cid:124)\n(cid:125)\n= A ∩ {T1 ≤ n − 1}\ndef of A ∈ FT1\n\n(cid:123)(cid:122)\n\n∈Fn−1\n\n(cid:124)\n\n(cid:125)\n\\A ∩ {T2 ≤ n − 1}\n\n(cid:123)(cid:122)\n\n∈Fn−1\n\nSo H is predictable.\n\nSo (Yn) is a sub-MG, Yn = (XT2∧n − XT1∧n)1A\n\n=⇒ EYt0 ≥ EY0 = 0\n=⇒ E[(XT2 − XT1)1A] ≥ 0\n=⇒ E[XT2 − XT1 | FT1] ≥ 0 a.s.\n\n1\n\nbecause T2 ≥ T1\n\n∀A ∈ FT1\n??\n\n(2.1)\n(2.2)\n\n(2.3)\n(2.4)\n(2.5)\n\n\f3 Optional Sampling Theorem (OST)\n\nTheorem 3.1 (Basic version). If (Xn) is a (sub-)MG,\n\n0 = T0 ≤ T1 ≤ T2 ≤ · · · are stopping times,\nTi ≤ ti (constant) for every i,\nthen (XTi, i = 0, 1, 2, . . .) is a (sub-)MG wrt (FTi, i = 0, 1, 2 . . .).\nIn particular, EXT ≥ EX0 for sub-MG, = EX0 for MG.\nMany other versions without restriction T ≤ t0 exist.\n\n4 Maximal inequalities\nX∗\nN = max(X0, X1, . . . , XN)\nN ≥ x) ≤ ∑N\nalways P(X∗\nMG get better than above\nif independent P(X∗\nLemma 4.1. (Xn) a super-MG, Xn ≥ 0 a.s.\n\nN ≥ x) = 1 − ∏N\n\nn=0 P(Xn ≥ x)\n\nn=0 P(Xn ≤ x)\n\nWrite X∗ = supn Xn, so X∗\nThen P(X∗ ≥ λ) ≤ EX0\n\nλ , all λ > 0\n\nN ↑ X∗ as N → ∞.\n\nProof. Deﬁne T = min{n : Xn ≥ λ}. Apply OST to 0 and T ∧ N.\n\n2\n\n\f=⇒ EX0 ≥ EXT∧N = EXT1T≤N + EXn1T>N\n\n≥ λP(T ≤ N) + 0\n\n=⇒ P(T ≤ N) ≤ λ\n=⇒ P(X∗\nN ≥ λ) ≤ λ\nN → ∞ =⇒ P(X∗ > λ) ≤ λ\nApply to λj ↑ λ (check) =⇒ P(X∗ ≥ λ) ≤ λ\n\n−1EX0\n−1EX0\n−1EX0\n−1EX0\n\nLemma 4.2 (Doob’s L1 maximal inequality). (Xn) sub-MG. For λ > 0\n\nλP(X∗\nProof. T = min{n : Xn ≥ λ}.\n\nNλ) ≤ E[Xn1X∗\n\nN≥λ] ≤ EX+\n\nN = E max(X, 0)\n\nApply OST to T ∧ N and N =⇒ EXT∧N ≤ EXN.\n=⇒ EXT1T≤N + \u0018\u0018\u0018\u0018\u0018\u0018\nXT ≥ λ =⇒ λP(T ≤ N) ≤ EXN1T≤N = EXn1X∗\n\nEXn1T>N ≤ EXN1TN + ((((((\nEXN1T>N\nN≥λ\n\nCorollary 4.3. If (Xn) is a MG then (because Yn = |Xn| is a sub-MG)\n\nλP( max\n0≤n≤N\n\n|Xn| ≥) ≤ E|Xn|/λ\n\nAlso, Zn = X2\n\nn is a sub-MG (provided EX2\n\nn < ∞).\n\nApply Lemma to (Zn)\n\nλP( max\n0≤n≤N\n\nλ2P( max\n0≤n≤N\n\nn ≥ λ) ≤ EX2\nX2\nn ≥ λ2) ≤ EX2\nX2\n−2EX2\n\n|Xn| ≥ λ) ≤ λ\n\nN\n\nN\n\nN\n\nP( max\n0≤n≤N\n\nDifferent bounds for same quantity (c.f. Markov/Chebyshev)\n\nLemma 4.4 (Doob’s L2 maximal inequality). (Xn) sub-MG.\n\nE(0 ∨ X∗\n\nN)2 ≤ 4E(X+\nN)2\n\n3\n\n(4.1)\n(4.2)\n(4.3)\n(4.4)\n(4.5)\n(4.6)\n\n(4.7)\n\n(4.8)\n\n(4.9)\n\n(4.10)\n\n(4.11)\n\n(4.12)\n\n\fProof.\n\n(cid:124)\n(cid:123)(cid:122)\n(cid:125)\nE(0 ∨ Z)2\n=⇒ E(0 ∨ X∗\n\na\n\n= 2\n\nλP(Z ≥ λ)dλ\n\nλP(X∗\n\nN ≥ λ)dλ\nN≥λ]dλ\n\nE[XN1X∗\n\nN)2 = 2\n≤ 2\n≤ 2\n\n= 2E\n\nN1X∗\n\nE[X+\n\nN≥λ]dλ\n\n(cid:90) ∞\nX+\nN≥λdλ\n1X∗\nN\nN(0 ∨ X∗\n= 2E[X+\nN)]\n(cid:123)(cid:122)\n(cid:124)\n(cid:125)\n(cid:123)(cid:122)\n× E[(0 ∨ X∗\nN)2]\nE[(X+\n\n0\n\n(cid:21)\n\na\n\nb\n\n(cid:125)\n\nN)2]\n\n0\n\n0\n\n(cid:90) ∞\n(cid:90) ∞\n(cid:90) ∞\n(cid:90) ∞\n(cid:20)\n(cid:115)\n\n0\n\n0\n\n(cid:124)\n(cid:19)p\n\n(cid:18) p\n\np − 1\n\n(4.13)\n\n(4.14)\n\n(4.15)\n\n(4.16)\n\n(4.17)\n\n(4.18)\n\n(4.19)\n\nCauchy-Schwarz ≤ 2\n\n√\n\na ≤ 2\n\nba =⇒ a ≤ 4b.\n\nIf we use Hölder instead of Cauchy-Schwarz\n\nE[(0 ∨ X∗\n\nN)p] ≤\n\nE[(X+\n\nN)p]\n\n1 < p < ∞\n\n(4.20)\n\nExample 4.5 (not true for p = 1). X0 = 1, simple symmetric random walk on Z, stop at\nT = min{n ≥ 1 : Xn = 0}.\n\n(Xn) is a MG. EXn = 1 ∀n.\nN ↑ X∗ = supn Xn. Elementary P(X∗ ≥ m) = m−1.\nX∗\n=⇒ EX+ = ∞ =⇒ EX∗\n∴ EXn = 1 ∀N, so cannot bound the ratio for p = 1.\n\nN ↑ ∞.\n\n4\n\n\f"
+	},
+	{
+		"fileName": "lec2.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #2\n8/30/2016\n\n1 Measure Theory Continued\nNotation: B := σ{open sets of Stopo}.\nFor f : S1 → S2, have pullback f −1 : S2 → S1\n(a) f −1 commutes with ﬁnite Boolean operations and monotone limits, i.e.\n\nf −1(B1 ∪ B2) = f −1(B1) ∪ f −1(B2)\nf −1(B1 ∩ B2) = f −1(B1) ∩ f −1(B2)\n\nBn ↑ B =⇒ f −1(Bn) ↑ f −1(B)\n\n(1.1)\n(1.2)\n(1.3)\n\nf is measurable if f −1(B) ∈ S1 for all B ∈ B such that S2 = σ(B).\n\n(b) Given S2, { f −1(B) : B ∈ S2} is a σ-ﬁeld: “the pullback of a σ-ﬁeld is a σ-ﬁeld.”\nDeﬁnition 1.1. A function f : S1 → S2 between two measurable spaces is measurable if\nf −1(B) ∈ S1 for all B ∈ S2.\nLemma 1.2.\nProof. {B ∈ S2 : f −1(B) ∈ S1} ⊃ σ(B) is a σ-ﬁeld by commutativity of f −1 wrt Boolean\noperations. It also ⊃ B.\nf cts : Stopo\nLemma 1.3.\nProof. cts =⇒ f −1(Gopen\nprevious lemma implies f is measurable wrt σ{Sopen\nLemma 1.4 (π-system sufﬁciency). If S2 = R, it sufﬁces to check f −1(−∞, x] ∈ S1 for all\nx ∈ R.\nProof. σ{(−∞, x] : x ∈ R} = σ(R) = S2\n\n⊃ S1, where S1 is the Borel σ-algebra on S1. The\n\nis measurable (i.e. cts =⇒ meas)\n\n1 → Stopo\n\n2\n\n) ∈ Sopen\n\n1\n\n2\n\n} = S1.\n\n1\n\nLemma 1.5 (Composition). If h and g are measurable, then f = g ◦ h is measurable.\n\n1\n\n\fLemma 1.6 (Multi-input composition). Suppose { fi : (S,S) → R}d\ni=1 are measurable and\ng : Rd → R is measurable. Then g( f1(s), f2(s),· · · , fd(s)) is a measurable function S1 → R.\n\nProof. Apply lemma 1.5 to (S, Rd, R) and h(s1) =(cid:2) f1(s1)\n\nf2(s1)\n\nfd(s1)(cid:3). Sufﬁces\n(cid:110)∏d\ni=1(−∞, ˆxi] : ˆx ∈ Rd(cid:111)\n\n· · ·\n\n.\n\nto show h : SRd measurable.\n\nUse fact that Bd = Borel σ-ﬁeld on Rd = σ-ﬁeld generated by\nThen\n\n(cid:33)\n\nh−1\n\n(−∞, xi]\n\n=\n\n{s1 : fi(s1) = xi} ∈ S1\n\n(1.4)\n\n(cid:32) d∏\n\ni=1\n\nd(cid:92)\n\ni=1\n\nand by lemma 1.4 we are done.\nCorollary 1.7. { fi : S → R} measurable, then f1 + f2, f1 · f2, and max{ f1, f2} are measurable.\nProof. g(x1, x2) = x1 + x2, x1 · x2, and max{x1, x2} are all continuous hence measurable.\nApplying lemma 1.6 with { fi} and g shows that the composition is measurable.\n\nThis is very important, make sure to grok the following deﬁnition:\n\nDeﬁnition 1.8. For arbitrary xn ∈ ¯R, n ∈ N, deﬁne\n\nlim sup\n\nn\n\nlim inf\n\nn\n\nxn := lim\n\nxn := lim\n\nN↑∞ sup\nn≥N\nN↑∞ inf\nn≥N\n\nxn = inf N ↑ ∞ sup\nn≥N\nxn = sup N ↑ ∞ inf\nn≥N\n\nxn ∈ ¯R\nxn ∈ ¯R\n\n(1.5)\n\n(1.6)\n\n(1.7)\n\nNote that both lim sup and lim inf exist ∈ ¯R, regardless of whether limn xn does, and\n\nThese deﬁnitions may be generalized to ascending and descending sequences of sets,\n\nlim sup ≥ lim ≥ lim inf.\nwhere sup is taken to be ∪ and inf as ∩.\nLemma 1.9. Given measurable functions { fi : S → ¯R}∞\nf∗(s) = lim infn fn(s). Then f ∗ and f∗ are measurable functions S → ¯R.\n\ni=1, deﬁne f ∗(s) = lim supn fn(s) and\n\n2\n\n\fProof.\n\n{s : lim sup\n\nn\n\nfn(s) ≤ x} = {ss : fn(s) ≤ x + 1/i ult. ∀i ∈ N}\n\n= ∩∞\n= ∩∞\n= ∩∞\n\ni=1{s : fn(s) ≤ x + 1/i ult.}\ni=1 ∪∞\n(cid:123)(cid:122)\ni=1 ∪∞\n\nN=1 {s : fn(s) ≤ x + 1/i ∀n ≥ N}\n(cid:125)\nN=1 ∩∞\nn=N {s : fn(s) ≤ x + 1/i}\n\n(cid:124)\n\n∈S\n\n(1.8)\n\n(1.9)\n(1.10)\n(1.11)\n\nso f ∗ meaurable.\n2 On R-valued measurable functions (S,S) → R\nDeﬁnition 2.1. For A ∈ S, the indicator function 1A(s) =\n\n(cid:40)\n\n1,\n0,\n\nif s ∈ A\notherwise\n\nLet (cid:126)c ∈ Rn and {Ai}n\n\nstep function on Ai\n\nfunction if f (s) = ∑i\n\n(= ci for s ∈ Ai).\n(cid:27)\nLemma 2.2. Let hmeas; S → [0, L]. For i ≥ 1, deﬁne\n2i ≤ h(s)\nThen hi(s) ↑ h(s) and each hi is a simple function.\nExercise 2.3. Prove this.\n\nhi(s) = max\nj≥0\n\n(cid:26) j\n\n2i :\n\nj\n\n1 be a partition of S into measurable sets. f : (S,S) → R is a simple\n(cid:124)(cid:123)(cid:122)(cid:125)\nci1Ai\n\n= 2−i(cid:106)\n\n(cid:107) ≤ h(s)\n\n2ih(s)\n\n(2.1)\n\n3 Measures\n(S,S) a measurable space.\nDeﬁnition 3.1. A measure is a function µ : S → [0, ∞] such that\n(a) µ(∅) = 0\n(b) (Countable additivity) For countable disjoint Ai ∈ S, µ(∪iAi) = ∑i µ(Ai) ≤ ∞\nDeﬁnition 3.2. µ is a probability measure if in addition µ(S) = 1.\nµ(S) < ∞ is a ﬁnite measure.\nIf ∃Sn ↑ S s.t. µ(Sn) < ∞ for all n, then µ is a σ-ﬁnite measure\n\n3\n\n\f3.1 Elementary Properties\n• If A ⊂ B, then µ(A) ≤ µ(B)\n• If (A ∪ B) ≤ µ(A) + µ(B), with equality if A ∩ B = ∅\n• For probability measures, µ(Ac) = 1 − µ(A)\n• (Monotonicity) An ↑ A =⇒ µ(An) ↑ µ(A).\n\nAn ↓ A and some µ(An) < ∞ =⇒ µ(An) ↓ µ(A)\n\n• (Continuity) An ↓ ∅, ∃n : µ(An) < ∞, then µ(An) ↓ 0.\n\n4\n\n\f"
+	},
+	{
+		"fileName": "lec20.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #20\n11/1/2016\n\nLet S1 = min{n : Xn ≤ a}, T1 = min{n : Xn ≥ b}, S2 = min{n > T1 : Xn ≤ a},\n\n1 Upcrossing Inequality\nTake any R-valued (Xn, n ≥ 0) and any a < b ∈ R.\nT2 = min{n > S2 : Xn ≥ b}, . . .\nDeﬁnition 1.1. Deﬁne Un = Un[a, b] = max{k : Tk ≤ n} to be the number of upcrossings\nover [a, b] completed by time n.\n\nTheorem 1.2 (Upcrossing Inequality). Suppose (Xn) is a sub-MG. Then\n\n(b − a)EUn ≤ E(Xn − a)+ − E(X0 − a)+\n\n≤ EX+\n\nn + |a|\n\n(1.1)\n(1.2)\n\nProof. For the second inequality, note (x − a)+ ≤ x+ + |a| so E(X − a)+ ≤ EX+ + |a|.\n\n(Trick) When Xn ≥ a ∀n, we will prove\n\n(b − a)EUn ≤ EX+\n\nn − EX+\n\n0\n\n(1.3)\n\nFor general MG (Xn), apply the result to max(Xn, a) − a, which is a sub-MG.\nUse the “buy low, sell high” strategy: buy 1 share at Si (low) and sell at Ti (high).\nConsider Y = H · X, where Hn = ∑i 1Si<n≤Ti. (Hn) is predictable and Hn ≥ 0, so (by\nDurett 2.7) (Yn) is a sub-MG.\nUn∑\n\n(1.4)\n\nYn =\n\ni=1\n\n(cid:124)\n(cid:123)(cid:122)\n(cid:125)\n(XTi − XSi\n≥ (b − a)Un + 0\n\nproﬁt\n\nEYn ≥ (b − a)EUn\n\n(cid:124)\n(cid:125)\n) + (Xn − XSUn+1)1n>SUn+1\n\n(cid:123)(cid:122)\n\nvalue of stock if buy at SUn+1\nand sell at time n < TUn+1\n\n(1.5)\n(1.6)\n\n1\n\n\fConsider the opposite strategy K: Kn = 1 − Hn (“Buy high, sell low”). (Kn) is also\npredictable, Kn ≥ 0, so\n(Xn − Yn) = Xn − (H · X)n =\n\ni + X0 − n∑\n∆X\n\ni + X0 = (K · X)n + X0\n∆X\n\nHi∆X\n\ni =\n\nn∑\n\nn∑\n\ni=1\n\ni=1\n\ni=1\n\n(cid:124)\n(cid:125)\n(cid:123)(cid:122)\n(1 − Hi)\n\n=Ki\n\n(1.7)\n\n(1.8)\n(1.9)\n(1.10)\n\nis a sub-martingale and\n\n0\n\nE[X0 − \u0000\u0000\u0012\nY0] ≤ E[Xn − Yn]\nEX0 ≤ EXn − EYn\n(b − a)EUn ≤ EXn − EX0\n\n2 Martingale convergence\n\na.s.→ X∞ for some X∞ with E|X∞| < ∞.\n\nTheorem 2.1 (Martingale Convergence Theorem (MCT)). If (Xn) is a sub-MG, supn\n∞, then Xn\nProof. Un[a, b] ↑ U∞[a, b] so by monotone convergence theorem, upcrossing inequality, and\nthe assumption EX+\n\nEX+\n\nn <\n\nn < ∞\n\nEU∞[a, b] = lim\nn\n\nEUn[a, b] ≤ supn\n\nn + |a|\n\nEX+\nb − a\n\n< ∞\n\nThis implies that U∞[a, b] < ∞ a.s., hence\n\nP(Un[a, b] < ∞ ∀a, b ∈ Q, a < b) = 1\n\n(2.1)\n\n(2.2)\n\nFor reals (xn), if lim supn xn > lim infn xn, then U∞[a, b] = ∞ for some a < b.\nlim inf xn ∈ [−∞, ∞]. Therefore, Xn → X∞ a.s..\nFatou’s Lemma: If Yn ≥ 0, then E lim infn Yn ≤ lim infn EYn.\n\nSince U∞[a, b] < ∞ for all rational a < b, the contrapositive implies lim sup xn =\nWe have so far X∞ ∈ [−∞, ∞], but we would like E|X∞| < ∞. To show this, recall\nn → X+∞ a.s. implies (by Fatou’s Lemma) that EX+∞ ≤ lim infn EX+\nX+\n\nn < ∞. Also\n\nEX−\n\nn = EX+\n\nn − EXn ≤ EX+\n\nn − EX0\n\nsince (Xn) a sub-MG means EX0 ≤ EXn. As X−\nn ≤ sup\n\n∞ ≤ lim inf\n\nEX−\n\nEX−\n\nn\n\nn\n\nn → X−∞ a.s., by Fatou’s Lemma\n\nEX+\n\nn − EX0 < ∞\n\n(2.3)\n\n(2.4)\n\nSince EX+∞ < ∞ and EX−∞ < ∞, we have E|X∞| < ∞.\n\n2\n\n\fa.s.→ X∞ and 0 ≤ EX∞ ≤ EX0.\n\nCorollary 2.2. If (Xn) is a super-MG, Xn ≥ 0 a.s., then Xn\nProof. Apply MCT to −Xn, so Xn\nEX0.\nExample 2.3 (WARNING: MCT does not imply EXn → EX∞). Consider a simple random\nwalk X0 = 1, stopped at T = min{n : Xn = 0}. Let Yn = Xmin(T,n). Then Yn → 0 = Y∞\na.s., but EYn = 1 ∀n which differs from EY∞ = 0.\nThis is similar to uniform convergence: if continuous fn converge uniformly to f , then f\n\na.s.→ X∞. Use Fatou’s Lemma: EX∞ ≤ lim infn EXn ≤\n\nis continuous. Not necessarily true for pointwise convergence.\n\nFor sequences of expectations to converge, we need uniform integrability.\n\n3 Facts about Uniform (Equi-)Integrability\n\nConsider R-valued RVs (Yα)\n\nDeﬁnition 3.1. A family (Yα) is uniformly integrable (UI) if\n\n= 0\n\n(3.1)\n\n(cid:105)\n\n(cid:104)|Yα|1|Yα|≥b\n(cid:105)\n\nlim\nb→∞ sup\n\nα\n\nE\n\n(cid:104)|Y|1|Y|>b\n\n“We have integrability uniformly over all RVs Yα in the family”\n\nIf E|Y| < ∞, then limb→∞ E\nFacts relating to UI (see Durrett or Bilingsley)\n1. If supα\n\n= 0\n\nE|Yα|q < ∞ for some q > 1, then (Yα) is UI, which implies that supα\na.s.→ Y∞ and (Yn) is UI, then E|Y∞| < ∞ and E|Yn − Y∞| → 0 (i.e. Yn → Y∞ in L1)\n\nE|Yα| <\n\n∞\n\n2. If Yn\n\n3. If Yn → Y∞ in L1, then (Yn) is UI.\n4. If E|Y| < ∞, the family {E[Y | G] : ∀G ⊂ F} is UI.\n\nTheorem 3.2. For a MG (not sub-MG!) (Xn), TFAE:\n\n(a) (Xn) is UI\n(b) Xn converges in L1\n(c) There exists a RV X∞ with E|X∞| < ∞ such that Xk = E[X∞ | Fk] ∀k\nIf any of these conditions hold, then ∃X∞ such that Xn → X∞ both a.s. and in L1.\nProof. (c) =⇒ (a), item 4..\nsome X∞ a.s., which implies by 2. that Xn → X∞ in L1 i.e. (b).\n\n(a) implies (by item 1.) that supn\n\nE|Xn| < ∞, which by MCT implies Xn converges to\n\n3\n\n\fGiven (b), Xn → X∞ in L1, which means that E|Xn − X∞| → 0 with E|X∞| < ∞. We\nneed to prove that EX∞1A = EXk1A for any A ∈ Fk. Fix A and k. By the MG property, for\nn > k, E[Xn | Fk] = Xk so EXn1A = EXk1A. Hence\n\n|EX∞1A − EXn1A| ≤ E|X∞ − Xn| → 0\n\n(3.2)\n\nas n → ∞, so |EX∞1A − EXk1A| = 0.\n\nUsing UI with MCT leads to a convergence property for conditional expectations.\n\nTheorem 3.3 (Levy 0-1 Law). Let (Yn)n≥0 be any process, Fn the natural ﬁltration σ(Yk, 0 ≤\nk ≤ n). Let Z be any RV with E|Z| < ∞ and Z ∈ F∞.\nThen Xn = E[Z | Fn] is a UI martingale, so theorem 3.2 implies Xn → X∞ both a.s. and in\n\nL1. In terms of Z\n\nE[Z | Fn] → E[Z | F∞]\n\nas n → ∞\n\n(3.3)\n\n(3.4)\n(3.5)\n\n(3.6)\n\nIn fact, X∞ = Z because\n\nE[X∞ | Fn] = Xn = E[Z | Fn]\n\n0 = E[X∞ − Z | Fn] = X∞ − Z\n\nMG property\nX∞ − Z is F∞-meas\n\nRemark 3.4. In particular, take Z = 1A for some event A. Then\n\nP(A | Fn)(ω) a.s.→ 1A(ω)\n\nfor all A ∈ σ(Yn, n ≥ 0).\n\nIn English:\n\nIf we are learning gradually all the information that determines the outcome of\nan event, then we will become gradually certain what the outcome will be.\n\nFor independent (Yn), let A ∈ F∞ be some tail event. Then\n\nP(A | Fn)(ω) = P(A) a.s.→ 1A as n → ∞\n\n(3.7)\nwhich implies that 1A is a constant a.s. and hence P(A) ∈ {0, 1}. This is Kolmogorov’s\nzero-one law.\n\n4\n\n\f"
+	},
+	{
+		"fileName": "lec21.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #21\n11/3/2016\n\n(1.1)\n\n(1.2)\n\n(1.3)\n\n(1.4)\n\n“Converge or Oscillate Inﬁnitely”\n\n1\nLemma 1.1. Let (Xn) be a MG such that |Xn − Xn−1| ≤ K ∀n. Then P(C ∪ D) = 1 for the\nevents\n\n(cid:110)\n(cid:26)\n\nC =\n\nD =\n\n(cid:111)\n\nω : lim\n\nn→∞ Xn(ω) exists and is ﬁnite\n\nω : lim sup\nn→∞\n\nXn(ω) = +∞ and lim inf\n\nn\n\nXn(ω) = −∞\n\n(cid:27)\n\nDeﬁne T = min{n : Xn < −L}. The stopped process (XT∧n, n ≥ 0) is a MG which is\n\nProof. WLOG assume X0 = 0. Fix L > 0.\nalways ≥ −L − K (by def of T and assumption |Xn − Xn−1| ≤ K).\na.s. as n → ∞ (This is obvious for T < ∞ but still true for T = ∞).\n\nBy the (positive super-MG) convergence theorem, XT∧n converges to some ﬁnite limit\nThis implies {infn Xn > −L} = {T = ∞} ⊂ C.\nAs L was arbitrary, letting L → ∞ yields\n\nA1 =\n\ninf\nn\n\n(cid:110)\n(cid:26)\n\nXn > −∞(cid:111) ⊂ C\n(cid:27)\n\nXn < ∞\n\n⊂ C\n\nApplying the same argument to −Xn yields\n\nsup\nn\nNoting D = (A1 ∩ A2)c completes the proof.\n\nA2 =\n\n2 Conditional Borel-Cantelli\nLemma 2.1 (Conditional Borel-Cantelli Lemma). Consider events (An) adapted to (Fn).\nDeﬁne Bn = ∪m≥nAm and B = ∩nBn = lim supn An = {An i.o.}. Then\n(a) {An i.o.} a.s.\n(b) P(Bn+1 | Fn)\na.s.\n= B2 means P(B1∆B2) = 0.\nB1\nProof. ?? Consider K < n. Then B ⊂ Bn ⊂ BK and\n\nn=1 P(An | Fn−1) = ∞}\na.s.→ 1B as n → ∞\n\n= {∑∞\n\nP(B | Fn) ≤ P(Bn+1 | Fn) = P(Bn+1 |n) ≤ P(BK | Fn)\n\n(2.1)\n\n1\n\n\fTaking n → ∞, by martingale convergence theorem\nP(Bn+1 | Fn) ≤ lim sup\n\n1B ≤ lim inf\n\nn\n\nn\n\nP(Bn+1 | Fn) ≤ 1BK\n\n(2.2)\n\nLet K ↑ ∞. Then 1BK ↓ 1B\n?? Consider Xn = ∑n\n(cid:40)\n|1An+1 − P(An+1 | Fn)| ≤ 1. Then ?? implies that P(C ∪ D) = 1. We want to show\n\na.s.= limn P(Bn+1 | Fn).\nm=1(1Am − P(Am | Fm−1)), which is a MG, and |Xn+1 − Xn| =\n(cid:40)\n\n(cid:41)\n\n(cid:41)\n\n1Am = ∞\n\na.s.=\n\n∑\nm\n\n∑\nm\n\nP(Am | Fm−1) = ∞\n\n(2.3)\n\nObserve that Xn = ∑n\n+∞ and lim infn Xn = −∞}, we have that both sums are inﬁnite:\n\nm=1 P(Am | Fm−1). On event D = {ω : lim supn Xn =\n\nm=1 1Am − ∑n\n\nn∑\n\n∞ = lim sup\n\nP(Am | Fm−1) ≤ ∞\n∑\nm=1\nP(Am | Fm−1) ≥ − ∞\n∑\nm=1\nOn event C, either both sums are ﬁnite or both sums equal ∞.\n\n1Am − n∑\n1Am − n∑\n\n−∞ = lim inf\n\nn∑\n\nm=1\n\nm=1\n\nn\n\nn\n\nm=1\n\nm=1\n\n1Am\n\nP(Am | Fm−1)\n\n(2.4)\n\n(2.5)\n\n3\n\n“Product” martingales\n\nOur discussion thus far has examined sums of MGs. In this section, we consider products\nof MGs.\n\n3.1 Convergence for “Multiplicative” MGs\nTheorem 3.1 (Kakutani’s Theorem). Take (Xi, i ≥ 1) to be independent, Xi > 0, EXi = 1. We\nknow that Mn = ∏n\n\na.s.→ M∞ with EM∞ ≤ 1. Then TFAE:\n\ni=1 Xi is a MG hence by MCT Mn\n\n(a) EM∞ = 1\n(b) Mn → M∞ in L1\n(c) (Mn, n ≥ i) is UI\n(d) Set ai = EX1/2\n(e) ∑i(1 − ai) < ∞\nProof. Conditions ?????? are equivalent by the L1 MG convergence theorem.\n\nand note that 0 ≤ ai ≤ 1, ∏∞\n\ni=1 ai > 0.\n\ni\n\nConditions ???? are equivalent by calculus: use 1 − x + x2 ≤ e−x ≤ 1 − x for small\n\nx > 0.\n\n2\n\n\fSuppose ?? holds. Consider\n\nNn =\n\nX1/2\n1\na1\n\n· X1/2\n2\na2\n\n· · · · · X1/2\nn\nan\n\n·\n\nwhich is a MG. Note\n\nE[N2\n\nn] =\n\nApply the Doob L2 maximal inequality:\n\nEMn\n∏n\ni=1 a2\ni\n\n≤\n\n1\n∏∞\ni=1 a2\ni\n\n= K < ∞\n\n(cid:20)\n\n(cid:21)\n\n≤ 4K\n\nE\n\nsup\nn\n\nNn\n(3.3)\nNote that Mn ≤ N2\ni . Therefore, E[supn Mn] ≤ (4K)2 < ∞. This\nimplies that (Mn, n ≥ 1) is UI. If Z ≥ 0, EZ < ∞, then the family {X : 0 ≤ X ≤ Z} is UI.\nThis yields ??.\na.s.→ N∞, so we\n\nSuppose that ?? is false, so ∏∞\n\ni=1 ai = 0. For the MG (Nn), we have Nn\n\nn since Mn = N2\n\ni=1 a2\n\nn ∏n\n\nmust have\n\nN∞ =\n\n∏∞\ni=1 X1/2\ni\n∏∞\ni=1 ai\n\n(3.4)\n\nSince the denominator is 0, then ∏∞\n\ni=1 X1/2\n\ni = M1/2∞ = 0 a.s., so ?? fails.\n\n3.2 Likelihood ratios (absolute continuity of inﬁnite product measures)\nGiven densities ( fi, 1 ≤ i < ∞) and (gi, 1 ≤ i < ∞), assume fi > 0 and gi > 0. Take\nΩ = R∞ with Xi((cid:126)ω) = ωi. Work with P, the product measure where the (Xi) are\nindependent with densities fi. Consider Q, where the (Xi) have densities gi.\nDeﬁnition 3.2. The likelihood ratio\n\nLn =\n\nn∏\n\ni=1\n\ngi(Xi)\nfi(Xi)\n\n(3.5)\n\nis the Radon-Nikodym density dQn\ndPn .\n\n(Qn is the probability measure with corresponding density f1 ⊗ f2 ⊗ · · · ⊗ fn)\nKnow: (Ln, n ≥ 1) is a MG wrt P.\nSuppose that (Ln, n ≥ 1) is UI. Then Ln → L∞ in L1 and Ln = E[L∞ | Fn]. What this\n\nmeans, from the deﬁnition of R-N density, is\n\n(3.1)\n\n(3.2)\n\n(3.6)\n(3.7)\n\n(3.8)\n\nQ(A) = ELn1A ∀A ∈ Fn\n\n= EL∞1A ∀A ∈(cid:91)\n\nFn\n= EL∞1A ∀A ∈ F∞\n\nn\n\n3\n\n\fso L∞ is the R-N density dQ\n∑i(1 − ai) < ∞.\n\nSimilarly, if Q (cid:28) P, then we can prove (Ln, n ≥ 1) is UI. So Q (cid:28) P ⇐⇒ (Ln, n ≥ 1)\nis UI ⇐⇒(cid:124)(cid:123)(cid:122)(cid:125)\n\ndP on R∞. Therefore, Q (cid:28) P.\n(cid:19)1/2\n\n(cid:90)\n\nKakutani\n\n=\n\ng1/2\ni\n\n(x) f 1/2\n\ni\n\n(cid:17)2\n\n(x)\n\ndx\n\ni\n\n(x) − f 1/2\n(cid:17)2\n\n(x)dx\n\n(3.9)\n\n(3.10)\n\n(3.11)\n\n(cid:18) gi\n(cid:90) (cid:16)\n\nfi\n\n(Xi)\n\ng1/2\ni\n\nai = E\n1\n2\n\nalgebra =⇒ 1 − ai =\nOur condition becomes Q (cid:28) P ⇐⇒\n(cid:90) (cid:16)\n\n∞\n∑\ni=1\n\ng1/2\ni\n\n(x) − f 1/2\n\n(x)\n\ni\n\ndx < ∞\n\n“ fi and gi become close for large i.”\n\nWe know that if f (cid:54)= g, then Q and P are singular.\n\n4\n\n\f"
+	},
+	{
+		"fileName": "lec22.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #22\n11/8/2016\n\n1 Optional Sampling Theorem\n\nIntuition:\n\nMath/data:\n\nassumptions do we need?\n\nSetup for OST. Let (Xn, n ≥ 0) be a sub-MG. To conclude EX0 ≤ EXT, what extra\nKnow: Sufﬁcient T ≤ t0 < ∞ a.s. So, sufﬁcient that\nE|XT − XT∧n| → 0\nTheorem 1.1 (Optional Sampling Theorem (OST)). If\n(a) E|Xn|1T>n → 0 as n → ∞\n(b) E|XT| < ∞\nthen EX0 ≤ aEXT.\nProof. See Durrett.\n\n(1.1)\n\n1\n\n\fTheorem 1.2 (Useful version of OST). Suppose (Xn) is a sub-MG, T a stopping time, ET < ∞.\nWrite ∆\n\nn=Xn−Xn−1. If ∃b > 0 such that\n\nthen EX0 ≤ EXT.\nProof. Note XT = X0 + ∑T\n\nn=1\n\nConsider\n\nE[|∆n| | Fn−1] ≤ b\n\non {n ≤ T}\n\n∆n, and |XT| ≤ Y hence |XT∧n| ≤ Y.\n\nY = |X0| +\n\n|∆n|\n\nT∑\n\nn=1\n\nEY = E|X0| +\n\n|∆n|\n\nT∑\n\nn=1\n\n(1.2)\n\n(1.3)\n\n(1.4)\n\n(1.5)\n(1.6)\n\nE[|∆n|1T≥n | Fn−1] = 1T≥nE[|∆n| | Fn] ≤ b1T≥n\n\nE[|∆n|1T≥n] = EE[|∆n|1T≥n | Fn−1] ≤ bP(T ≥ n)\n\n(1.7)\nRecall E|W| < ∞ and P(An) → 0 =⇒ E(W1An)) → 0, so taking W = Y and An = {T >\nn} shows (a).\n\nbP(T ≥ n) = EX0 + bET < ∞\n\nEY ≤ E0 +\n\n∞\n∑\nn=1\n\nE|XT| ≤ EY < ∞ shows (b).\n\n2 Equalities from inequalities using martingales\n\nPrinciple: Given a MG proof of exact formula, one can often get equality conclusions out\nof inequality assumptions.\nCorollary 2.1 (Inequality version of Wald identity). Suppose (ξi) independent, µ1 ≤ Eξi ≤\nµ2, and supi\n\nE|ξi| < ∞.\ni=1 ξi. Then for any stopping time T where ET < ∞\n\nLet Sn = ∑n\n\nµ1ET ≤ EST ≤ µ2ET\n\nProof. Apply theorem 1.2 to Xn = Sn − nµ1 (i.e. ∆n = ξn − µ1).\n\nE[∆n | Fn−1] = ESn − µ1 ≥ 0 =⇒ (Xn) is a sub-MG\nE[|∆n| | Fn−1] = E|∆n| ≤ E|Sn| + |µ1| ≤ b\n\nWald: if (ξi) i.i.d.\n\nESt = (Eξ) · (ET)\n\nTheorem =⇒ EX0 ≤ EXT\n=⇒ 0 ≤ ESt − µ1ET\n=⇒ ESt ≥ µ1ET\n\n2\n\nby hypothesis\n\n(2.1)\n\n(2.2)\n(2.3)\n\n(2.4)\n\n(2.5)\n(2.6)\n(2.7)\n\n\fLemma 2.2. Take (ξi) i.i.d., Sn = ∑n\nE exp(θξ) = Eθb. Then\n\ni=1 ξi. Fix a > 0 and b > Eξ. Suppose ∃θ > 0 such that\n\nP(Sn ≥ a + nb for some n ≥ 0) ≤ e−θa\n\n(2.8)\n\nProof. Set ˆξi = ξi − b, so ˆSn = Sn − nb.\n\nE exp(θ ˆξ) = 1 by deﬁnition, so (exp(θ ˆSn), n ≥ 0) is a MG.\nApply L1 maximal inequality\n\nexp(θ ˆSn) ≥ λ) ≤ λ\n\n−1\n\nP(sup\nn\n\n(2.9)\n\nˆSn ≥ a) ≤ e−θa\nSet λ = eθa =⇒ P(supn\nLemma 2.3. Suppose (ξi) i.i.d., Sn = ∑n\nφ(θ) = E exp(θξ) = 1, T is a stopping time with ET < ∞, and ∀n : Sn ≤ B on {n < T}.\n\ni=1 ξi, ∃θ > 0 such that moment generating function\n\nThen E exp(θST) = 1.\n\nProof. Xn := exp(θSn) is a MG. Need to check eq. (1.2) from theorem 1.2.\n\n∆n = Xn − Xn−1 = Xn−1(exp(θSn) − 1)\n|∆n| ≤ Xn−1|exp(θξn) − 1|\nE[|∆n| | Fn−1] ≤ Xn−1E|exp(θξ) − 1|\n\nas {n ≤ T} = {n − 1 < T} we have\n\nSn−1 ≤ B\nXn−1 ≤ eθB\n\n(2.10)\n(2.11)\n(2.12)\n\n(2.13)\n(2.14)\n\nThis veriﬁes theorem 1.2 so apply MG version to conclude EX0 = EXT. TODO: Follow\nup\n\n3\n\n\f2.1 Boundary crossing inequalities\nSetting:\n\ni=1 ξi\n\n• (ξi) i.id.\n• Sn = ∑n\n• |ξi| ≤ L\n• Eξ < 0\n• P(ξ > 0) > 0\nFix a < 0 < b, consider T = min{n : Sn ≥ b or Sn ≤ a}\n\nExercise 2.4. Check ET < ∞\n\n(cid:124) (cid:123)(cid:122) (cid:125)\n) = x, so P( St ≤ a\n\n(cid:124) (cid:123)(cid:122) (cid:125)\nLet P( ST ≥ b\n⇐⇒ ST≤b−L\nConsider φ(θ) = E exp(θξ) < ∞, φ(a) = 1, φ(cid:48)(0) = Eξ < 0, φ(θ) → ∞ as θ → ∞.\n=⇒ ∃θ > 0 : φ(θ) = 1.\nApply Lemma =⇒ E exp(θST) = 1.\n\n) = 1 − x.\n\n⇐⇒ ST≥a+L\n\nxeθb + (1 − x)eθ(a−L) ≤ 1 ≤ xeθ(b+L) + (1 − x)eθa\n\nRearranging\n\neθ(b+L) − eθa\nSpecial case for simple random walk:\n\n1 − eθa\n\n≤ x ≤ 1 − eθ(a−L)\neθb − eθ(a−L)\n\n1\n2\n\nP(ξ = 1) = p <\nP(ξ = −1) = q = 1 − p\na < 0 < b ∈ Z\n\nHere, the upper bound is an equality so\n\nx =\n\n1 − eθa\neθb − eθa\n\nφ(θ) = peθ + qe−θ = 1, so solving yields eθ = q/p and\n\nx =\n\n1 − (q/p)a\n\n(q/p)b − (q/p)a\n\nwhich is the undergraduate result from directly solving simple random walk.\n\n4\n\n(2.15)\n\n(2.16)\n\n(2.17)\n\n(2.18)\n(2.19)\n\n(2.20)\n\n(2.21)\n\n\f"
+	},
+	{
+		"fileName": "lec23.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #23\n11/10/2016\n\n1 Patterns in coin-tossing\n\nSay in words (exercise X’s general pattern):\nis random, t ≤ W < ∞ a.s.\n\nFix pattern HTTHT. Toss fair coin until see this pattern — requires W tosses where W\n\nWhat is EW?\nConsider the strategy\n• bet $1 that toss i is H\n• if win, bet $2 that toss i + 1 is T\n• if win, bet $4 that toss i + 2 is T\n• if win, bet $8 that toss i + 3 is H\n• if win, bet $16 that toss i + 4 is T\n\nDo strategy for each 1 ≤ i ≤ W, stop after toss W.\n\nW is a stopping time, so the optional sampling theorem implies E[proﬁt] = 0.\n\ncost = W\n\nreturn = 32 + 4 = 36\nproﬁt = return − cost\n\n0 = E[proﬁt] = E[36 − W] = 36 − EW\n\nEW = 36\n\n(1.1)\n(1.2)\n(1.3)\n(1.4)\n(1.5)\n\n2 MG proof of Radon-Nikodym\nTheorem 2.1 (Radon-Nikodym). Let (S,S, µ) be a probability space, S = σ(Ai, i ≥ 0) count-\nable events.\nA ∈ S.\n\nIf ν (cid:28) µ, ν(S) < ∞, then ∃measurable h : S → [0, ∞] such that ν(A) = (cid:82)\n\nA hdµ for all\n\ndµ is the Radon-Nikodym density of νwrtµ.\n\nh = dν\nHeuristics: h(s) = dν\n\ndµ (s) = limA↓{s} ν(A)\nµ(A).\n\n1\n\n\fProof. Deﬁne Fn = σ(Ai, 1 ≤ i ≤ n) ﬁnite ﬁeld with 2n atoms.\n\nDeﬁne Xn(s) = ν(F)\n\nµ(F) for atom F (cid:51) s.\n\n= ν(F) for each F ∈ Fn\n\nClaim: (Xn,Fn) is a MG.\nJustiﬁcation: Take G ∈ Fn−1.\n\n(cid:123)(cid:122)\n(cid:125)\nG = (G ∩ An)\n\n(cid:124)\n\n(cid:124)\n(cid:123)(cid:122)\n∪ (G ∩ Ac\nn)\n\n(cid:125)\n\n(2.1)\n\nG1\n\nEquation (2.3) =⇒ = ν(G1) + ν(G2) = ν(G) = EXn−11G\n\n(2.2)\n(2.3)\n(2.4)\nBy MG convergence theorem, Xn → X∞ for some X∞ ≥ 0 a.s. If we prove (Xn, n ≥ 1)\n\nG2\nEXn1G = EXn1G1 + EXn1G2\nXn−1 = E[Xn | Fn−1]\n\nis UI, then Theorem from Lecture 20 implies Xn = E[X∞ | Fn] hence\n\nEX∞1F = EXn1F = ν(F)\nEX∞1F = ν(F)\nEX∞1F = ν(F)\n\n(cid:90)\n\nν(F) = EµX∞1F =\n\nX∞dµ\n\nF\n\neq. (2.3)\n∀F ∈ ∪nFn\n∀F ∈ σ (∪nFn) = S\n\nSo X∞ is R-N density dν\nLemma 2.2. Suppose ν (cid:28) µ. ∀ε > 0,∃δ(ε) > 0 such that\n\ndµ and we are done.\n\nµ(A) ≤ δ(ε) =⇒ ν(A) ≤ ε\n\n2\n\n(2.5)\n(2.6)\n(2.7)\n\n(2.8)\n\n(2.9)\n\n(2.10)\n\n\fProof. If false for ε,∃An such that µ(An) ≤ 2−n and ν(An) > ε. Consider Λ = {An i.o.}.\nBy Borel-Cantelli, µ(Λ) = 0 but ν(Λ) ≥ ε, contradicting ν (cid:28) µ.\n\nClaim: (Xn) is UI.\nJustiﬁcation: By eq. (2.3), EXn1Xn≥b = ν(Xn ≥ b). Given ε > 0, take b such that\nb ≤ δ(ε). Then\n\nν(S)\n\nν(Xn ≥ b) ≤\nlemma 2.2ν(XN ≥ b) ≤ ε\n\nMarkov\n\n=⇒ sup\n\nEXn1Xn≥b ≤ ε\n\nn\n\nEXn\n\nb\n\n=\n\nν(S)\n\nb\n\n≤ δ(ε)\n\n(2.11)\n\n(2.12)\n(2.13)\n\nSo UI.\n\nThe above proof relies on martingale convergence theorem for existence of R-N density\n\nX∞. It also only holds for countable events.\n\n3 Azuma’s inequality\nTheorem 3.1 (Azuma’s inequality). Let Sn = ∑n\n\nThen for λ > 0,\n\ni=1 Xi be a MG with |Xi| ≤ 1 a.s.\n\nso\n\nP(|Sn| ≥ λ\n\nP(Sn ≥ λ\n\n√\n\nn) ≤ e−λ2/2\n√\n\nn) ≤ 2e−λ2/2\n\n(3.1)\n\n(3.2)\n\nLemma 3.2. If EY = 0 and |Y| ≤ 1, then EeαY ≤ eα2/2 for all α.\n\nProof of Lemma 3.2.\n\nEeαY ≤\n\nconvexity\n\nEL(Y) =\nlinear\n\nL(EY) = L(0) = (eα + e−α)/2 ≤\n\ncalculus\n\neα2/2\n\n(3.3)\n\n3\n\n\fCalculus: coefﬁcient of α2n in series expansion\n\n1\n\n(2n)!\n\n≤ 1\n2nn!\n\n(3.4)\n\nProof of Azuma (Theorem 3.1). Apply lemma 3.2 to conditional distribution of Xi given Fi−1\n\nE[eαXi | Fi−1] ≤ eα2/2\nE[eαSn | Fn−1] = eαSn−1E[eαXn | Fn−1) ≤ eα2/2eαSn−1]\n\nTake E and apply tower property\n\nE[eαSn] ≤ eα2/2EeαSn−1\n\nE[eαSn] ≤(cid:16)\n\neα2/2(cid:17)n\n\n= eα2n/2\n\nApplying Markov inequality with φ = exp\n\n√\n\neαλ\n\nn) ≤ EeαSn\n√\n\nP(Sn ≥ λ\n√\nn\n√\nn) ≤ eα2n/2−αλ\n\nn\n\nMinimize over α by taking α = λ/\nP(Sn ≥ λ\n\n≤ eα2n/2−αλ\n\n√\n\nn\n\n√\n\nn = e−λ2/2\n\n(3.5)\n(3.6)\n(3.7)\n\n(3.8)\n\n(3.9)\n\n(3.10)\n\n(3.11)\n\n4 Method of bounded differences\nCorollary 4.1. Take (ξi, 1 ≤ i ≤ n) independent, arbitrary state spaces.\nin one coordinate only (i.e. |{i : yi (cid:54)= xi}| = 1), then | f ( ˜x) − f ( ˜y)| ≤ 1.\n\nTake R-valued Z = f (ξ1, ξ2, . . . , ξn) such that if ˜x = (x1, . . . , xn) and ˜y = (y1, . . . , yn) differ\nThen P(|Z − EZ| ≥ λ\nThis is useful for analysis of random algorithms: consider randomized traveling sales-\n\nman where the tour ˜x is changed at a single location yi (cid:54)= xi.\nProof. WLOG assume EZ = 0. Write Sm = E[Z | Fm] where Fm = σ(ξi, 1 ≤ i ≤ m), so\n(Sm, 1 ≤ m ≤ n) is a MG.\n\nn) ≤ 2e−λ2/2 for λ > 0.\n\n√\n\nIf we can show “Sm has bounded differences”\n\nthen Azuma’s inequality (theorem 3.1) yields the desired conclusion.\n\n|Sm − Sm−1| ≤ 1\n\n(4.1)\n\n4\n\n\f(4.2)\n\n(4.3)\n\n(4.4)\n\n(4.5)\n(4.6)\n(4.7)\n\n(4.8)\n(4.9)\n(4.10)\n(4.11)\n\nLemma 4.2. If Y is such that any 2 possible values within 1, then |Y − EY| ≤ 1.\nProof. min supp Y ≤ Y ≤ max supp Y and min supp Y ≤ EY ≤ max supp Y so\n\n|Y − EY| ≤ max supp Y − min supp Y ≤ 1\n\nIf we know all (ξi, i (cid:54)= m) then apply lemma 4.2 conditionally\n\n(cid:124)\n\nZ∗\n\n(cid:125)\n|Z − E[Z | ξi, i (cid:54)= m]\n\n(cid:123)(cid:122)\n\n| ≤ 1\n\nLemma 4.3. If W is independent of (Y,G), then E[Y | G, W] = E[Y | G].\nProof. Exercise.\n\nBy lemma 4.3\n\nE[Z∗ | Fm] = E[Z∗ | Fm−1, ξm] = E[Z∗ | Fm−1]\n\ntower property =⇒ = E[Z | Fm−1]\n\nThis is nice: Z and Z∗ are both conditioned on the same σ-ﬁeld Fm so\n|Sm − Sm−1| = |E[Z | Fm] − E[Z | Fm−1]|\n= |E[Z | Fm] − E[Z∗ | Fm]|\n≤ E[|Z − Z∗| | Fm]\n\nEquation (4.3) =⇒ ≤ 1\n\n5\n\n\f"
+	},
+	{
+		"fileName": "lec24.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #24\n11/15/2016\n\n1 Examples using method of bounded differences\n\nTheorem 1.1 (Method of bounded differences, from last class). ξ1, ξ2, . . . , ξn independent,\nZ = f (ξ1, . . . , ξn) where f has the property\n\nThen\n\n|{i : xi (cid:54)= yi}| = 1 =⇒ | f ( ˜x) − f ( ˜y)| ≤ 1\n\nP(|Z − EZ| ≥ λ\n\n√\n\nn) ≤ 2e−λ2/2, λ > 0\n\n(1.1)\n\n(1.2)\n\nExample 1.2. Put n balls “at random” into m boxes.\n\nConsider Z(m, n) = # empty boxes.\nFrom combinatorics, EZ(n, m) = m(1 − 1/m)n.\nApply to ξi = box containing ball i, 1 ≤ i ≤ n. Equation (1.1) holds.\n\nExample 1.3 (Simple open (unsolvable?) problem). Take 2 independent Bernoulli(1/2)\nsequences of length n.\n\nWant to match digits between two strings such that no lines are crossing (i.e. longest\n\ncommon subsequence). In example 1.3, this is 01010.\nLet Zn = length of longest common subsequence.\nFact: n−1Zn\nTake ξi = (·\n\na.s.→ c as n → ∞, no formula for c.\n·) at position i.\n\n1\n\n\fAny change ˜x → ˜y has\n\nf ( ˜y) − f ( ˜x) ≥ −2\n⇐⇒ f ( ˜x) − f ( ˜y) ≤ 2\n\n(1.3)\n(1.4)\n\nSo Zn/2 satisﬁes eq. (1.1).\n\nDeﬁnition 1.4. A c-coloring of a graph G is a function color : V(G) → {1, 2, . . . , c} such that\n(v1, v2) ∈ E(G) =⇒ color(v1) (cid:54)= color(v2).\n\nThe chromatic number χ(G) = min{c : ∃c-coloring of G}\n\nDeﬁnition 1.5. The Erdös-Renyi random graph model G(n, p) has n vertices with each of the\n(n\n2) possible edges present with probability p.\n\nLet Z = χ(G(n, p)). Order vertices arbitrarily 1, 2, . . . , n.\nFor i ≥ 2, let ξi = (1(i,1)∈E(G), . . . , 1(i,i−1)∈E(G)). Since we can always just add a color\n\nwhen we increment i, eq. (1.1) holds for Z = f (ξ1, . . . , ξn).\nExample 1.6. Put n points IID uniform in unit square. Fix 0 < c < 1. Let Z(n, c) = max\nnumber of disjoint c × c squares containing 0 points.\n\nMoving any single point can only reduce Z(n, c) by 1, so eq. (1.1) holds.\n\n2 Reversed martingales\nConsider sub-σ-ﬁelds, G0 ⊃ G1 ⊃ G2 ⊃ . . ., G∞ = ∩nGn. In Durrett, Gn = F−n.\nDeﬁnition 2.1. (Xn,Gn) is a reversed martingale if\n(a) E|Xn| < ∞\n(b) E(Xm | Gn) = Xn, m ≤ n\n\n2\n\n\f(c) (Xn) adapted to (Gn)\nTogether, these imply Xn = E[X0 | Gn]\n\nReversed martingales are in some sense easier, since we are given that the limit X0\n\nalways exists\nTheorem 2.2. For a reversed MG, Xn → E[X0 | G0] a.s. and in L1.\nProof. (XN, XN−1, . . . , X0) is a MG. Let UN = # upcrossings of (XN, . . . , X0) over [a, b]. By\nthe upcrossing inequality\n\nEUn ≤ E|X0| + |a|\n\nb − a\n\n[As in proof for MGs] UN ↑ U∞, so\n\nEU≤\n\nE|X0| + a\n\nb − a\n\n=⇒ U∞ < ∞ a.s.\n\nSo Xn\n\na.s.→ X∞ for some X∞ ∈ [−∞, ∞].\n\nBut Xn = E[X0 | G] implies (Xn) is UI, which implies Xn\nNeed to show X∞ = E[X0 | G∞].\n\nn → ∞\nk → ∞\n\nXn ∈ Gn ⊂ Gk\nX∞ ∈ Gk\nX∞ ∈ G∞\n\nSo X∞ is G∞-measurable.\n\nNeed to show EX∞1G = EX01G, G ∈ G∞.\n\nXn = E[X0 | Gn] =⇒ EXn1G = EX01G\nL1→ X∞ =⇒ EXn1G → EX∞1G\n=⇒ EX01G = EX∞1G\n\nXn\n\nL1→ X∞, E|X∞| < ∞.\n\nn > k\n\nG ∈ G∞\n\n(2.1)\n\n(2.2)\n\n(2.3)\n(2.4)\n(2.5)\n\n(2.6)\n\n(2.7)\n(2.8)\n(2.9)\n\n3 Exchangeable sequences\n\nDeﬁnition 3.1. A sequence of RVs (X1, X2, . . .) is called exchangeable if\n\n(X1, X2, . . . , Xn)\nfor all n and all permutations π ∈ Sn.\n\nd\n= (Xπ(1), Xπ(2), . . . , Xπ(n))\n\n(3.1)\n\n3\n\n\fBy Kolmogorov’s consistency theorem, if this holds for all ﬁnite sequences, then it\ni=1 are exchangeable, R-valued, and E|X1| < ∞. Write Sn =\n\nholds for inﬁnite sequences as well.\nTheorem 3.2. Suppose (Xi)∞\n∑n\ni=1 Xi.\nThen n−1Sn → E[X1 | τ] a.s. and in L1, where τ = tail(Xi, i ≥ 1).\nCorollary 3.3. If (Xi) IID, E|X1| < ∞, then τ is trivial.\n=⇒ E[X1 | τ] = EX1 and Theorem =⇒ n−1Sn → EX1. This shows WLLN.\n= (Z2, W) and E|Z1| < ∞, then E[Z1 | W] = E[Z2 | W].\n\nd\n\nLemma 3.4. If (Z1, W)\nProof. Q is a kernel assoc with dist(Z1, W).\n\n(cid:90)\n\nZQ(W, dz)\n\nE[Z1 | W] = φ(W) where φ(W) =\nE[Z2 | W] = φ(W)\n\n= E[X | G], then X = E[X | G] a.s.\n\nComment: easy if EX2 < ∞, more work if only integrable.\n\nExercise 3.5. Let E|X| < ∞. If X d\nProof of theorem 3.2. Deﬁne Gn = σ(Sn, Xn+1, Xn+2, . . .) = σ(Sn, Sn+1, Sn+2, . . .).\nLemma 3.6. E[Xi | Gn]\nProof. Take permutation π of (1, . . . , n).\n\na.s.\n\n= E[Xi | Gn], 1 ≤ i ≤ n.\n\n(Xπ(1), . . . , Xπ(n), Xn+1, Xn+2, . . .)\n\nd\n= (X1, . . . , Xn, Xn+1, Xn+2, . . .)\n\nSet W = (Sn, Xn+1, Xn+2, . . .).\n\n=⇒\n=⇒\n=⇒\nLemma 3.4 =⇒\n\n(Xπ(1), . . . , Xπ(n), W)\n(Xπ(1), W)\n(Xi, W)\nE[Xi | W] = E[X1 | W]\n\nd\n= (X1, . . . , Xn, W)\nd\n= (X1, W)\nd\n= (X1, W)\n\nCan extend with Kolmogorov consistenty to inﬁnite sequences.\n\nGn ⊃ Gn+1 . . . decreasing.\n\n(3.2)\n\n(3.3)\n\n(3.4)\n\n(3.5)\n\n(3.6)\n\n(3.7)\n(3.8)\n\n(3.9)\n\nSn = E[Sn | Gn] =\n\nE[Xi | Gn] = nE[X1 | Gn]\n\n=⇒ n−1Sn = E[X1 | Gn] → E[X1 | G∞] a.s., L1\n\n(3.10)\nNote G∞ ⊃ τ. But lim n−1Sn is τ-measurable, so E[X1 | G∞] is τ-measurable. Combined\n\nwith the tower property, we have\n\nE[X1 | τ] = E[E[X1 | G∞] | τ] = E[X1 | G∞]\n\n(3.11)\n\nn∑\n\ni=1\n\n4\n\n\f"
+	},
+	{
+		"fileName": "lec25.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #25\n11/17/2016\n\n1\n\n“Play Red”\n\nCards are shufﬂed and dealt out. Need to choose when to bet that next card is red (stopping\ntime).\n\nFinite S. X1, X2, . . . , XN uniform random ordering, clearly (ﬁnite) exchangeable se-\n\nquence.\n\nd\n\n= Z(2, W) the E[φ(Z1) | W]\n\nLemma 1.1 (Last class). If (Z1, W)\nProposition 1.2. If (X1, . . . , XN) is exchangeable, 0 ≤ T ≤ N − 1 a stopping time wrt natural\nﬁltration of (Xn), then XT+1\nProof. By exchangeability\n\nd\n= X1.\n\na.s.\n\n= E[φ(Z2) | W]\n\nBy ??\n\nOn {T = n}\n\n(Xn+1, X1, . . . , Xn)\n\nd\n= (XN, X1, . . . , Xn)\n\nP(Xn+1 ∈ A | Fn) a.s.= P(XN ∈ A | Fn)\n\nP(XT+1 ∈ A | FT) a.s.= P(XN ∈ A | FT)\n\nThis holds for all n. Taking expectation\n\nEP(XT+1 ∈ A) = P(XN ∈ A)\n\nXT+1\n\nd\n= Xn\n\nd\n= X1\n\n(1.1)\n\n(1.2)\n\n(1.3)\n\n(1.4)\n\n(1.5)\n\n2 de Finetti’s Theorem\nParametric Bayes: Let A and B > 0 be RVs. Given A = a and B = b, let (Xi, 1 ≤ i < ∞)\nbe IID ∼ N(a, b).\nRandom Measure (more generally): Let P (R) be space of all PMs on R, M a RV taking\nvalues in P (R). Given M = µ, let (Xi, i ≥ 1) be IID ∼ µ.\n\nThis gives an inﬁnite exchangeable sequence (Xi): de Finetti’s is the converse.\n\nTheorem 2.1 (de Finetti). Let (Xi, 1 ≤ i < ∞) be exchangeable R-valued. Let τ be tail σ-ﬁeld.\nThen conditionally on τ, the (Xi) are IID. That is\n\n1\n\n\f(a) X1, X2, . . . are conditionally independent given τ\n(b) ∃ kernel Q(ω,·) (random PM) such that Q(ω,·) is a regular conditional distribution of Xi\n\ngiven τ, each i\n\n(2.1)\nProof of ?? (Aldous’ favorite, easier ones exist in textbooks. Let φ : R → R be a bounded mea-\nsurable function. By exchangeability\n\nP(Xi ∈ A | τ)(ω) = Q(ω, A) ∀i\n\n(X1, . . . , Xn)\n\nd\n= (X1, XK, XK+1, . . . , Xn+K−1)\n\nLetting n → ∞ and appealing to Kolmogorov’s consistency theorem\n\n(X1, X2, . . .)\n\nd\n= (X1, XK, XK+1, . . .)\n\n(2.2)\n\n(2.3)\n\nThe equality in distributions imply equality in expectation of the pushforward measures\nφ∗PX1|X2,X2,... = φ∗PX1|XK,XK+1,... hence\n\nE[φ(X1) | X2, X3, . . .] = E[φ(X1) | XK, XK+1, . . .]\n\nApplying reversed MG convergence\n\nE[φ(X1) | X2, X3, . . .]\n\nd\n\n= E[φ(X1) | τ]\n\nExercise 2.2.\n\nd\n\n= Z then E[Z | G] a.s.= Z.\n\n• If E[Z | G]\n• If G ⊂ H, E[Z | G]\nBy exercise\n\nd\n\n= E[Z | H], then E[Z | G] a.s.= E[Z | H]\n\nE[φ(X1) | X2, X3, . . .] a.s.= E[φ(X1) | τ]\n\nThe same argument applied ∀k ≥ 1\n\nE[φ(XK) | XK+1, XK+2, . . .] a.s.= E[φ(XK) | τ] ⇐⇒ XK ⊥ (XK+1, XK+2, . . .) | τ\nBy exchangeability\n\n(X1, Xi+1, Xi+2, . . .)\n\nd\n= (Xi, Xi+1, . . .)\n\nApplying ??\n\nCondition on τ\n\nE[φ(X1) | Xi+1, Xi+2, . . .] a.s.= E[φ(Xi) | Xi+1, . . .]\n\nE[φ(X1) | τ] a.s.= E[φ(Xi) | τ]\n\n(2.4)\n\n(2.5)\n\n(2.6)\n\n(2.7)\n\n(2.8)\n\n(2.9)\n\n(2.10)\n\nTherefore, the conditional distributions of X1 and Xi given τ coincide (PX1|τ = PXi|τ)\n\n2\n\n\fProof of ??. Recall the Glivenko-Cantelli theorem:\nTheorem 2.3 (Glivenko-Cantelli). Deﬁne F(x1, x2, . . . , xn, t) = 1\ndistribution of (x1, . . . xn).\nn → ∞.\n\nn ∑n\nIf (Xi, i ≥ 1) are IID with distribution function F, then F(X1, . . . , Xn, t)\n\ni=1 1xi≤t the empirical\na.s.→ F(t) for each t as\n\nWe can apply this theorem conditionally (given τ).\nGiven exchangeable (Xi, 1 ≤ i < ∞), ?? implies\n\nwhich is the distribution function of Q(ω,·).\n\nF(X1, . . . , Xn, t) a.s.→ G(ω, t)\n\n(2.11)\n\n3 MGs in Galton-Watson processes\nξ takes values in {0, 1, 2, . . .}.\n\nEach individual in generation g has ξ offspring in generation g + 1, ξ independent.\nZn = # individuals in generation n\nZ0 = 1 as default\n\n“extinction” = event {Zn = 0 for some n}\n“survival” = event {Zn ≥ 1 ∀n}.\nWrite µ = Eξ < ∞\nLet F = σ(Z1, Z2, . . . , Zn).\n\nE[Zn+1 | Fn] = µZn\n=⇒ EZn+1 = µEZn\n=⇒ EZn = µn\n\n(3.1)\n(3.2)\n(3.3)\n\nIf µ < 1, then P(Zn ≥ 1) ≤ EZn ≤ µn → 0 so P(extinction) = 1.\n\n3\n\n\fConsider the case µ > 1. ?? implies that\n\nby MG convergence theorem\n\n(cid:16) Zn\nµn , n ≥ 0\n\n(cid:17)\n\nis a MG. As E[µ−nZn] = 1 ≤ ∞,\n\n−nZn\n\na.s.→ some W ≥ 0, EW ≤ 1\n\nµ\n\nW in L1 and EW = 1.\n\n(3.4)\nSuppose Eξ2 < ∞. Will show (µ−nZn, n ≥ 1) is UI, which would mean that µ−nZn →\nClearly {extinction} ⊂ {W = 0}. Can prove {extinction} a.s.= {W = 0}. So either\nCalculation µ−nZn is UI:\n\nextinction or Zn grows exponentially fast.\n\n=⇒ Var(µ\ninduction =⇒ Var(µ\n\nVar(Zn) = EVar(Zn | Fn−1) + Var E[Zn | Fn−1]\n−nZn) = µ\n−(n−1)Zn−1)\n−nZn) = Var(ξ) · n+1∑\n\n−(n+1)Var(ξ) + Var(µ\n\n−i ≤ K < ∞ ∀n\n\nµ\n\n=⇒ (µ\n\n−nZn, n ≥ 1) is UI\n\ni=2\n\n4 L2 theory [see Durrett for more]\n(Mn, n ≥ 0), M0 = 0, ∆n = Mn − Mn−1. Suppose EM2\n\nOrthogonality of increments: E[∆i∆j] = 0, i < j, because\nE[∆i∆j | Fj−1] = ∆iE[∆j | Fj−1] = 0\n\nn < ∞ for all n.\n\n(3.5)\n(3.6)\n\n(3.7)\n\n(3.8)\n\n(4.1)\n\nEM2\n\nn < ∞, or equivalently ∑∞\ni=1\n\ni ] < ∞.\na.s.→ M∞ and in L1. In fact, also have\n\nE[∆2\n\n(4.2)\n\n(4.3)\n\nn = ∑n\n\nSo EM2\nDeﬁnition 4.1. M − n is L2 bounded if supn\n\nE[∆2\ni ].\n\ni=1\n\nMn → M∞ in L2.\n\nIf (Mn) is L2 bounded, then (L1 convergence) Mn\nFor n1 < n2, E[(Mn2 − Mn1)2] = ∑n2\nlim\nn1→∞ sup\nn2>n1\n\nE[∆2\n\ni=n1+1\n\n(cid:107)Mn2 − Mn1(cid:107)2 = 0\n\ni ]. If L2-bounded\n\nL2 is a complete metric space, so\n\nMn → some M∞ ∈ L2\n\n4\n\n\f"
+	},
+	{
+		"fileName": "lec26.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #26\n11/25/2016\n\n1 Brownian motion\nDeﬁnition 1.1. A R1-valued process (B(t), 0 ≤ t < ∞) is (standard) Brownian motion\n(Wiener process) if B(0) = 0 and\n(a) (“independent increments”) B(t0), B(t1) − B(t0), . . . , B(tn) − B(tn−1) are indepen-\n\ndent, any 0 ≤ t0 < t1 < · · · < tn\n\n(cid:124)(cid:123)(cid:122)(cid:125)\n(b) B(t) − B(s) ∼ N(0, t − s\n\nvariance\n\n) distribution\n\n(c) Sample path t (cid:55)→ B(t) are continuous.\nNeed proof of existence.\n\nProof. Write Q2 = dyadic rationals = {2−ji : i, j ≥ 0}. Sufﬁces to consider time interval\n[0, 1]. Enumerate Q2 as q1, q2, . . .. For each n, items (a) and (b) specify specify a joint\ndistribution of (B(q1), B(q2), . . . , B(qn)). These are consistent as n increases.\n\nind\n\n+ (0, t2 − s) = N(0, t2 − t1)\n\nTODO: Fig 26.1 Check N(0, s − t1)\nUse Kolmogorov extension theorem to show there exists a process (B(q), q ∈ Q2 ∩\nFor f : Q2 ∩ [0, 1] → R, and δ > 0, deﬁne\nw( f , δ) = sup\n0≤q1<q2≤1\nq2∈Q2\nq2−q1≤δ\n\n| f (q1) − f (q2)|\n\n(1.1)\n\n[0, 1]).\n\nLemma 1.2. (exists continuous extension from Q2 to all of R)\n\nIf w( f , δ) → 0 as δ → 0, then ∃ cts ˜f : [0, 1] → R such that ˜f (q) = f (q) ∀q ∈ Q2 ∩ [0, 1].\nf (q) (lim sup guaranteed well-deﬁned). If |t − s| < δ,\n\nProof. Deﬁne ˜f (t) = lim sup q↓t\nq∈Q2\nthen | ˜f (t) − ˜f (s)| ≤ w( f , δ). The lemma premise implies f is continuous.\n\nIt is sufﬁcient to show P(w(B(·), δ) ≥ ε) → 0 as δ ↓ 0, ε > 0 ﬁxed, because then\nw(B(·), δ) → 0 a.s. as δ ↓ 0 and by lemma 1.2 ∃ ˜B such that t (cid:55)→ ˜B(ω, t) is continuous a.s\n(item (c)). Easy to check (using property of normals) items (a) and (b) remains true for\nt ∈ R. Redeﬁne B(t, ω) ≡ 0 ∀t on null set.\n\nDeﬁne\n\n¯w( f , 2−m) = max\n0≤j≤2m−1\n\nsup\n\n2−mj≤q≤2−m(j+1)\n\n| f (q) − f (2−m)|\n\n(1.2)\n\n1\n\n\f(cid:18)\n\n(cid:19)\n\n−4EB4(2−m)\n\nB4(2−m) ≥ ε4\n\nmax\n2−n≤2−m\n(cid:18)\n= t1/2Z and P(Sm ≥ ε) ≤ ε−42−2mEZ4.\n≤ ε42−2mEZ4\n\nB4(2−m) ≥ ε4\n\n≤ ε\n(cid:19)\n\nd\n\nP\n\nmax\n2−n≤2−m\n\n(1.4)\n\n(1.5)\n\n(1.6)\n\nConsider 0 ≤ q1 < q2 ≤ 1 with q2 − q1 ≤ 2−m.\n\ninequality (see TODO: Fig 26.2 ref)\n\nTODO: Fig 26.2 They must be in either the same or adjacent intervals, so by the triangle\n\n| f (q2) − f (q1)| ≤ 3 ¯w( f , 2−m)\n\n(1.3)\n\nSo it sufﬁces to show P( ¯w(B(·), 2−m) ≥ ε) → 0 as m → ∞.\nDeﬁne Sm = sup0≤q≤2−m|B(q)|. ¯w(B(·), 2−m) is the max of 2m identically distributed\nFix m, take n > m. Consider B(2−ni, 0 ≤ i ≤ 2n−m). This is a martingale, so by\n\nRVs, so P( ¯w(B(·), 2−m) ≥ ε) ≤ 2mP(Sm ≥ ε).\nconvexity theorem B4(2−n, i ≥ 0) is a sub-martingale. Applying L1 maximal inequality\n\nP\n\nLet Z ∼ N(0, 1), so B(t)\n\nLet n → ∞, so\n\nP( ¯w(B(·), 2−m) ≥ ε) ≤ 2mP(Sm ≥ ε) ≤ 2−mε\n\n−4EZ4\n\nTaking m → 0, this quantity → 0 showing continuity.\nTheorem 1.3. For almost all ω, the sample path t (cid:55)→ B(ω, t) is nowhere differentiable.\nProof. From analysis: Consider f : [0, 1] → R. Fix C < ∞. Suppose ∃s such that f (cid:48)(s)\nexists and | f (cid:48)(s)| ≤ C/2. Then ∃n0 such that for n ≥ n0,\n\n| f (t) − f (s)| ≤ C|t − s| for all t such that |t − s| ≤ 3\nn\n\n(1.7)\nRewrite: deﬁne An = { f : above property holds for some s}. As n → ∞, An ↑ A ⊃ { f :\n| f (cid:48)(s)| ≤ C/2 for some s}\n(cid:19)\n\nFor 0 ≤ K ≤ n − 1, deﬁne\nk + 3\n\nk + 2\n\nk + 2\n\nk + 1\n\nk + 1\n\n(cid:18)\n\nY( f , k, n) = max\n\n| f (\n\nn\n\n) − f (\n\nn\n\n)|,| f (\n\nn\n\n) − f (\n\n)|,| f (\n\n) − f (\n\n)|\n\nk\nn\n\nn\n\nn\n\n(1.8)\nTODO: Fig 26.3\nGiven f ∈ An, suppose the s for which the property holds satisﬁes k/n ≤ s < (k + 1)/n.\n\nThen\n\n=⇒ YAn ⊂ Dn\n\n=⇒ Y( f , k, n) ≤ sC\nn\ndef= { f : Y( f , k, n) ≤ sC\nn\n\nfor some K ≤ n − 1}\n\n(1.9)\n\n(1.10)\n\n2\n\n\fComputing the probability\n\n(cid:18) k + 1\n\nn\n\nP\n\n\n\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)B\n\n(cid:124)\n(cid:18)\n\nP\n\nSo\n\nN(0,n−1)=n−1/2Z\nRegard B(·) as random\n\nY(B, k, n) ≤ 5C\nn\n\n= P\n\nn\n\n(cid:18) k\n\nn\n\n(cid:19)\n(cid:125)\n\n(cid:19)\n(cid:123)(cid:122)\n− B\n\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12) ≤ sC\n = P(|Z ≤ sC/n1/2) ≤ (2π)−1/2 × 10C/n1/2\n(cid:18)(cid:12)(cid:12)(cid:12)(cid:12)B\n(cid:19)3 ≤ 100C3/n3/2\n(cid:18) k + 1\n(cid:18)\nP(B(·) ∈ Dn) ≤ n × P\nP(B(·) ∈ An) ≤ 100C3/n1/2\n\n(cid:19)(cid:12)(cid:12)(cid:12)(cid:12) ≤ sC\n(cid:19)\n\nY(B, k, n) ≤ 5C\nn\n\n≤ 100C3/n3/2\n\n(cid:18) k\n\nn\n\n− B\n\n(cid:19)\n\n(cid:19)\n\nn\n\nn\n\n(1.11)\n\n(1.12)\n\n(1.13)\n\n(1.14)\n\nLet n → ∞, P(B(·) ∈ A) = 0.\n\n3\n\n\f"
+	},
+	{
+		"fileName": "lec27.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #27\n11/29/2016\n\n1 Aspects of Brownian motion\n\n(a) Model or many processes ﬂuctuating continuously (e.g. stock markets)\n\n(b) Limit of RVs with small step size\n\n(c) Gaussian process (multivariate normal over ﬁnite subsets)\n(d) Diffusion: continuous-path Markov processes\n\n(e) Martingale properties\nDeﬁnition 1.1. Brownian motion (B(t), 0 ≤ t ≤ ∞) has the proeprties\n(a) For s < t, B(t) − B(s)\n(b) For 0 ≤ t1 < t2 < · · · < tn, the increments (B(ti+1) − B(ti), 1 ≤ i ≤ n − 1) are\n\n= N(0, t − s)\n\nd\n\nindependent\n\n(c) Sample paths t (cid:55)→ B(t) are continuous\n\n1.1 Continuous-time martingales\nLet (Ft, 0 ≤ t < ∞) be a ﬁltration. (Mt,Ft) is a martingale (MG) if\n\n• E|Mt| < ∞, ∀t\n• Mt is adapted to Ft\n• For st, E[Mt | Fs] = Ms a.s.\nAll our MGs will have continuous paths — theory requires only right-continuity.\n\nDeﬁnition 1.2. T : Ω → [0, ∞] is a stopping time if {T ≤ t} ∈ Ft, all 0 ≤ t < ∞\nTheorem 1.3. If (Mt) is a MG, T a stopping time, P(T ≤ t0) = 1, then EMT = EM0.\nProof. Fix m, look at times that are multiples of 2−m.\nDeﬁne Tm = inf{2−mi : 2−mi > T}. This Tm is a stopping time for (M2−mi,F2−mi, i ≥ 0)\nand Tm ≤ t0 + 1. Apply discrete-time OST =⇒ EMTm = EM0 and MTm = E[Mt0+1 | FTm]\n(i.e .(MTm, m ≥ 1) is UI).\n\nAs m → ∞, Tm ↓ T, so right-continuity =⇒ MTm\nSince (MTm, m ≥ 1) is UI, EMTm → EMT.\n\na.s.→ MT.\n\n1\n\n\fWith BM we associate the natural ﬁltration Ft = σ(Bs, 0 ≤ s ≤ t) which makes all the\n\nBs measurable.\nProposition 1.4. The following are MGs\n\nt − t\n\n(a) Bt\n(b) B2\n(c) exp(θBt − θ2t/2)\n(d) B3\n(e) B4\n\nt − 3tBt\nt − 6tB2\nProof. Fix s < t.\n\nt + 3t2\n\nBt = Bs + (Bt − Bs).\nE[Bt | Fs] = Bs + E[Bt − Bs | Fs].\nBt − Bs is independent of (Bs1, Bs2,· · · , Bsn)) for all 0 ≤ s1 < s2 < · · · < sn ≤ s.\nBy measure theory on independence, independent increments on ﬁnite subsets =⇒\n\nBt − Bs independent of Fs\n\ndef= σ(Bu, 0 ≤ u ≤ s).\n\nHence\n\nE[Bt | Fs] = Bs + E[Bt − Bs | Fs]\n\n= Bs + E[Bt − Bs]\n= Bs + 0 = Bs\n\nWrite Yt = B2\nYt = Ys + 2Bs(Bt − Bs) + (Bt − Bs)2 − (t − s).\n(cid:125)\nE[Yt | Fs] = Ys + 2Bs E[Bt − Bs | Fs]\n\nt − t = (Bt + (Bt − Bs))2 − t.\n(cid:124)\n(cid:125)\n+ E[(Bt − Bs)2 | Fs)\nRemark 1.5. If W ∼ N(0, σ2), then E exp(θW) = exp(θ2σ2/2).\n\n=E(Bt−Bs)2\n\n(cid:123)(cid:122)\n\n(cid:123)(cid:122)\n\n=t−s\n\n(cid:124)\n\n=0\n\n−(t − s) = Ys.\n\nWrite\n\nZt = exp(θBt − θ2t/2)\n\n(cid:18)\n\n(cid:19)\n\n(1.1)\n(1.2)\n(1.3)\n\n(1.4)\n\n(1.5)\n\n(1.6)\n\n(1.7)\n\n(cid:18)\n\n− θ2\n2\n\n(cid:19)\n= Zs exp(θ(Bt − Bs)) exp\n(cid:124)\n(cid:125)\nE exp(θ(Bt − Bs))\n(cid:33)\n\nE[Zt | Fs] = Zs exp\n(cid:32)\nt , 0 ≤ t < ∞) is a MG and since differentiation is linear\n\n(t − s)\n(cid:123)(cid:122)\n\n=exp(θ2(t−s)/2)\n\n(t − s)\n\n− θ2\n2\n\n= Zs\n\nFor the rest, informally: (Zθ\n\ndk\ndθk Zθ\n\nt , 0 ≤ t < ∞\n\nshould be a MG.\n\nIf we differentiate k times, set θ = 0, we get a sequence of polynomials in Bt.\n\n2\n\n\fTypical stopping time is Tb = inf{t : B(t) = b} = inf{t : B(t) ≥ b > 0}.\nAlso, for b > 0, t > 0, {Tb ≤ t} = {sups≤t B(t) ≥ b}. Even though sup is an\n\nuncountable operation, this is measurable because\n\nsup\ns≤t\n\nB(t) = sup\nu≤t\nu∈Q\n\nB(u), Fn-meas.\n\n(1.8)\n\na\n\nLemma 1.6. Fix −a < 0 < b. Consider T = min{T−a, Tb} and ET = ab. Then P(BT = b) =\na+b = P(Tb < T−a) = P(Tb < T−a) and P(Bt = −a) = b\na+b.\nProof. Apply OST to 0 and T ∧ t.\n\n0 = EB0 = EBT∧t\n\n(1.9)\n\n(−a)2 b\n\nAs t → ∞, BT∧t\n\na.s.→ BT and |BT∧t| ≤ max(a, b) =⇒ 0 = EBT.\n\na+b = ab.\n\nt − t =⇒ EB2\n\nBT takes values (−a, b) only, so it must have the desired distribution.\nT∧t = E[T ∧ t]. Let t → ∞, so EB2\nApply OST to B2\nNote that P(Tb < ∞) ≥ P(Tb < T−a) → 1 as a → ∞, so Tb < ∞ a.s.\nFix c > 0 and −∞ < d < ∞. Consider T = inf{t : Bt = c + dt} ≤ ∞.\nTODO: Fig 27.1\n\nT = ET = b2 a\n\na+b +\n\n√\n\nd2 + 2λ)) for 0 ≤ λ < ∞, the Laplace transform\n\n(cid:16)\n\n(cid:17)\n\n.\n\nLemma 1.7. E exp(−λT) = exp(−c(d +\nof T.\nProof. Consider θ > max(0, 2d). Apply OST to exp(·) and T ∧ t.\n\nθBT∧t − θ2\n\n2 (T ∧ t)\n(cid:16)\n\n1 = E exp\nCase d ≤ 0, θ > 0. Here, θBT∧t − θ2\n2 (T ∧ t) ≤ θc, T ≤ Tc < ∞.\n2 (T ∧ t) ≤ sup\nCase d > 0, θ > 2d. Then θBT∧t − θ2\n(cid:17)\n]1T<∞. But Bt = c + dT on {T = ∞}.\n(cid:19)\n(cid:18)\n(cid:18)\n\nLet t → ∞. 1 = E[exp\n\nθ(c + ds) − θ2\n2 s\n\nθBT − θ2\n2 T\n\n(cid:19)\n\nas t → ∞ on {T = ∞}.\n\n(cid:16)\n\n(cid:17)\n\n1T<∞\nGiven λ > 0, deﬁne θ = θ(x) as solution of θd − θ2/2 = −λ, so\n\n1 = E exp\n\nθc +\n\nT\n\n= θc and → −∞\n\n(1.10)\n\n(1.11)\n(1.12)\n(1.13)\n\nθ(λ) = d +\n\n1 = E exp (cθ(λ) − λT)\n\n?\n> max(0, 2d)\n\nE exp(−λT) = exp (−cθ(λ))\n\nθd − θ2\n2\n(cid:112)\n\nd2 + 2λ\n\n3\n\n\f"
+	},
+	{
+		"fileName": "lec28.pdf.txt",
+		"content": ""
+	},
+	{
+		"fileName": "lec3.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #3\n9/1/2016\n\n1 Measures continued\nExample 1.1. S = N, S = 2N.\n\n• Given p0, p2,· · · ≥ 0, ∑i pi = 1, deﬁne µ(A) := ∑i∈A pi for A ⊂ S. µ is a prob\nmeasure.\n• Given p.m. µ on S, deﬁne pi := µ({i}) and ∑i pi = 1 holds.\n\nDeﬁnition 1.2. A class of subsets of S, A, is a π-class (or π-system) if A1, A2 ∈ A =⇒\nA1 ∩ A2 ∈ A.\nDeﬁnition 1.3. A class of subsets of S, C, is a λ-class if:\n(a) S ∈ C\n(b) A, B ∈ S, A ⊂ B =⇒ B \\ A ∈ C\n(c) An ∈ C, An ↑ A =⇒ A ∈ C\nLemma 1.4 (Dynkin). If C is a λ-class, A is a π-class, C ⊃ A, then C ⊃ σ(A).\nProof. See Durrett.\nLemma 1.5 (Identiﬁcation of PMs). µ1, µ2 prob. meaures on (S,S). If µ1(A) = µ2(A) for all\nA ∈ A, A is a π-class such that S = σ(A), then µ1 = µ2 (i.e. µ1(B) = µ2(B) for all B ∈ S).\nProof. Consider C = {A ∈ σ(A) : µ1(A) = µ2(A)}, so C ⊃ A. To apply Dynkin’s, it\nsufﬁces to check C is a λ-class (clear from deﬁnition of PM).\nTheorem 1.6 (Existance of Lebesgue measure). ∃ σ-ﬁnite measure λ on (R1,B1) such that\nλ([a, b]) = b − a for all a, b ∈ R.\n\n∃ PM λ1 on [0, 1], called the uniform distribution on [0, 1], such that λ1([a, b]) = b − a.\n\nProof. See Durrett\nProposition 1.7. Given f meas : S1 → S2, PM µ on (S1,S1), can deﬁne PM ˆµ on S2 by\n\nˆµ(B) = µ( f −1(B))\n\n(1.1)\n\nfor all B ∈ §2\nProof.\n\nˆµ is PM because f −1 commutes with Boolean operations.\n\n1\n\n\f2 Probability measures on R\nGiven PM µ on R, deﬁne F(x) = µ((−∞, x]). F is\n\n• (Increasing) x1 < x2 =⇒ F(x1) < F(x2)\n• (Right-Continuous) xn ↓ x =⇒ F(xn) ↓ F(x)\n• limx→∞ F(x) = 1 and limx→−∞ F(x) = 0\n\nDeﬁnition 2.1. A function satisfying the above is called a distribution function.\nTheorem 2.2. Given a distribution function F, exists unique probability measure µ : F(x) =\nµ((−∞, x]) for all x.\n\n2.1 Pullback of random variables\n(Undergrad) U ∼ Unif[0, 1]. Then F−1(U) is a RV with distribution function F.\n\nDeﬁne G (version of F−1) on 0 < y < 1 as\n\nG(y) := sup{x : F(x) < y}\n= inf{x : F(x) ≥ y}\n\nG is increasing =⇒ G is measurable.\n\nFor each x, {y : G(y) ≤ x} = {y : y ≤ F(x)}\n\nLemma 2.3 (Push-forward). ∃ PM ˆµ on R such that\n\n(cid:124) (cid:123)(cid:122) (cid:125)\n\nλ1( [0, F(x)]\n=G−1(−∞,x]\n\n) = ˆµ((−∞, x])\n\nProof. Needs right-cts\n\n2\n\n(2.1)\n(2.2)\n\n(2.3)\n\n\f3 Coin-tossing space\n2-element set B = {H, T}.\n\nSequence space BN = {(cid:126)b = (b1, b2,· · · )) : bi ∈ B}.\ni=1, πi ∈ B, let Aπ = {(cid:126)b : bi = πi\nGiven ﬁnite sequence π = (πi)n\nDeﬁne σ-ﬁeld BN on BN as σ(all Aπ such that π is ﬁnite string).\n\nall sequences starting out as π.\n\nTheorem 3.1. ∃ PM µ on (BN,BN) such that µ(Aπ) = 1\n2|π|\nProof idea. Existance is ensured by theorem 1.6.\n\nConsider the binary expansion of real x ∈ (0, 1), e.g.\n\n∀π\n\nx = 0.1101101· · ·\n= 0.b1(x)b2(x)b3(x) · · ·\n\nIn general, bi = 12ix is odd. bi is measurable.\n\nDeﬁne g : [0, 1] → BN by x (cid:55)→ (b1(x), b2(x),· · · ). g is measurable.\nUse lemma 2.3 to get PM µ : B∞ → R+ mapping\n\n(cid:21)\nAπ (cid:55)→λ{x : g(X) ∈ Aπ}\n\n(cid:20) k\n\nfor some k if |π| = n\n\n=\n\n=\n\nk + 1\n2n\n\n2n ,\n1\n2n\n\n1 ≤ 1 ≤ n} ⊂ BN be\n\n(3.1)\n(3.2)\n\n(3.3)\n\n(3.4)\n\n(3.5)\n\n3\n\n\f"
+	},
+	{
+		"fileName": "lec4.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #4\n9/6/2016\n\n1 Abstract Integration (MT version) (sketchy details)\n\nSetting:\n\n(cid:15) m a measure (ﬁnite or s-ﬁnite) on (S,S)\n(cid:15) Write H+ := set of measurable h : S ! [0, ¥]\nBasic Theorem There exists a unique map I : H+ ! [0, ¥] such that:\n(a) I(1A) = m(A),8A 2 S\n(b) I(h1 + h2) = I(h1) + I(h2),8hi 2 H+\n(c) I(ch) = cI(h),8h 2 H+,8c (cid:21) 0\n(d) If o (cid:20) hn \" h 2 H+, then I(hn) \" I(h) (cid:20) ¥\n\n(cid:0)in f ty h(x)dx will be the case S = R, m = Lebesgue measure.\n\n1.1 Background\n\nh !∫ ¥\n\nIn practice, write\n\n∫\n\nI(h) :=\n\nhdm :=\n\nA\n\n1.1.1 Deﬁnite integrals\n\n∫\n\n∫\n∫\n\nhdm =\nh(s)m(ds)\n(h1A)dm for a 2 S\n\nS\n\nS\n\nS\n\n(1.1)\n\n(1.2)\n\nFigure 1: Area under curve interpretation of deﬁnite integral\n\n1\n\n\f1.1.2 Steps\n\n(1) Deﬁne I(1A) := m(A)\n(2) For simple functions h = (cid:229)i ci1Ai, deﬁne I(h) = (cid:229)i cim(Ai)\n(3) For 0 (cid:20) h (cid:20) m, constant, can write h = limn hn, hn simple (old lemma) and deﬁne\n(4) For general h 2 H+, set hm = min(h, m), so hm \" h. Deﬁne I(h) = limm\"¥ I(hm).\nNote: Consider\n\nI(h) := limn I(hn)\n\n{\n\nh(s) =\n\n¥,\n0,\n\ns 2 Awhere m(A) = 0\ns ̸2 A\n\n(1.3)\n\nNotation (ALMOST EVERYWHERE): h1 = h2a.e. means fs : h1(s) ̸= h2(s)g has m-\n= max((cid:0)x, 0), h+(s) = (h(s))+ = max(h(s), 0)\nNotation: x 2 R, x+ = max(x, 0), x\nDeﬁnition: A measurable h : S ! ¯R is integrable (w.r.t. m) if\njhjdm < ¥. For\n\nHere, hm(s) = min(h(s), m) = m1A, I(hm) = m (cid:1) m(A) = 0, I(h) = limm\"¥ I(hm) = 0.\nmeasure = 0.\n=) x = x+ (cid:0) x\nintegrable h, deﬁne I(h) = I(h+) (cid:0) I(h\nLemma: Suppose h1, h2 integrable.\n(1) (LINEARITY): For c1, c2 2 R, h := c1h1 + c2h2, then h is integrable and\n\n, jxj = x+ + x\n∫\n\n, jx (cid:0) yj (cid:20) jxj + jyj\n\n) (but ﬁnite)\n\nhdm =\n\n∫\n\n∫\n\n∫\n\n(cid:0)\n\n(cid:0)\n\n(cid:0)\n\n(cid:0)\n\nS\n\nc1\n\nh2dm\n\nh1dm + c2\n\n∫\n∫\nh1dm = 0\n∫\n(2) If h1 = 0a.e., then\nh1dm (cid:21) 0\n(3) If h1 (cid:21) 0a.e., then\n(4) If h1 (cid:20) h2a.e., then\n(5)\n\n(cid:12)(cid:12) (cid:20)∫ jhjdm\n\n(cid:12)(cid:12)∫\n\nhdm\n\nProof of (5):\n\nh2dm\n\nh1dm (cid:20)∫\n(cid:12)(cid:12)(cid:12)(cid:12) =\n(cid:12)(cid:12)(cid:12)(cid:12)∫\n\nhdm\n\n(cid:12)(cid:12)(cid:12)(cid:12)∫\n(cid:12)(cid:12)(cid:12)(cid:12)∫\n∫\n∫\n\n∫\n(cid:12)(cid:12)(cid:12)(cid:12)∫\n(cid:12)(cid:12)(cid:12)(cid:12) +\n\nh\n\nh+dm (cid:0)\n\nh+dm\n\n(cid:0)\n\n)dm\n\n(h+ + h\njhjdm\n\n(cid:12)(cid:12)(cid:12)(cid:12)\n\n(cid:0)\n\ndm\n\n(cid:0)\n\nh\n\ndm\n\n(cid:12)(cid:12)(cid:12)(cid:12)\n\n(1.4)\n\n(1.5)\n\n(1.6)\n\n(1.7)\n\n(cid:20)\n\n=\n\n=\n\n2 Probability Theory (MT version)\n\nFreshman: A r.v. X is a quantity with a range of possible values, the actual values deter-\nmined somehow by chance. P(X (cid:20) 4) is the “chance it turns out that X (cid:20) 4”\n\nMT Version: Probability Space (Ω,F, P):\n\n2\n\n\f(cid:15) Ω : sample space, states of universe\n(cid:15) F : events, s-ﬁeld on Ω\n(cid:15) P: probability measure\n\nEvents A 2 F have probability P(A).\n\nR.\nP(fw : X(w) 2 Bg) = P(X 2 B).\n\nDeﬁnition: A random variable (r.v.) is a measurable function X : Ω ! (S,S) or often\nSo for measurable set B 2 S, fw : X(w) 2 Bg is an event in F and so has a probability\nA given RV X : Ω ! (S,S) has a distribution (or law) m deﬁned by m(B) = P(X 2 B)\nPushforward measure: The domain S of the RV has a PM obtained by pushing-forwards\n\nthe PM P on Ω\n\nFigure 2: Pushforward of p.m. P on Ω through X to a p.m. U on S.\n\nX2(w) + Y2(w) (cid:20) Z(w) + 4g) = P(X2 + Y2 (cid:20) Z + 4) = 1\n\nNotation by example: R-valued RVs X, Y, Z. X2 + Y2 (cid:20) 2 + 4a.s. means P(fw :\nGiven R-valued RVs Xn, X, Xn ! Xa.s. means P(fw : Xn(w) ! X(w) as n ! ¥g) =\nNote also: Given arbitrary R-valued Xn, n 2 N, can deﬁne X\n(w) := lim supn Xn(w) and X\n\n:= lim supn Xn,\nis a RV (lim sup of measurable functions are measur-\n\n(cid:3)\n\n(cid:3)\n\n1\n\n(cid:3)\n\nX\nable).\n\n2.1 Expectation\nThe expectation of a RV Y : (Ω,F, P) ! R is\n\n∫\n\n∫\n\nprovided EjYj :=\n\nE[Y] :=\n\nYdP\nΩ jYjdP (cid:20) ¥ (“Y is integrable”)\n\nΩ\n\n(2.1)\n\n2.2 “Change of variable” lemmas\nSee Jim Pitman’s notes for good explanation.\n\n3\n\n\fFigure 3: Functions of random variables h(X) viewed as composition of measurable func-\ntions h ◦ X : Ω ! R\n\n∫\n\n∫\n\n∫ ¥\n\nLemma 1: If h(X) is integrable, then Eh(X) =\nLemma 2: If n is a PM on R with density f , then\n\nS hdm for m = distribution of X\nR hdn =\n\n(cid:0)¥ h(x) f (x)dx provided h\n\nis n-integrable\n\nProof: Consider the collection of h for which the stated = is true.\n(cid:15) Consider h = 1B, B 2 S.\nLHS = Eh(X) = 1X2B = m(B) =\n(cid:15) Consider h = 1B, B (cid:26) R\n1Bdn = n(B) =\nLHS =\n\n1Bdm = RHS\n\n∫\n\n∫\n\n∫\n\nB f (x)dx (deﬁnition of density f (x) of n) = RHS\n\n2.2.1 Steps of sketch proof of Basic Theorem\nBoth sides of (cid:1) = (cid:1) are integrals, so:\n\n(cid:15) True for 1B,8B 2 S\n(cid:15) True for simple functions h\n(cid:15) True for bounded measurable h\n(cid:15) True for integrable h\n\nText: “Monotone class theorem”\n\n∫\n\nCan combine Lemma 1 and Lemma 2:\nLemma: Suppose RV X is R-valued, and its distribution has density f . Then Eh(X) =\nh(x) f (x)dx provided h(X) is integrable\n\n4\n\n\f"
+	},
+	{
+		"fileName": "lec5.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #5\n9/8/2016\n\n1 Expectation and Inequalities\n\nn\n\n1.1 Expectation (Undergrad version)\n(1) EX is the limit of X1+X2+(cid:1)(cid:1)(cid:1)+Xn\n(2) EX is fair stake for random payoff X (conceptual basis of martingale theory)\n∫\n(3) EX = (cid:229)i iP(X = i) or\n(4) Eh(X) = (cid:229)i h(i)P(X = i) or\n(5) abstract rules: E(X + Y) = EX + EY even if dependent\n\nx f (x)dx (change of variable in MT, last lecture)\n\nfor iid (will prove as SLLN)\n\nh(x) f (x)dx (change of variable in MT, last lecture)\n\n∫\n\n1.2 Measure-theoretic version\nLet X : (Ω,F, P ! R be a random variable on a probability space.\nDeﬁnition 1.1. The expectation EX :=\n\nΩ X(w)P(dw)\n\n∫\n\nExpectation is well-deﬁned if:\n(a) EX < ¥ or 0 (cid:20) X (cid:20) ¥, where 0 (cid:20) EX (cid:20) ¥\n\n(a) =) (cid:0)¥ < EX < ¥\n\n∫\n\nFrom deﬁnition 1.1, can use proporties of abstract\n(cid:15) E1A = P(A)\n(cid:15) E(c1X1 + c2X2) = c1EX1 + c2EX2 (Linearity)\n(cid:15) (Monotone Convergence): If 0 (cid:20) X1 (cid:20) X2 (cid:20) (cid:1) (cid:1) (cid:1) (cid:20) ¥, Xn \" Xa.s., then EXn \" EX (cid:20)\n¥\n\n(a) a.s. means for all w outside some A where P(A) = 0\n(b) To prove this for a.s., consider 0 (cid:20) X11Ac (cid:20) X21Ac (cid:20) (cid:1) (cid:1) (cid:1) , then Xn1Ac \" X1Ac8w\nExample 1.2. X (cid:21) 0. EX < ¥ =) P(X < ¥) = 1. However, P(X (cid:20) ¥) = 1 ̸ =)\nEX < ¥.\n\nand EXn1Ac \" EX1Ac\n\nConsider P(X = i) (cid:24) ci\n\n(cid:0)3/2.\n\n1\n\n\f1.3 Inequalities\nLemma 1.3 (Markov’s Inequality). If X (cid:21) 0, EX < ¥, then P(X (cid:21) x) (cid:20) EX\nx , 0 < x < ¥.\nDeﬁnition 1.4. If EX2 < ¥, the variance Var(X) := EX2 (cid:0) (EX)2 = E(X (cid:0) EX)2 and\n0 (cid:20) Var(X) < ¥.\nLemma 1.5 (General form of Markov’s inequality). Let ϕ : R ! [0, ¥) be increasing. Then\nP(X (cid:21) x) (cid:20) Eϕ(X)\n\nϕ(X) provided not indeterminate (e.g. 0\n0).\n\nFigure 1: Illustration of h(x) (cid:20) ϕ(x)8x\n\n{\n\nProof. Deﬁne h(y) =\n\n= ϕ(x)1y(cid:21)x.\n\nif y < x\nif y (cid:21) x\n\n0,\nϕ(x),\nClear h(y) (cid:20) ϕ(y)8y.\nEϕ(X) (cid:21) Eh(X) = ϕ(X)E1X(cid:21)x = ϕ(x)P(X (cid:21) x)\nLemma 1.3 is lemma 1.5 with ϕ(x) = x+ = max(0, x).\n\nLemma 1.6 (Chebychev’s Inequality). If Var(X) < ¥, then P(jX (cid:0) EXj (cid:21) x) (cid:20) Var(X)\n0 < x < ¥.\nProof. Take Y = jX (cid:0) EXj and ϕ(x) = (x+)2 in lemma 1.5. For x > 0\n\nx2\n\nfor\n\nP(Y (cid:21) x) (cid:20) EY2\n\nx2 =\n\nVar(X)\n\nx2\n\nAnother case is to take ϕ(x) = eqx for parameter q > 0 and 0 < x < ¥\n\nIn particular\n\nP(X (cid:21) x) (cid:20) EeqX\neqx\n\n2\n\n(1.1)\n\n(1.2)\n\n\fLemma 1.7 (Basic Large Deviation Inequality). For 0 < x < ¥\n\nP(X (cid:21) x) (cid:20) inf\n\nEeqX\neqx\n\nq>0\n\n(Only useful if P(X (cid:21) x) ! 0 exponentially fast)\nExample 1.8. X (cid:24) Poisson(l), EX = l, VarX = l.\n\nBy lemma 1.5: P(X (cid:21) x) (cid:20) l/x.\nBy lemma 1.6: P(X (cid:21) x) (cid:20) l\n(x(cid:0)l)2\n\nEeqX = (cid:229)\ni\n\neqie\n\n(cid:0)lli = e\n|\n= exp((cid:0)x log\n\n(cid:0)leleq\n}\n{z\nexp((cid:0)qx (cid:0) l + leq\n((cid:3))\n(cid:0) l + x)\n\nq\n\n)\n\nx\nl\n\nP(X (cid:21) x) (cid:20) inf\n\nd\n\ndq ((cid:3)) = (cid:0)x + leq\n\nTake q such that leq = x.\n\n(1.3)\n\n(1.4)\n\n(1.5)\n\n(1.6)\n\n(1.7)\n\nFigure 2: TODO: Draw LD, MC, and Cheb bounds\n\nLemma 1.9 (Cauchy-Schwarz Inequality).\njE(XY)j (cid:20)\n\n√\n\n3\n\n(EX2)(EY2)\n\n(1.8)\n\n\fProof (Trick!) Recall quadratic equation: for a > 0\n\nApplying\n\nax2 + 2bx + c (cid:21) 08x () b2 (cid:20) ac\n| {z }\n{z\n}\n| {z }\n(cid:1)x2 + 2 E(XY)\n= E(Y2)\na>0\n=) b2 (cid:20) ac\n\nb\n\n(cid:21)0 8x\n\n|{z}\n(cid:1)x + EX2\n\nc\n\n|\n\nE (X + xY)2\n\n(1.9)\n\n(1.10)\n\n(1.11)\n\nExample 1.10. Given (xi)i2N, (yi)i2N 2 RN, take P(X = xi, Y = yi) = 1\nThen C-S yields\n\nn for 1 (cid:20) i (cid:20) n.\n\n)(\n\n)\n\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12) 1\n\nn\n\nvuut(\n\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12) (cid:20)\n\n(cid:229)\ni\n\nxiyi\n\n1\nn\n\n(cid:229)\ni\n\nx2\ni\n\n1\nn\n\n(cid:229)\ni\n\ny2\ni\n\n(1.12)\n\nDeﬁnition 1.11. ϕ is convex if 8x < y, l 2 [0, 1], ϕ(x + l(y (cid:0) x)) + l(ϕ(y) (cid:0) ϕ(x)).\n\nIn practice, ϕ′′\n\n(x) (cid:21) 0 =) ϕ is convex.\n\nLemma 1.12 (Jensen’s inequality). Interval I (cid:26) R, let ϕ : I ! R be convex. Then ϕEXx (cid:20)\nEϕX provided both expectations are well-deﬁned.\n\nProof. Intuition:\n\nFigure 3: Illustration of Jensen’s inequality and tangent line\n\nGiven x and convex ϕ, 9 tangent line l(y) such that l(y) (cid:20) ϕ(y) 8y and l(x) = ϕ(x).\n\n4\n\n\fSet x = EX, take tangent l((cid:1)) at x.\n\nϕ(X) (cid:21) l(x)\nEϕ(X) (cid:21) El(x)\n= l(EX)\n= l(x) = ϕ(x) = ϕ(EX)\n\nl linear\n\nExample 1.13. ϕ(x) = jxjp, 1 (cid:20) p. Then Jensen’s inequality says\n\njEYjp (cid:20) EjYjp\nApplying this with 0 < a < b < ¥, y = jXja, p = b\n(\n(EjXja)b/a (cid:20) EjXjb\n(EjXja)1/a (cid:20)\nEjXjb\n\n)\n\n1/b\n\na, shows\n\n(1.19)\nThe Lp norm is ∥X∥p := (EjXjp)1/p, p 2 [1, ¥) so this result says p 7! ∥X∥p is increas-\n\n(1.13)\n(1.14)\n(1.15)\n(1.16)\n\n(1.17)\n\n(1.18)\n\n(1.20)\n\n(1.21)\n\ning on p 2 [1, ¥).\nExample 1.14. For x 2 (0, ¥), consider\n(1) ϕ(x) = 1/x\n(2) ϕ(x) = (cid:0) log x,\nIf x > 0, then Eϕ(X) (cid:21) ϕ(EX). Applying Jensen’s\n(1) E 1\nx\n(2) (cid:0)E log X (cid:21) (cid:0) log EX () EX (cid:21) eE log X\nConsider (xi)n\n\n() EX (cid:21) 1\n\n(cid:21) 1\nEX\n\nE 1\nX\n\nn 1 (cid:20) i (cid:20) n.\ni=1 > 0, P(X = xi) = 1\n(cid:229)\ni\n\n|{z}\n\n(cid:21)\n\n1\nn\n\n1\nn\n\nArithmetic mean\n\nHarmonic mean\n\n(cid:21) e 1\n\nn (cid:229)i log xi =\n\n1\nn\n\n(cid:229)\ni\n\n1\nxi\n\n1\n(cid:229)i\n\n| {z }\n(\n)\n|\n\n(cid:213)\ni\n\n{z\n\nxi\n\n1/n\n\n}\n\nGeometric mean\n\n5\n\n\f"
+	},
+	{
+		"fileName": "lec6.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #6\n9/13/2016\n\nIndependence (undergrad)\n\n1\nEvents A and B are independent if P(A \\ B) = P(A)P(B).\n\nR.V.s X, Y independent if P(X (cid:20) x, Y (cid:20) y) = P(X (cid:20) x)P(Y (cid:20) y).\nIdea: knowing the value of X doesn’t change the probabilities for Y\n\nIndependence (MT version)\n\n2\n(Ω,F, P) a probability space. Consider B1,B2 sub-s-ﬁelds of F.\nDeﬁnition 2.1. Call s-ﬁelds B1 and B2 independent if\n\nP(B1 \\ B2) = P(B1)P(B2) 8Bi 2 Bi\n\n(2.1)\n\n(cid:0)1(D) 2 F for all D 2 S. The collection fX\n\n(cid:0)1(D) : D 2 Sg is\n\nX is measurable =) X\n\na sub-s-ﬁeld of F, call it s(X) “the s-ﬁeld generated by X.”\nDeﬁnition 2.2. Call RVs X1 and X2 independent if s(X1) and s(X2) are independent.\nTheorem 2.3. For RVs X1, X2 with Xi taking values in (Si,Si), the following are equivalent:\n(i) X1 and X2 are independent\n(ii) P(X1 2 B1, X2 2 B2) = P(X1 2 B1)P(X2 2 B2) for all Bi 2 Si\n(iii) P(X1 2 B1, X2 2 B2) = P(X1 2 B1)P(X2 2 B2) for all Bi 2 Ai where Ai is a p-class,\n(iv) E[h1(X1)h2(X2)] = (Eh1(X1)) (Eh2(X2)) for all bounded measurable hi : §i 2 R\nComments:\n\ns(Ai) = Si\n\n1\n\n\f(cid:15) (iv) extends to integrable hi(Xi)\n(cid:15) If Xi are R-valued, (iii) can be used to show independence is equivalent to P(X1 (cid:20)\nx1, X2 (cid:20) x2) = P(X1 (cid:20) x1)P(X2 (cid:20) x2) for all xi 2 R\n(cid:15) The fact:\n\nif X1, X2 are independent, then g1(X1), g2(X2) independent (arbitrary mea-\nsurable gi)\n\nis true because s(g(X)) (cid:20) s(X).\n\nProof outline. (iv) =) (ii) =) (iii) special cases\n(ii) =) (iv) by “monotone class argument”:\n(iv) holds for hi = 1Bi indicator functions\n) holds for hi simple functions\n) holds for hi bounded measurable functions\nWant to use Dynkin’s p (cid:0) l Lemma:\nStep 1 Fix B2 2 A2. Consider the collection\n\nL = fA 2 S1 : P(X1 2 A, X2 2 B2) = P(X1 2 A)P(X2 2 B2)\n\n(2.2)\n\nCheck L is a l-class.\nBy hypothesis, L (cid:27) A1. Dynkin’s lemma implies L = S1\n\nStep 2 Consider\n\nL′\n\n= fB2 2 S2 : P(X1 2 B2, X2 2 B2) = P(X1 2 B1, X2 2 B2) 8B1 2 S1g\n\n(2.3)\n\nis a l-class (use linearity property).\n\nCheck L′\nBy step 1, L′ (cid:27) A2.\nBy Dynkin’s, L′ (cid:27) s(A2) = S2 =) (ii)\n\nDeﬁnition 2.4. B1,B2,(cid:1) (cid:1) (cid:1) ,Bn are (mutually) independent means\nP(Bi) 8Bi 2 Bi\n\nP(\\n\n\ni=1Bi) =\n\nn(cid:213)\n\ni=1\n\n(2.4)\n\nThis is stronger than pairwise independence.\n\nExample 2.5. X, Y for die throws, events fX = 3g, fY = 6g, fX = Yg. These events are\nonly pairwise independent, not mutually independent.\nExample 2.6. X1, X2 independent uniform on f0, 1,(cid:1) (cid:1) (cid:1) , n (cid:0) 1g. Deﬁne X3 = X1 + X2\nmodulo n. Then (X1, X2, X3) are pairwise independent, not mutually independent.\n\n2\n\n\fClaim. If X1,(cid:1) (cid:1) (cid:1) , Xk,(cid:1) (cid:1) (cid:1) , Xn independent, then f (X1,(cid:1) (cid:1) (cid:1) , Xk) and g(Xk+1,(cid:1) (cid:1) (cid:1) , Xn) are in-\ndependent for arbitrary measurable functions f and g.\n\nExercise 2.7. Formalize and verify. “Hereditary property of independence.”\nExercise 2.8. To show that events fAign\nP(\\i2I Ai) = (cid:213)\ni2I\n\ni=1 are independent, sufﬁces to show\nP(Ai) 8I (cid:26) f1, 2,(cid:1) (cid:1) (cid:1) , ng\n\n(2.5)\n\n3 Real-valued Random Variabls\n\nlim\n\nKnow that Xn ! Xa.s. means P(fw : Xn(w) ! X(w)a.s.n ! ¥g) = 1.\n\nLet Xi, Yi be real-valued random variables.\nDeﬁnition 3.1 (Convergence in probability). Xn !p X means\n8ϵ > 0\n\nn!¥ P(jXn (cid:0) Xj > ϵ) = 0,\n\n(3.1)\nDeﬁnition 3.2 (Convergence in Lp). For l (cid:20) p < ¥, say Xn ! X in Lp or Xn !Lp X to\nmean\n(and EjXnjp < ¥ for all n).\nLemma 3.3. If Xn ! X in Lp, then Xn !p X.\nProof. Use general form of Markov’s inequality ϕ(x) = jxjp applied to Xn (cid:0) X.\n\nEjXn (cid:0) Xjp = ∥Xn (cid:0) X∥p ! 0 as n ! ¥\n\n(3.2)\n\n(3.3)\n\n(3.4)\n\n(cid:20) c for\nmi.\n\n=) P(∥Xn (cid:0) X∥ > ϵ) (cid:20) EjXn (cid:0) Xjp\n\nϵp\n\n! 0 as n ! ¥\n\nDeﬁnition 3.4 (Variance). If EX2 < ¥, deﬁne the variance\n\nProposition 3.5. If (Xi)n\nDeﬁnition 3.6. If EX2\ni\n\nVar(X) = EX2 (cid:0) (EX)2 = E(X (cid:0) EX)2\ni=1 independent, then Var((cid:229)i Xi) = (cid:229)i Var(Xi)\n(cid:20) ¥, EX1X2 = (EX1)(E2), say X1 and X2 are uncorrelated\n\nIndependence =) pairwise independent =) uncorrelated\n\nTheorem 3.7 (L2 weak law of large numbers). Given Xi, i (cid:21) 1, suppose sup EX2\n(cid:229)n\nsome constant c and suppose uncorrelatd. Write mi = EXi, Sn = (cid:229)n\n\ni=1 Xi, ¯mi = 1\nn\n\ni\ni=1\n\nThen Sn\nn\n\n(cid:0) ¯mn ! 0 in L2 as n ! ¥.\n\n3\n\n\fProof.\n\n(\n\nE\n\n1\nn\n\nESn = ¯mn\nn(cid:229)\nVar(Sn) =\n)\nSn) (cid:20) c\nn\n\ni=1\n\n2\n\n1\nVar(\nn\n(cid:0) ¯mn\n\nSn\nn\n\nVar(Xi) (cid:20) cn\n(\n\n)\n\nSn\nn\n\n(cid:20) c\nn\n\n= Var\n\n! 0 as n ! ¥\n\n(3.5)\n\n(3.6)\n\n(3.7)\n\n(3.8)\n\n4\n\n\f"
+	},
+	{
+		"fileName": "lec7.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #7\n9/15/2016\n\n1 Polynomial Approximation Theorems\n\nMain goal is to demonstrate proof techniques, results are not too important.\nTheorem 1.1 (Bernstein). Given continuous f : [0, 1] → R, deﬁne\n\n(cid:18) n\n\n(cid:19)\n\nm\n\nfn(x) :=\n\nn∑\n\nn=0\n\nxm(1 − x)n−m f (m/n),\n\n0 ≤ x ≤ 1\n\n(1.1)\n\n(1.2)\n\n(polynomial of degree n).\n\nThen fn converge uniformly to f i.e.\n\n| fn(x) − f (x)| → 0\n\nsup\n\nx\n\nas n → ∞.\nProof. Fix x. Take i.i.d. Bernoulli(x) r.v.s (Xi, 1 ≤ i < ∞). Let Sn := ∑n\nBinomial(n, x) and note fn(x) = E f (Sn/n).\n\ni=1 Xi ∼\n\nWant to bound\n\n| fn(x) − f (x)| = |E f (Sn/n) − f (x)|\n≤ E| f (Sn/n) − f (x)|\n\n(1.3)\n(1.4)\n\nWant to apply WLLN Sn/n p→ x, so split\nE| f (Sn/n) − f (x)| = E\n\n(cid:104)| f (Sn/n) − f (x)|1|Sn/n−x|≤δ + | f (Sn/n) − f (x)|1|Sn/n−x|>δ\n\n(cid:105)\n\n(1.5)\n\nFrom analysis, we have\n\n• M := sup| f (X)| ≤ ∞\n• (Uniformly Continuous) ∀ε > 0,∃δ > 0 : |y1 − y2| ≤ δ =⇒ | f (y1) − f (y2)| ≤ ε\n\n1\n\n\fChoosing ε > 0 and taking δ from uniform continuity\n\n(cid:104)| f (Sn/n) − f (x)|1|Sn/n−x|≤δ + | f (Sn/n) − f (x)|1|Sn/n−x|>δ\n\nE\n\n≤ ε + 2MP(|Sn/n − x| > δ|)\n≤ ε\n\n2M\nδ2 Var(Sn/n)\nx(−x)\n2M\nδ2\nM\n2δ2\nas n → ∞\n\n= ε +\n≤ ε +\n≤ ε\n= 0 holds ∀ε > 0\n\n1\nn\n\nn\n\n(cid:105)\n\n(1.6)\n(1.7)\n\n(1.8)\n\n(1.9)\n\n(1.10)\n\n(1.11)\n(1.12)\n\n2 Backgrounnd for proving a.s. limits\n\n2.1 Axioms\nFor events Bn, B\n\n• Bn ↑ B =⇒ P(Bn) ↑ P(B)\n• Bn ↓ B and ∃n : P(Bn) < ∞ =⇒ P(Bn) ↓ P(B)\n\nDeﬁnition 2.1. Event An inﬁnitely often (An i.o.) means ∩∞\n\nm=1 ∪∞\nEvent An ultimately (An ult.) means ∪m = 1∞ ∩ n = m∞An.\nn ult.)\n\nProposition 2.2. i.o. and ult. are opposites: (An i.o.)c = (Ac\n\nn=m An.\n\nLemma 2.3 (Weak).\n(i) P(An i.o.) ≥ lim supn P(An)\n(ii) P(An ult.) ≥ lim infn P(An)\nProof.\n\nn=mAn) ≥ max\nP(∪Q\nm≤n≤Q\nn=mAn) ≥ sup\nP(∪∞\nn≥m\nP(An i.o.) ≥ lim sup\n\nP(An)\n\nn\n\nP(An)\n\nP(An)\n\n2\n\nQ → ∞\nm → ∞\n\n(2.1)\n\n(2.2)\n\n(2.3)\n\n\fLemma 2.4 (First Borel-Cantelli). Events (An)∞\nProof.\n\nn=1, if ∑n P(An) < ∞ then P(An i.o.) = 0.\n\nn∑\n\nXn =\n\nX∞ =\n\ni=1\n∞\n∑\ni=1\n∞\n∑\nEX∞ =\ni=1\n=⇒ P(X∞ = ∞) = 0\n\n1Ai = (number of last n events that occur)\n\n1Ai = (total number of events that occur)\n\nP(Ai) <\nhyp\n\n∞\n\n(2.4)\n\n(2.5)\n\n(2.6)\n\n(2.7)\n\nLemma 2.5 (Second Borel-Cantelli). For independent events (Ai)∞\nP(An i.o.) = 1.\n\ni=1, if ∑i P(Ai) = ∞ then\n\n(Many variants under alternative assumptions exist)\n\nProof. Fix m. We will prove P(∪∞\n\nFact: 0 ≤ x ≤ 1 =⇒ 1 − x ≤ e−x.\nBy independence\n\nn=mAn) = 1 or prove P(∩∞\n\nn=mAc\n\nn) = 0.\n\nP(∩q\n\nn=mAc\n\nn) =\n\n=\n\nn=m\n\nq∏\nq∏\n\nn=m\n\nP(Ac\nn)\n\n(1 − P(An))\n\n≤ exp(− q∑\n\nn=m\n\nP(An))\n\nLet q ↑ ∞\n\nP(∩∞\n\nn=mAc\n\nn) ≤ exp(− ∞\n∑\nn=m\n\nP(An)) = 0\n\n(2.8)\n\n(2.9)\n\n(2.10)\n\n(2.11)\n\nLemma 2.6. Arbitrary R-valued r.v.s (Yn) and arbitrary −∞ < y < ∞.\n\nIf ∑n P(Yn ≥ y + ε) < ∞ for all ε > 0, then lim supn Yn ≤ y a.s..\n\nCorollary 2.7. If ∑n P(|Yn| ≥ ε) < ∞, each ε > 0, then Yn\nProposition 2.8 (Deterministic fact for real numbers). For reals (yn) and y, “lim supn yn ≤ y”\nequivalent to “yn ≤ y + ε” ult., each ε > 0, equivalent to “yn ≤ y + 1/j” ult., each j ≥ 1.\n\na.s.→ 0.\n\n3\n\n\fProof. By Hyp and B-C 1\n\n=⇒ P(Yn ≤ y + 1/j ult.) = 1)\nBy monotonicity P(Bj) = 1∀j =⇒ P(Bj for allj) = 1 hence\n\n=⇒ P(Yn ≤ y + 1/j ult., each j ≥ 1) = 1\n=⇒ P(lim sup\n\nYn ≤ y) = 1\n\nn\n\n(2.12)\n\n(2.13)\n(2.14)\n\nTheorem 2.9 (4th moment SLLN (strong law of large numbers)). Let (Xi, 1 ≤ i < ∞) be\ni.i.d., ∀i : EXi = 0, EX4 < ∞. Then\n\nn ≤ 3n2EX4\n\n(i) ES4\n(ii) Sn/n a.s.→ 0 as n → ∞\nProof.\n\n(i) ES4\n\nn = ∑i,j,k,l E[XiXjXkXl]\n\nNote that E[·] = 0 if some index j appears only once, e.g.\n\nE[X4]E[X6\n\n6] = 0\n\nE[X4X6X6X6] = \b\b\b\b*0\n(cid:19)\n(cid:19)(cid:18)n\n\n(cid:18)4\n\nES4\n\n2\n\nE[X2\n\nn = nEX4 +\n1X2\n2]\n(cid:124) (cid:123)(cid:122) (cid:125)\n= nEX4 + 3n(n − 1) (EX2)2\n≤EX4\n\n2\n\n≤ 3n2EX4\n\nP(|Sn/n| ≥ ε) ≤ E|Sn/n|4/ε4\n\n≤ ε\n≤ 3ε\nP(|Sn/n| ≥ ε) ≤ ∑\n\n−4n−4 × 3n2EX4\n−4EX4n−2\n3ε\n\n−4EX4n−2 < ∞\n\nn\n\nMarkov ineq φ(x) = x4\n\nHence\n\nFix ε > 0.\n\n=⇒ ∑\nn\n\n(2.15)\n\n(2.16)\n\n(2.17)\n\n(2.18)\n\n(2.19)\n(2.20)\n(2.21)\n(2.22)\n\nApplying corollary 2.7, Sn/n a.s.→ 0\nCorollary 2.10. If (Ai)∞\ni=1 independent Bernoulli(p), Sn = ∑n\nDeﬁnition 2.11. Given data real number xi,· · · , xn, deﬁne:\nEmpirical distribution Uniform distribution on (x1, xn)\n\ni=1 1Ai, then Sn/n a.s.→ p as n → ∞.\n\n4\n\n\fEmpirical distribution function G(x) = 1\n\nn ∑n\n\ni=1 1xi≤x\n\nFigure 1: Example empirical distribution function\n\nTheorem 2.12 (Glivenko-Cantelli). (Xi)∞\nn ∑n\n1\n\ni=1 1Xi(ω)≤x is empirical distribution of (X1(ω), X2(ω),· · · , Xn(ω)).\nFor ﬁxed x, events {Xi ≤ x} are i.i.d. Bern( f (x)).\nSLLN for events says\n\nGn(ω, x) → G(x) a.s. as n → ∞\n\ni=1 i.i.d., arbitrary distribution function F, Gn(ω, x) =\n\n(2.23)\n\nfor each x.\n\n5\n\n\f"
+	},
+	{
+		"fileName": "lec8.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #8\n9/20/2016\n\n1 Glivenko-Cantelli Theorem\nTheorem 1.1. Let (Xi)N\nbe its empirical distribution function. Then\n\ni=1 be i.i.d. with distribution function F and Gn(w, x) = 1\nn\n\n(cid:229)n\ni=1 1Xi(w)(cid:20)x\n\njGn(w, x) (cid:0) F(x)j a.s.! 0\n\nas n ! ¥\n\nsup\n\nx\n\n(i.e. ∥Gn(w, x) (cid:0) F(x)∥¥ ! 0 or Gn\n\nL¥! F\n\nTo prove theorem 1.1, we need a lemma proved in a later homework.\n\nDeﬁnition 1.2. For a CDF F : R ! [0, 1], x 2 R is an atom if\n) = P(X = x) > 0\n\nF(x) (cid:0) F(x\n\n(cid:0)\n\n(1.1)\n\n(1.2)\n\njFn(x) (cid:0) F(x)j ! 0 almost surely.\n\nLemma 1.3. Let Fn, F be distribution functions. If\n(a) For all x 2 Q: Fn(x) ! F(x)\n(b) For each atom x of F: Fn(x) ! F(x) and Fn(x\nthen supx\nProof of theorem 1.1. Fix x 2 R. The events fXi (cid:20) xgn\ni=1 are i.i.d. with probability = F(x).\nBy SLLN, Gn(w, x) a.s.! F(x) as n ! ¥. Consider S = Q [ fatoms of Fg, which is\ncountable (TODO: why?). Notice P(Gn(w, x) ! F(x) 8x 2 S) = 1 so by lemma 1.3\nP(supx\n\njGn(w, x) (cid:0) F(x)j ! 0) = 1.\n\n) ! F(x\n\n(cid:0)\n\n(cid:0)\n\n)\n\n2 Gambling on a favorable game\nSuppose we are playing a game where we stake an amount s 2 R and recieve payoff\n\n{\n\n(2.1)\nConsider a strategy where at every time the stake s is equal to some proportion q 2\n\n+s, w.p. 1\n(cid:0)s, w.p. 1\n\n2 + a\n(cid:0) a\n2\n\n1\n\n\f[0, 1] of your currrent total. Let Xn denote your total fortune after n bets. Then\n\n{\n\nif win\nif loose\n1An+1\n\n|{z}\n\nwin (n + 1)st bet\n\nXn+1 = (1 (cid:0) q)Xn +\n\n2qXn,\n0,\n= (1 (cid:0) q)Xn + 2qXn\n= (1 (cid:0) q + 2q1An+1)Xn\n(1 (cid:0) q + 2q1Ai )\n\nn(cid:213)\n\n=) Xn = x0\nlog Xn\n\ni=1\nlog x0\n\n=\n\nn\n\n|\n}\nlog(1 (cid:0) q + 2q1Ai )\n\n{z\n\n+\n\n1\nn\n\nn(cid:229)\n\ni=1\n\n(2.2)\n\n(2.3)\n\n(2.4)\n\n(2.5)\n\n(2.6)\n\nn\n\nBy SLLN, as n ! ¥\n\n(\n\n)\n\n1\n2\n\n+ a\n(cid:25) 2aq (cid:0) 1\n2\n\n(2.7)\nn log Xn ! c is slightly weaker than xn (cid:25) ecn, c =“asymptotic growth rate”)\n\n(Note: 1\nThe optimal choice of q should maximize EY\n\nn\n\nlog Yn\n\na.s.! EY\n(\n\nEY =\n\nlog(1 + q) +\n\n(cid:0) a\n\n1\n2\n\nlog(1 (cid:0) q)\n\n(2.8)\n\n(2.9)\n\nq2\n\nfor a, q small\n\nYi\n\n)\n\nFigure 1: Asymptotic growth rate for different bet proportions q\n\n) the optimal choice is q = 2a\nHowever, notice that\n\nEXn = x0(1 + 2qa)n ! ¥\n\nbut Xn\n\na.s.! i f q (cid:21) qcrit (cid:25) 4a\n\n(2.10)\n\n2\n\n\f3 Almost-sure limits for maxima\n\nExample 3.1. (Xi)n\n1\n\nWrite Mn = sup1(cid:20)i(cid:20)n Xi. Then\n\niid(cid:24) Exp(1), P(X > x) = e\n\n(cid:0)x.\n\nlim sup\n\nn\n\nXn\nlog n\n\na.s.= 1\n\nand\n\nMn\nlog n\n\na.s.! 1\n(\n\nP\n\nn\n\n(BC 1)\n\n(cid:229)\nn2N\n\n)\nProof. Fix # > 0. P(Xn/ log n > 1 + #) = exp((cid:0)(1 + #) log n) = n\n(cid:20) 1 + # ult.\na.s.(cid:20) 1 + #\nXn\nlog n\na.s.(cid:20) 1\nXn\nlog n\n(cid:0)(1(cid:0)#) so\n\nlim sup\n}\nTo obtain a lower bound, P(Xn/ log n (cid:21) 1 (cid:0) #\n(\n\n(cid:0)(1+#) < ¥ =)\n\nXn\nlog n\n() lim sup\n=)\n#!0\n{z\n(cid:0)(1(cid:0)#) = ¥ =)\n=)\n#!0\n\nXn\nlog n\n\n(cid:21) 1 (cid:0) # i.o.\nXn\nlog n\n\na.s.(cid:21) 1\n\n(cid:229)\nn2N\n\nlim sup\n\n) = n\n\n)\n\nn\n\nn\n\nindep.\n\nP\n\n(BC 2)\n\n|\n\nn\n\nn\n\n(cid:0)(1+#)\n\n= 1\n\n= 1\n\nTogether, we have lim supn Xn/ log n a.s.= 1.\nTo prove the second part, we ﬁrst prove a deterministic lemma:\n\nXn\nbn .\n\nLemma 3.2 (Deterministic Lemma). If Xn (cid:21) 0 and 0 < bn \" ¥, then lim supn\nlim supn\nProof. “(cid:21)” is obvious. Fix j.\nmax1(cid:20)i(cid:20)n Xi\n\nmaxj(cid:20)i(cid:20)n Xi\n\nlim sup\n\nn\n\nbn\n\n(3.1)\n\n(3.2)\n\n(3.3)\n\n(3.4)\n\n(3.5)\n\n(3.6)\n\n(3.7)\n\nmax1(cid:20)i(cid:20)n Xi\n\nbn\n\n=\n\n= lim sup\n(cid:20) lim\n\nn\n\nn\nmax\nj(cid:20)i(cid:20)n\nxi\nbi\n\n= sup\ni(cid:21)j\n\nbn\n\nxi\nbi\n\n3\n\nLetting j ! ¥ shows “(cid:20)”.\n\nbn \" ¥, xj ﬁxed\n(cid:21) xi\nbn\n\nxi\nbi\n\n(3.8)\n\n(3.9)\n\n(3.10)\n\n\fCombining eq. (3.1) and lemma 3.2 imply lim supn\nIt remains to show lim infn\n\na.s.= 1. But since 1 a.s.= lim supn Mn/ log n (cid:21) lim infn Mn/ log n,\n\nMn\nlogn\n\nMn\nlog n\n\na.s.= 1.\n\nit sufﬁces to show lim infn Mn/ log n\n\nFix # > 0.\n\nP(Mn (cid:20) (1 (cid:0) #) log n) = P(X (cid:20) (1 (cid:0) #) log n)n\n)n\n\na.s.(cid:21) 1\n(\n= (1 (cid:0) n\n(cid:0)(1(cid:0)#))n\n(cid:20) exp\n(cid:0)n\n(cid:0)(1(cid:0)#)\n= exp ((cid:0)n#)\n\n1 (cid:0) x (cid:20) e\n\n(cid:0)x\n\n(3.11)\n(3.12)\n\n(3.13)\n(3.14)\n(3.15)\n\n(3.16)\n\n(3.17)\n\n(3.18)\n\n(3.19)\n\n(3.20)\n\n(cid:229)\nn\n\nP(Mn (cid:20) (1 (cid:0) #) log n) (cid:20) 1 (cid:0) 1\n\n1 (cid:0) e# =\n\n1\n1 (cid:0) e# < ¥\n\n(BC 1)\n\n=)\n=) lim inf\n() lim inf\n=)\n#!0\n\nlim inf\n\nMn (cid:21) (1 (cid:0) #) log n ult. a.s.\nMn\nlog n\nMn\nlog n\nMn\nlog n\n\na.s.(cid:21) 1 (cid:0) #\na.s.(cid:21) 1 (cid:0) #\na.s.(cid:21) 1\n\nn\n\nn\n\nn\n\nRemark 3.3. Here Xn/ log n ! 0 in probability (i.e. P(Xn/ log n (cid:21) #) = n\na.s. (which requires showing P(limn Xn/ log n = 0) = 1).\n\n(cid:0)# ! 0, but not\n\n4 Second moment Strong Law of Large Numbers\nTheorem 4.1 (Second moment SLLN). Given (Xi)n\n\ni=1 with:\n\nEX2\n\n(a) EXi = 0 for all i\n(b) supi\n(c) Orthogonal: E[XiXj] = 0 for all i ̸= j\nWrite Sn = (cid:229)n\n\ni=1 Xi. Then Sn/n a.s.! 0.\n\ni = B < ¥\n\nWe ﬁrst show a deterministic lemma used in the proof.\n\nLemma 4.2 (Deterministic Lemma). Given Sn 2 R, to show Sn/n ! 0 it sufﬁces to show 9\nsubsequence n(j) \" ¥ such that:\n(a) Sn(j)/n(j) ! 0 as j ! ¥\n\n4\n\n\f(b) Dj/n(j) ! 0 where Dj := maxn(j)(cid:20)n(cid:20)n(j+1)\n\njSn (cid:0) Sn(j)\n\nj\n\nFigure 2: d(j) and n(j) as deﬁned for lemma 4.2\n\nProof of lemma 4.2. Given n, for some j where n(j) (cid:20) n < n(j + 1)\n\nProof of theorem 4.1. Var(Sn) (cid:20) nB so by Chebyshev’s inequality\n\nj + Dj\nn(j)\n\na.s.! 0\n\n(cid:12)(cid:12)(cid:12)(cid:12) Sn\n\nn\n\nn(j)\n\n(cid:12)(cid:12)(cid:12)(cid:12) (cid:20)\n(cid:12)(cid:12)(cid:12)(cid:12) Sn\n(jSnj\n(jSn(j)\n\nn\n\n(cid:21) #\n\nP\n\nn(j)\n\nP\n\n(cid:12)(cid:12)(cid:12)(cid:12) (cid:20) jSn(j)\n)\n\n)\n\nj\n\n(cid:21) #\n\n(cid:20) nB\n\nn2#2 =\n\nB\nn#2\n\n(cid:20) B\n#2\n\n1\nj2\n\n(4.1)\n\n(4.2)\n\n(4.3)\n\n(4.4)\n\n(4.5)\n\n(4.6)\n\nTake a(j) = j2.\n\n(\n\n)\n\nj\n\njSn(j)\nn(j)\n\n(cid:21) #\n\n(cid:20) ¥ so by Borel-Cantelli 1 lim supn Sn(j)/n(j)\n\na.s.(cid:20) ϵ. Taking ϵ ! 0 yields\n(cid:229)j P\nlim supn Sn(j)/n(j) a.s.= 0, and since Sn(j)/n(j) (cid:21) 0 for all j, lim infn Sn(j)/n(j) (cid:21) 0 hence\nSn(j)/n(j) a.s.! 0.\n\nBy lemma 4.2 it sufﬁces to show Dj/j2 a.s.! 0 for Dj = maxj2(cid:20)n(cid:20)(j+1)2jSn (cid:0) Sj2j.\n\nD2\n\nj = max\n\nj2(cid:20)n(cid:20)(j+1)2\n\n(Sn (cid:0) Sj2)2 (cid:20) (j+1)2\n(cid:229)\nn=j2\n\nE(Sn (cid:0) Sj2)2 =\n\n(j+1)2\n(cid:229)\nn=j2\n\nVar\n\n(Sn (cid:0) Sj2)2\n)\n(\n\nSn (cid:0) Sj2\n\n0@ n(cid:229)\n\ni=j2+1\n\n1A\n\nXi\n\n=\n\n(j+1)2\n(cid:229)\nn=j2\n\nVar\n\nED2\nj\n\n(cid:20) (j+1)2\n(cid:229)\nn=j2\n\n(cid:20) (j+1)2\n(cid:229)\nn=j2\n\nB(n (cid:0) j2) = B\n\n2j+1(cid:229)\n\ni=1\n\ni =\n\n1\n2\n\n(2j + 1)(2j + 2)B\n\n5\n\n\fBy Chebyshev bound\n\n(\n\n)\n\n(cid:21) #\n\nDj\nj\n\n(cid:20) ED2\nj\n#2j4\n\n2 O(j\n\n(cid:0)2)\n\nP\nBy Borel-Cantelli 1, Dj/j2 a.s.! 0.\nRemark 4.3. Theorem 4.1 does not rely on independence, only bounded variance and or-\nthogonality.\n\n(4.7)\n\n5 Misc. MT\nDeﬁnition 5.1. For a RV X and a non-negative integrable RV Y (Y (cid:21) 0, EY (cid:20) ¥), X is\ndominated by Y (written X ≪ Y) means jXnj a.s.(cid:20) Y.\nTheorem 5.2 (Dominated Convergence Theorem). If Xn\n(a) EXn ! EX\n(b) EjXn (cid:0) Xj ! 0\n(c) EjXj < ¥\nProof. Fix ϵ > 0. Deﬁne AN = fjXn (cid:0) Xj (cid:20) ϵ for all n (cid:21) Ng. Then AN \" A, P(A) = 1\nimplies Ac\n\na.s.! X and Xn ≪ Y, then:\n\nn # Ac, P(Ac) = 0.\n\nEjXN (cid:0) Xj = EjXN (cid:0) Xj1AN + EjXN (cid:0) Xj1Ac\n\n(cid:20) ϵ + EjXN (cid:0) Xj1Ac\nn ! Ac by monotone convergence\n\nN\n\nN\n\nEjXN (cid:0) Xj (cid:20) ϵ + 0Ac\nlim sup\nTrue 8ϵ so EjXN (cid:0) Xj ! 0.\n\nN\n\n(5.1)\n\nTODO: Bernstein’s theorem from previous lecture\n\n(5.2)\n(5.3)\n\nThis proof may need Fatou’s lemma.\n\n6\n\n\f"
+	},
+	{
+		"fileName": "lec9.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #9\n9/22/2016\n\n1 Bounding maxima\n\nTheorem 1.1 (Kolmogorov’s Maximal Inequality). (Xi)n\n\nn = max1≤m≤n |Sm|\n\ni=1 Xi. S+\nn ≥ x) ≤ ES2\n\nSm = ∑m\nThen P(S+\nThe proof uses a general trick related to martingales of considering stopping times.\n\nx2 , x > 0.\n\ni=1 independent, EXi = 0, EX2\n\nn\n\ni < ∞.\n\nProof. Fix x. Event {S+\nn ≥ x} = ∪n\nNote (Sk, Ak) independent of Sn − Sk.\n\nNotice Sn = Sk + (Sn − Sk) so we can write\n\nk=1Ak where Ak = {|Sk| ≥ x,|Si| < x, all 1 ≤ i ≤ k}.\n\nE[Sn1Ak ]\n\nE(S2\n\n(cid:125)\nk1Ak ) + 2E(Sk1Ak (Sn − Sk)\n(cid:125)\n\n(cid:123)(cid:122)\n(cid:123)(cid:122)\n\nE(Sn−Sk)=0\n\n(cid:124)\n\n(cid:124)\n\n)\n\n=0\n\nn ≥ n∑\n\nES2\n\nk=1\n\n=\n\nn∑\n\nk=1\n\n≥ n∑\n\n(cid:124)\n(cid:125)\n+ E((Sn − Sk)21Ak\n\n(cid:123)(cid:122)\n\n≥0\n\n\n\n(1.1)\n\n(1.2)\n\n(1.3)\n\n(1.4)\n\nE(S2\n\nk1Ak )\n\nE(x21Ak )\n\nk=1\n\nk=1\n\n≥ n∑\n= x2P(∪n\n= x2P(|S+\n\n(1.5)\n(1.6)\nwhere we have used independence of Sk1Ak and (Sn − Sk) in ??, and |Sk| ≥ x on Ak in\n??.\n\nk=1Ak)\nn | ≥ x)\n\n2 Almost sure convergence\n“∑∞\nCauchy criterion:\n\ni=1 xi converges” means limn→∞ ∑n\n\ni=1 xi exists and is ﬁnite. This is equivalent to the\n\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)\n\nn∑\n\ni=K+1\n\nxi\n\nsup\nn≥K\n\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12) → 0 as K → ∞\n\n1\n\n(2.1)\n\n\fThus, ∑∞\n\ni=1 Xi converges a.s. means\n\nP(ω :\n\nlim\nN→∞\n\nN∑\n\ni=1\n\nTheorem 2.1. (Xi) independent, EXi = 0, σ2\nconverges a.s.\n\nXi(ω) exists, ﬁnite) = 1\n\n(2.2)\n\ni = Var|Xi| < ∞. If ∑∞\n\ni=1 σ2\n\ni < ∞, then ∑∞\n\ni=1 Xi\n\nComment:\n\nVar(\n\nn∑\n\ni\n\nVar\n=⇒ ∞\n∑\ni=1\n(cid:12)(cid:12)∑n\nExercise: Given theorem, show (*)\ni=k+1 Xi\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)\n\nProof. Deﬁne Mk = supn≥k\nk → ∞.\n\nsup\nk<n≤N\n\n(cid:32)\n\nn∑\n\ni=k+1\n\nP\n\nXi\n\nXi) =\n∞\n∑\ni=1\n\n=\n\nn∑\n\n=1\n∞\n∑\ni=1\n\nσ2\ni\n\ni ≤ ∞(∗)\nσ2\n\nXi is ﬁnite a.s.\n\n(cid:12)(cid:12). By Cauchy criterion, sufﬁces to show Mk\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12) ≥ \u0001\n\n(cid:32) N∑\n\n−2Var\n\n(cid:33)\n\n(cid:33)\n\n≤\n??\n\nXi\n\ni=k+1\n\n\u0001\n\n−2\n\n= \u0001\n\nN∑\n\ni=k+1\n\nVar (Xi)\n\n(2.3)\n\n(2.4)\n\n(2.5)\n\na.s.→ 0 as\n\n(2.6)\n\n(2.7)\n\n(2.8)\n\n(2.9)\n\nAs N → ∞\n\nP(Mk > \u0001) ≤ \u0001\n\n−2\n\n∞\n∑\ni=1\n\nσ2\ni\n\nP(wk > \u0001) ≤ P(Mk > \u0001/2) ≤ 4\u0001\n\n−2\n\n(cid:12)(cid:12)(cid:12). Note Mk ≤ wk ≤ 2Mk and wk ↓ as k ↑. As k → ∞,\n\n(2.10)\n\nσ2\ni\n\n(cid:12)(cid:12)(cid:12)∑n2\n\n∞\n∑\n1\n\nwhere wk = supn1>n1>k\nwk ↓a.s. w∞\n\ni=n1+1 Xi\n\nP(w∞ > \u0001) = 0\n=⇒ w∞\na.s.= 0\n=⇒ wk ↓a.s. 0\na.s.→ 0\n=⇒ Mk\n\n2\n\n(2.11)\n(2.12)\n(2.13)\n(2.14)\n\n\fLemma 2.2 (Kronecker). (xn) ∈ Rω. Sn = ∑n\nthen sn\nan\n\n→ 0.\n\ni=1 xi. 0 < an ↑ ∞ as n ↑ ∞. If ∑i\n\nxi\nai\n\nconverges,\n\nProof. Exercise.\nCorollary 2.3. (Xi) independent, EXi = 0, EX2\n∑n\n\n→ 0 a.s..\n\n< ∞, then Sn\nan\n\nEX2\nn\na2\nn\n\ni < ∞. If 0 < an ↑ ∞ as n ↑ ∞ and if\n\nan converges a.s.. Lemma implies Sn\nXn\nan\nn ∼ cn2α, α > 0. Take a2\n\nn = n1+2α+\u0001 (\u0001 > 0 small).\n\na.s.→ 0.\n\na.s.→ 0 TODO: Check the 1/2.\nEX2\n\nn < ∞. Take a2\n\nn = n(log n)1+2\u0001. The corollary implies\n\nProof. Previous theorem implies ∑n\n\nSpecialization: Suppose also EX2\n\nSn\n\nn1/2+α+\u0001\n\na.s.→ 0.\n\nSpecialization: Suppose supn\n\nThen corrolary implies\nSn√\nn(log n)1+\u0001\nImplicitly from CLT: If (Xi) i.i.d., then\nSn√\nn\n\nLaw of iterated log.\n\na.s.→ 0\n\n(2.15)\n\n(cid:90) ∞\n\n0\n\nTheorem 2.4 (Strong Law of Large Numbers (SLLN)). Let (Xi) iid with E|Xi| < ∞, Sn :=\ni=1 Xi. Then Sn\n∑n\nn\n\nProof. Truncate, center, apply corollary (Z ≥ 0. EZk =(cid:82) ∞\n\n0 kzk−1P(Z ≥ z)dz ≈(cid:82) ∞\n\na.s.→ EX as n → ∞.\n\n0 xk f (x)dx)\n\n(Truncate): Deﬁne Yk = Xk1|Xk|≤k, so Yk are no longer iid. However\n\nP(Yk (cid:54)= Xk) =\n\n∑\nk\n\n∞\n∑\nk=1\n\nP(|X| > k) ≤\n\nP(|x| > x)dx = E|X| ≤ ∞\n\n(2.16)\n\na.s.→ EX.\n\n(2.17)\n\nBy Borel Cantelli 1, P(Yk = Xk e.v.) = 1. Thus, sufﬁces to prove 1\n\n(Center): Deﬁne X(cid:48)\n\nk = Yk − EYk. Claim:\n\nn ∑n\n\nk=1 Yk\n\nVar(X(cid:48)\nk)\nk2\n\n∑\nk\n\n< ∞\n\n3\n\n\fTo show the claim:\n\nEY2\n\nk =\n\n=\n≤\n\n(cid:90) ∞\n(cid:90) ∞\n(cid:90) ∞\n\n0\n\n0\n\n2yP(|Yk| > y)dy\n2yP(k ≥ |Xk| ≥ y)1y≤kdy\n2yP(|Xk| ≥ y)1y≤kdy\nEY2\n(cid:90) ∞\nk\nk2\n1\nk2\n\n2yP(|X| ≥ y)1y≤kdy\n\n P(|X| ≥ y)dy\n\n2y\n\n1\n(cid:123)(cid:122)\n(cid:125)\nk2 1y≤k\n\nG(y)\n\n∑\nk\n\n0\n\nVarX(cid:48)\nk2 ≤ ∑\nn\nk\n≤ ∑\nk\n(cid:90) ∞\n\n=\n\n0\n\n0\n\n∑\n\n(cid:124)\n\nk\n\n(cid:90) k\n\n(cid:90) ∞\n\n1\n\n1\n\n∑\nk\n\nk2 ≤\n\n1\nx2 dx\nk−1\n1\nk2 ≤\nk2 1y≤k = ∑\nk≥(cid:100)y(cid:101)\n=⇒ G(y) ≤ 2y\n≤ 4\n(cid:100)y(cid:101) − 1\n(cid:90) ∞\n\nVarX(cid:48)\nk2 ≤ 4\nn\n\n0\n\n∑\nk\n\n1\nx2 dx =\n\n1\n\n(cid:100)y(cid:101) − 1\n\n(cid:100)y(cid:101)−1\n\nP(|X| > y)dy = 4E|X|\n\nClaim: G(y) ≤ 4 for all 0 < y < ∞. True for y ≤ 1. Take y > 1\n\nHence\n\nApply corollary to X(cid:48)\nn\n\n1\nn\n\nn∑\n\ni=1\n\nX(cid:48)\n\ni\n\na.s.→ 0\n\n(Yi − EYi) a.s.→ 0\n\n1\nn\n\nn∑\n\ni\n\nNote EYi = EX1|X|≤? → EX by dominated convergence, so\n\n(EYi − EX) a.s.→ 0\n\n1\nn\n\nn∑\n\ni\n\n4\n\n(2.18)\n\n(2.19)\n\n(2.20)\n\n(2.21)\n\n(2.22)\n\n(2.23)\n\n(2.24)\n\n(2.25)\n\n(2.26)\n\n(2.27)\n\n(2.28)\n\n(2.29)\n\n(2.30)\n\n\fAdding ?? with ?? yields\n\n(Yi − EX) a.s.→ 0\nn∑\n\na.s.→ EX\n\nYi\n\n1\nn\n1\nn\n\nn∑\n\ni\n\ni\n\n(2.31)\n\n(2.32)\n\n5\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec1.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #1\n8/25/2016\n\n1 Abstract Measure Theory\nLet S be a set. Capital letters A, B, C · · · ⊂ S denote subsets. Lowercase letters s ∈ S denote\nelements. Calligraphic leters A,B,C,· · · ,F,· · · ,S,· · · ⊂ 2S denote collections of subsets.\nDeﬁnition 1.1. S is a ﬁeld (or algebra) if S is closed under Boolean operations.\ni.e.\nA, B ∈ S, then:\n(a) A ∪ B ∈ S\n(b) A ∩ B ∈ S\n(c) A \\ B ∈ S\nAlso S (cid:54)= ∅.\n\nif\n\nThere are 16 total possible Boolean operations, each a disjoint union of sets from\n\n{A \\ B, A ∩ B, B \\ A, S \\ (A ∪ B)} hence isomorphic to a binary string of length 4.\nExample 1.2. F = {∅,S} is a ﬁeld.\n\nF = {∅, A, Ac,S}.\n\nExercise 1.3. Show that to show S is a ﬁeld, it sufﬁces to check ∀A, B ∈ S, Ac, A ∪ B ∈ S.\nLemma 1.4. Let S1,S2 be ﬁelds. Then S1 ∩ S2 is a ﬁeld (Not true for S1 ∪ S2).\nMore generally, if (Sθ)θ∈Θ is any collection of ﬁelds on S, ∩θ∈ΘSθ is a ﬁeld.\n\nDeﬁnition 1.5. Let A be any collection of subsets of S. Then\n\nF (A) :=\n\nF\n\n(1.1)\n\n(cid:92)\n\nF a ﬁeld\nF⊃A\n\nis a ﬁeld, called the ﬁeld generated by A.\nExercise 1.6. (HW 1) Show that F (A) is the collection of subsets that can be obtained from\nsets in A via a ﬁnite number of Boolean operations.\n\n1\n\n\fExample 1.7. S = R, A collection of (−∞, x] for x ∈ R. F (A) = union of disjoint\nhalf-open intervals\n\nExample 1.8. S = [0, 1]2. A = rectangles (x1, x2] × (y1, y2]\n\nDeﬁnition 1.9. S is a σ-ﬁeld (σ-algebra) if:\n(a) S is a ﬁeld\n(b) S is closed under countable unions and intersections\nExercise 1.10. Sufﬁces to show closed under increasing unions i.e. Ai ∈ S, A1 ⊂ A2 ⊂ · · · ,\nthen ∪iAi ∈ S.\nDeﬁnition 1.11. Let A ⊂ 2S, then\n\nσ(A) :=\n\nG\n\n(1.2)\n\n(cid:92)\n\nG σ-ﬁeld\nG⊃A\n\nis a σ-ﬁed, called the σ-ﬁeld generated by A.\nDeﬁnition 1.12. A measurable space is (S,S) where S is a set, S a σ-ﬁeld on S.\n\nIf S is a topological space and G the collection of open sets, then σ(G) is called the Borel\n\nσ-ﬁeld on S.\nExample 1.13. On Rd, the Borel σ-ﬁeld is the same as the σ-ﬁeld generated by the d-\ndimensional cubes ∏d\n\ni=1(xi, yi).\n\n2\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec10.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #10\n9/27/2016\n\n1 Truncation\nCorollary 1.1. (of SLLN). Take i.i.d. (Xi) where EX+ = ¥, EX\n1 Xi. Then\nSn a.s.! ¥.\nProof. Fix large B < ¥. Deﬁne Yi = Xi1Xi(cid:20)B, Yi (cid:20) Xi. (Yi) iid, EjYij < ¥, so can apply\nSLLN to (Yi).\n(cid:229)n\n\n< ¥. Let Sn = (cid:229)n\n\n(cid:0)\n\nn\n\na.s.! EY = EX1X(cid:20)B\n=) 1\n1 Yi\nnSn (cid:21) lim inf 1\n=) lim infn\n(cid:229)n\n1 Yi\nTrue for each B, so letting B \" ¥\n\nn\n\n1\n\na.s.= EX1X(cid:20)B\n\nE[X1X(cid:20)B] \" (cid:0)EX\n\n(cid:0)\n\n+ EX+ = +¥\n\n(1.1)\n\n=) lim infn\n\n1\n\nnSn (cid:21) ¥\n\nLemma 1.2. (Deterministic) Reals s0 = 0, Sn\nn\nm(t) = maxfn : Sn (cid:20) tg. Note m(t) (cid:21) h(t) (cid:0) 1. Then h(t)\n\nt\n\n! a 2 (0, ¥). Let h(t) = minfn : sn (cid:21) tg,\n\n! 1\n\na and m(t)\nt\n\n! 1\n\na as t ! ¥.\n\nFigure 1: Depiction of h(t) and m(t)\n\n1\n\n\fProof. Fix ϵ > 0. Sn (cid:20) (a + ϵ)ne.v.\n\n=) h(t) (cid:21) t\na=ϵe.v.\n=) lim inft\n(cid:21) 1\nh(t)\na+ϵ\nt\n=)\n(cid:21) 1\nlim inft\nϵ#0\na\nSimilarly m(t) (cid:20) t\n=) lim supt\nAltogether\n\na(cid:0)ϵe.v.\n(cid:20) 1\na\n\nm(t)\n\nh(t)\n\nt\n\nt\n\n1\na\n\n(cid:20) lim inf\n\nt\n\nh(t)\n\nt\n\n(cid:20) lim inf\n\nt\n\nm(t)\n\nt\n\n(cid:20) lim sup\n\nt\n\nm(t)\n\nt\n\n(cid:20) 1\na\n\n(1.2)\n\nCorollary 1.3. (renewal SLLN) (Xi) iid. EX = m 2 (0, ¥), Sn = (cid:229)n\n\nDeﬁne Nt = maxfn : Sn (cid:20) tg, Ht = minfn : Sn (cid:21) tg.\nThen N(t)\nt\n\nm a.s. as t ! ¥.\nProof. Use SLLN and Deterministic Lemma.\n\nm and H(t)\nt\n\n! 1\n\n! 1\n\n1 Xi.\n\nConsider light bulbs have IID lifetimes X1, X2,(cid:1) (cid:1) (cid:1) > 0. New bulb at time 0, Nt =\n# bulbs replaced by time t. Renewal SLLN says if average lifetime is 1/2 year, then you\nshould replace at 2 per year. TODO: ???\n\n2 Martingales\nRandom variables Xi = (Ω,F, P) ! R are measurable functions. Givne X0, X1,(cid:1) (cid:1) (cid:1) , Xn,\ndeﬁne Fn = s(X0,(cid:1) (cid:1) (cid:1) , Xn) which is comprised of events of the form fw : (X0(w),(cid:1) (cid:1) (cid:1) , Xn(w)) 2\nBg for some measurable B (cid:26) Rn+1, Fn (cid:26) F for every n. We sometimes interpret Fn as\n“information at time n.”\nDeﬁnition 2.1. A stopping time is a r.v. T : (Ω,F, P) ! f0, 1, 2,(cid:1) (cid:1) (cid:1) g [ f¥g such that\n\nfT = ng 2 Fn, 0 (cid:20) n < ¥\n\nProposition 2.2. This is equivalent to\n\nfT (cid:20) ng 2 Fn, 0 (cid:20) n < ¥\n\nProof. Given eq. (2.1),\n\nfT (cid:20) ng = fT = 0g [ fT = 1g [ (cid:1) (cid:1) (cid:1) [ fT = ng 2 Fn\n\nso all are 2 Fn.\n\nConversely, given eq. (2.2)\n\nare also all 2 Fn.\n\nfT = ng = fT (cid:20) ng n fT (cid:20) n (cid:0) 1g 2 Fn\n\n2\n\n(2.1)\n\n(2.2)\n\n(2.3)\n\n(2.4)\n\n\fi=0\n\nfXi 2 Bg 2 Fn.\n\nExample 2.3. T = minfn : Xn 2 Bg for measurable B (cid:26) R1 is a stopping time, because\nfT (cid:20) ng = [n\ni=1 Xi. Then s(X1,(cid:1) (cid:1) (cid:1) , Xn) =\nExample 2.4. Arbitrary X1, X2,(cid:1) (cid:1) (cid:1) , Xn, deﬁne S0 = 0, Sm = (cid:229)m\ns(S0, S1,(cid:1) (cid:1) (cid:1) , Sn) = Fn ((X1,(cid:1) (cid:1) (cid:1) , Xi) ! Si through summing, (Si, Si(cid:0)1) ! Xi through dif-\nferences) and so T = minfn : Sn (cid:21) bg is a stopping time.\nExample 2.5. Given X1,(cid:1) (cid:1) (cid:1) , XN, given N, T = maxfn : n (cid:20) N, Xn (cid:21) ag is not a stopping\ntime.\nProposition 2.6 (Wald’s equation/identity/formula). (Xi) iid, EX = m < ¥, Sn = (cid:229)n\nT a stopping time with ET < ¥. Then ESt = mET\n\ni=1 Xi,\n\nNote: Undergraduate result assumed T is independent of (X).\n\nEYi holds provided (cid:229)¥\ni\n\ni Yi = (cid:229)¥\ni\ni Yi and dominated by RV (cid:229)¥\ni\n\nEjYij < ¥\n\njYij. Use dominated convergence.\n\nRemark 2.7. E (cid:229)¥\ni Yi ! (cid:229)¥\nProof. (cid:229)n\nProof of Wald’s.\n\nSn =\n\n¥\n(cid:229)\n1\n\n¥\nXi1i(cid:20)n =) ST =\n(cid:229)\nXi1i(cid:20)T\n|\n{z\n}\n1\n= fT (cid:20) i (cid:0) 1g 2 Fi(cid:0)1\nfi (cid:20) Tgc\n2Fi(cid:0)1\n=) fi (cid:20) Tg independent of Xi\nE[Xi1i(cid:20)T] = mP(T (cid:21) i)\n=) ¥\n(cid:229)\nE[Xi11(cid:20)T] = mET\ni\n\n(2.5)\n\n(2.6)\n\n(2.7)\n(2.8)\n\n(2.9)\n\nBy earlier fact, to show\n\n¥\n(cid:229)\nE[St] = E\n1\nEjXij1i(cid:20)T < ¥\n\nsufﬁces to show (cid:229)¥\n1\n\nBy applying eq. (2.9) jXij\n=) (cid:229)¥\n\nE[jXij1i(cid:20)T] = (EjXj)ET < ¥\n\nXi1i(cid:20)T\n\n?=\n\n¥\n(cid:229)\n1\n\nE[Xi11(cid:20)T] = mET\n\n(2.10)\n\ni=1\n\nLemma 2.8 (Fatou’s lemma). Arbitrary Xn (cid:21) 0. Then E[lim infn Xn] (cid:20) lim infn EXn (cid:20) ¥.\nCorollary 2.9. Arbitrary Xn (cid:21) 0. If Xn\n\na.s.! X¥, then EX¥ (cid:20) lim infn EXn (cid:20) ¥.\n\nTODO: Fatou’s automatically gives us a lower bound.\n\nRecall overaggrssive “gambling favorable game” example Xn > 0, Xn\n\na.s.! 0 and\nEXn ! ¥.\nProof. Deﬁne YN = infn(cid:21)N Xn. Then 0 (cid:20) YN \" lim inf Xn. By monotone convergence, 0 (cid:20)\nEYn \" E(lim inf Xn). Since Yn (cid:20) Xn, =) E(lim inf Xn) = lim infN EYn (cid:20) lim infN EXn\n\n3\n\n\f3 Back to renewal theory\nUnder assumptions of corollary 1.3, we also assume X (cid:21) 0 a.s.. Then E\nt ! ¥\nProof. Fatou’s lemma:\n\n1\nm\n\nSo enough to show upper bound\n\n[\n[\n\n]\n]\n\nN(t)\n\nt\n\nN(t)\n\n]\n\nt\n\n(cid:20) 1\nm\n\n(cid:20) lim inf\nt!¥\nt2N\n= lim inf\nt!¥\n\nE\n\nE\n\n[\n\nlim sup\n\nE\n\nt\n\nN(t)\n\nt\n\n[\n\n]\n\nN(t)\n\nt\n\n! 1\n\nm as\n\n(3.1)\n\n(3.2)\n\n(3.3)\n\nX > 0 =) N(t) + 1 = minfn : Sn > tg is a stopping time.\n(Truncation) Consider minfN(t) + 1, m), can check a stopping time. Applying Wald’s\n\nidentity\n\nESminfN(t)+1,m) = mE minfN(t) + 1, m)\n\n(Untruncate) Letting m \" ¥ yields\n\nESN(t)+1 = mE(N(t) + 1) (cid:20) ¥\n\nFix k. Let ˆXi = min(Xi, k), ˆSn = ˆN(t).\n=) ˆSn (cid:20) Sn =) ˆN(t) (cid:21) N(t).\nWe can apply eq. (3.5) to ( ˆxi)\n\nE( ˆN(t) + 1)\nE min(X, k) = E ˆSN(t)+1 (cid:20) t + k < ¥\n\n=) E(N(t) + 1)\n(cid:20)\nEN(t)\n\n=) lim sup\n\nt\n\n(cid:20) (t + k)\n\n(cid:2)\n\n1\n\nt\n1\n\nE min(X, k)\ntrue 8k\n\nt\n\nt\n\nE min(X, k)\n\nLet k \" ¥ shows (cid:20) 1\n\nEX = 1\nm.\n\n4\n\n(3.4)\n\n(3.5)\n\n(3.6)\n(3.7)\n\n(3.8)\n\n(3.9)\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec11.pdf.txt",
+		"content": "1 Miscellaneous measure-theory related topics\nTheorem 1.1 (Kolmogorov 0-1 Law). (X1, X2,· · · ) with any range space.\n\nDeﬁne τn = σ(Xn, Xn+1, Xn+2,· · · ).\nDeﬁne the tail σ-ﬁeld\n\n(cid:92)\n\nτ =\n\nτn\n\nn≥1\nIf (X1, X2,· · · ) independent, then τ is trivial i.e.\n\nProof. Deﬁne Fn−1 = σ(X1,· · · , Xn−1).\n\n∀A ∈ τ, P(A) ∈ {0, 1}\n\nFeynman Liang\nSTAT 205A\nLecture #11\n9/29/2016\n\n(1.1)\n\n(1.2)\n\n(1.3)\n(1.4)\n(1.5)\nTODO: Dynkin? π − λ Lemma =⇒ σ(∪nFn) = σ(X1, X2,· · · ) independent of τ (1.6)\n(1.7)\n(1.8)\n(1.9)\n\nFn−1 is independent of τn\n=⇒ Fn−1 independent of τ\n=⇒ ﬁeld ∪n Fn independent of τ\n=⇒ τ is independent of τ\n\nA ∈ τ =⇒ P(A ∩ A) = P(A)P(A) = P(A)\nx2 = x =⇒ x = 0 or 1\n\nLemma 1.2. If A is a trivial σ-ﬁeld, X an A-measurable RV with values in [−∞, ∞], then ∃x0\nsuch that P(X = x0) = 1.\nProof. Deﬁne x0 = inf{x : P(X ≤ x)}. TODO: Finish\n\n1.1 Modes of convergence for R-valued RVs\n\nAlmost-sure convergence Xn\n\na.s.→ X means P(ω : Xn(ω) → X(ω)} = 1\n\nConverges in Lp space Xn\n\n∞)\n\nLp→ X means E|Xn − X|p → 0 and supn\n\nE|Xn|p < ∞ (1 ≤ p <\n\nConverges in probability Xn\n\np→ X means P(|Xn − X| > \u0001) → 0 as n → ∞, ∀\u0001 > 0\n\n1\n\n\f(a) Lp→ implies\n\np→, not conversely\n\nExample 1.3. U uniform on [0, 1]. Xn = n1U≤ 1\n\nn\n\n. Xn\n\np→ 0, EXn = 1, but Xn (cid:54)→ 0\n\n(b) a.s.→ implies\n\nProof. Xn\n\np→, not conversely\na.s.→ X means\n\n0 = P(|Xn − X| ≥ \u0001 i.o.) ≥ lim sup\n=⇒ Xn\n\np→ X\n\nn\n\nP(|Xn − X| ≥ \u0001) = 0\n\nExample 1.4. Take independent events (An) with P(An) → 0 =⇒ 1An\n\np→ 0.\n\n∑\nn\n\nP(An) = ∞ =⇒\n\n(BC 2)\n\nP(An i.o.) = 1\n\n=⇒ 1An (cid:54)a.s.→ 0\n\nRecall the dominated convergence theorem, restated here\n\n(1.10)\n\n(1.11)\n\n(1.12)\n\n(1.13)\n\na.s.→ X, if ∃Y ≥ 0 with EY < ∞ and |Xn| ≤ Y for all n, then E|Xn − X| → 0\n\nTheorem 1.5. If Xn\nand EXn → EX.\nLemma 1.6. If Xn\n\nProof. Choose nj inductively: nj = min(cid:8)n > nj−1 : P(|Xn − X| ≥ 2−j) ≤ 2−j(cid:9).\n\np→ X then ∃ subsequence n1 < n2 < n3 < · · · such that Xnj\n\na.s.→ X as j → ∞.\n\n< ∞\n|Xnj − X| ≤ 2−j ult. in j a.s.\n\nP(|Xnj − X| ≥ 2−j) ≤ 1\n∑\n2\nj\n=⇒\n(BC 1)\n⇐⇒ Xnj\n\na.s.→ X\n\n(1.14)\n\n(1.15)\n\n(1.16)\n\nRemark 1.7. Related to fact “a.s. convergence” not convergence in a metric.\n\nCorollary 1.8. The dominated convergence theorem (DCT) remains true under assumption Xn\nX.\nProof. Suppose false: ∃ε > 0 and a subsequence m1 < m2 < · · · such that E|Xmj − X| ≥ ε\nfor all j.\na.s.→ X and\nE|Xnj − X| ≥ \u0001 for all j, contradicting DCT.\n\np→ X so lemma implies ∃ subsequence nj of mj such that Xnj\n\nNow Xmj\n\np→\n\n2\n\n\f1.2 2 views of integration calculus\n\na f (x)dx = a number\n0 f (y)dy ⇐⇒ f (x) = dF(x)\n\n(1) Given f , a, b,(cid:82) b\n(2) F(x) =(cid:82) x\n[0, ∞). For A ∈ S, deﬁne ν(A) =(cid:82)\n\nA hdµ ≤ ∞.\nProposition 1.9. ν is a σ-ﬁnite measure on (S,S).\nProof. µ σ-ﬁnite =⇒ ∃An ↑ S, µ(An) < ∞.\n\ndx\n\nAn operator f (cid:55)→ F, opposite of F (cid:55)→ F(cid:48).\nThe analogue of dF(x)\nConsider a measurable space (S,S). Fix a σ-ﬁnite µ. Consider measurable h : S →\ndx\n\ninvolves measures, not functions.\n\nDeﬁne Bn = An ∩ {s : h(s) ≤ n}. Then Bn ↑ S and ν(Bn) ≤ n, µ(An) ≤ ∞.\nThe two measures ν and µ have a relationship:\n\nDeﬁnition 1.10. ν is absolutely continuous wrt µ, written ν (cid:28) µ, if\n\n∀A ∈ S : µ(A) = 0 =⇒ ν(A) = 0\n\n(1.17)\nTheorem 1.11 (Radon-Nikodym). If µ and ν are σ-ﬁnite measures on (S,S), if ν (cid:28) µ, then ∃\nmeasurable h : S → [0, ∞] such that\n\n(cid:90)\n\n∀A ∈ S : ν(A) =\n\nhdµ\n\nA\n\n(1.18)\n\nProof. Two ways: (1) See MT Text, (2) Via martingales, later\nDeﬁnition 1.12. We write h from theorem 1.11 as h = dν\ndensity of ν with respect to µ\n\ndµ and call it the Radon-Nikodym\n\nIn particular, if µ is a probability measure on R1, µ (cid:28) Leb, then h = dµ\n\ndLeb exists: the\n\ndensity function.\n\n1.3 Probability measures on R\nKnow 1-1 correspondence between probability measures µ and distribution functions F\n\nF(x) = µ(−∞, x]\n\nThere are three basic types of PMs µ\n(1) µ (cid:28) Leb, so can be described by density f\n(cid:90) x\n\nHere, f can be any measurable function with f ≥ 0 and(cid:82) ∞\n\nF(x) =\n\nf (y)dy\n\n−∞\n\n−∞ f (x)dx = 1\n\n3\n\n(1.19)\n\n(1.20)\n\n\f(2) µ is purely atomic (discrete):\n\n∃ countable set of atoms x1, x2,· · · and ∑i µ({xi}) = 1, =⇒ µ(R \\ ∪i{xi}) = 0\nExample 1.13 (Uniform distribution on Cantor set). x ∈ [0, 1], write out binary\nexpansion x = 0.10110100 . . . = 0.b1(x)b2(x)b3(x) . . ..\n\nPut together gives measurable map H : [0, 1] → [0, 1]. Take U uniform [0, 1]. What is\nthe distribution of H(U)?\n\nF(x) = P(H(U) ≤ u)\n\n(1.21)\n\nThe set of possible values of H = “base-3 expansion has no 1” = cantor set = C and\nLeb(C) = 0 while P(H(U) ∈ C) = 1.\n\n(3) µ is a singular measure:\n\n∃A such that Leb(A) = 0, µ(A) = 1 but no atoms.\n\nProposition 1.14. Any PM µ on R1 has a unique decomposition\n\nwhere µ1 admits a density, µ2 is purely atomic, and µ3 is singular, ai ≥ 0, ∑3\n\n1 ai = 1.\n\nµ = a1µ1 + a2µ2 + a3µ3\n\n(1.22)\n\n4\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec12.pdf.txt",
+		"content": "1 Large Deviation Theorem\nIf an ∼ ceβn as n → ∞, then 1\n(cid:16) Sn\nToday β < 0. \u0018\u0018\u0018\u0018\u0018: decay\ngrowth\nIID (Xi). Sn = ∑n\nn ≥ a\nConsider P\n\n(cid:17)\ni Xi. EX = µ. Fix a > µ, P(X ≥ a) > 0.\n\nn log an → β = “asymptotic growth rate.”\n\n. This → 0 as n → ∞ by WLLN. How fast? We already have\n\nProposition 1.1 (General large-deviation inequality).\n\nP(Y ≥ y) ≤ inf\nθ≥0\n\nEeθY\neθy\n\nDeﬁnition 1.2. The transform of X\n\nφ(θ) = E exp(θX)\n\nAssume θ∗ = sup{θ : φ(θ) < ∞} > 0. Going back to “how fast?”\nBy general LD inequality and independence of Xi\n\n(cid:18) Sn\n\nn\n\nP\n\n(cid:19)\n\n≥ a\n\nFeynman Liang\nSTAT 205A\nLecture #12\n10/4/2016\n\n(1.1)\n\n(1.2)\n\n(1.3)\n\n(1.4)\n\n(1.5)\n\n(1.6)\n\n(1.7)\n\n(1.8)\n\n(1.9)\n\nE ∏n\n\ni=1 exp(θXi)\nexp(θan)\n\n= inf\nθ\nE exp(θXi)\n\n= P(Sn ≥ an)\n≤ inf\n(cid:18)\n\nE exp(θSn)\nexp(θan)\n∏n\n\n(cid:19)n\n\n= inf\nθ\n\ni=1\n\nθ\n\nexp(θan)\n\nφ(θ)\neθa\n\ninf\n=\nθ\n[log φ(θ) − aθ]\n≤ inf\n\nθ\n\n(cid:18) Sn\n(cid:18) Sn\n\nn\n\nn\n\n(cid:19)\n≥ a\n(cid:19)\n\n≥ a\n\n1\n\n≤ inf\n\nθ\n\n[log φ(θ) − aθ]\n\n[log φ(θ) − aθ]\n\n= inf\nθ\n\n(cid:18) Sn\n\nn\n\n(cid:19)\n\n≥ a\n\n1\nn\n\nlog P\n\nSo we have\n\n∀n :\n\n1\nn\n\nlog P\n\nTheorem 1.3. As n → ∞\n\nlim\n\n1\nn\n\nlog P\n\n\fHow to justify “?” in detail?\nProof. Know eθX−1\n\nθ → X as θ ↓ 0. Want: E\n\nConvergence Theorem.\n\nTool for going from sequence convergence to convergence of an expectation: Dominated\n\nEeθX ?= E d\ndθ\n(cid:48)(0+) = EX\nθ = 0 : φ\n\neθX = E[XeθX]\n\n∀θ\n\n(1.10)\n\n(1.11)\n\n(cid:104) eθX−1\n\nθ\n\n(cid:105) → EX.\n\n(cid:90) θx\n(cid:90) 0\n\n0\n\nx > 0 :eθX − 1 =\nx < 0 :|eθx − 1| =\n\neydy ≤ θxeθx]\neydy ≤ |θx|\n=⇒ |eθx − 1| ≤ θ|x| max(1, eθx)\n\nθx\n\n1.1 Proof outline\nThree steps:\n\n(a) Analysis of φ(θ)\n\n(b) Tilting lemma\n\n(c) Put together\nLemma 1.4. φ(cid:48)(0+) = µ\n\nd\ndθ\n\nφ(θ) =\n\nd\ndθ\n\nFor 0 < θ ≤ θ0\n\n(cid:20)eθX − 1\n\n(cid:21)\n\nθ\n\nE\n\n≤ |X| max(1, eθ0X)\n\nHypothesis: ∃θ1 such that EEθ1X < ∞.\nChoose θ0 < θ1\n\n=⇒ E(cid:2)|X| max(1, eθX)(cid:3) < ∞\n\n(cid:105) (cid:28) |X| max(1, eθX) and |X| max(1, eθX) is integrable.\n\n(cid:104) eθX−1\n\nNow E\nθ\nApplyl DCT.\n\nLemma 1.5. φ(cid:48)(0+) = µ and for 0 < θ < θ∗\n\n(cid:48)(θ) = E[XeθX]\nφ\n(cid:48)(cid:48)(θ) = E[X2eθX]\n\nφ\n\nProof. Write out as integrals, apply Fubini-Tonelli theorem.\n\n2\n\n(1.12)\n\n(1.13)\n\n(1.14)\n\n(1.15)\n\n(1.16)\n(1.17)\n\n\f(1.18)\n\n(1.19)\n\n(1.20)\n\n(1.21)\n\n(1.22)\n\n(1.23)\n\n(1.24)\n\n(1.25)\n\n(1.26)\n(1.27)\n(1.28)\n\nSuppose X discrete (so φ(θ) = ∑x eθxP(X = x)). Fix θ. Deﬁne a dist for ˆX by\n\nP( ˆX = x) =\n\neθxP(X = x)\n\nφ(θ)\n\n∑x xeθxP(X = x)\n\nφ(θ)\n\nlog φ(θ)\n\nd\ndθ\n\n=\n\n=\n\nE ˆX = ∑\nx\nEXeθX\nφ(θ)\nE[X2eθX]\n\nxP( ˆX = x) =\nφ(cid:48)(θ)\n=\nφ(θ)\nφ(cid:48)(cid:48)(θ)\nφ(θ)\n\nE( ˆX2) =\n(cid:18) φ(cid:48)(θ)\nVar( ˆX) = E( ˆX2) − (E ˆX)2\n(cid:19)\n\n(cid:18) φ(cid:48)(θ)\n\n(cid:19)2\n\nφ(θ)\n\nφ(θ)\n\n=\n\n−\n\nφ(cid:48)(cid:48)(θ)\nφ(θ)\nd\ndθ\n\n=\n\n=\n\nφ(θ)\n\n=\n\nlog φ(θ)\n\nd\ndθ\n\nThe transform of X, φ(θ), encodes information abouut the moments.\nFor general X, deﬁne distribution of ˆX by Radon-Nikodyn density ( dν\ndµ)\n\ndP( ˆX ∈ ·)\ndP(X ∈ ·)\n\n(x) =\n\neθx\nφ(θ)\n\nLemma 1.6. E ˆX = d\n1.1.1 Study G(θ) = log φ(θ) − aθ\n\ndθ log φ(θ), Var ˆX = d2\n\ndθ2 log θ\n\nG(cid:48)(0+) = (log φ(θ))(cid:48) − a = µ − a\nG(cid:48)(cid:48)(θ) = VarXθ > 0 on 0 < θ < θ\nG(0) = 0\n\n∗\n\nSo G is strictly convex on (0, θ∗). Easy to show G(θ) → ∞ as θ → ∞.\n\n3\n\n\fFind infθ of G(θ) by solving G(cid:48)(θ) = 0 =⇒ φ(cid:48)(θ)\n\nφ(θ) = a.\n\nCase 1: ∃ solution θa ∈ (0, θ∗) of equation φ(cid:48)(θ)\nAssume case 1. Choose θ ∈ (θa, θ∗). Consider tilded distribution ˆX = ˆXθ.\n\nφ(θ) = a\n\nd\ndθ\nTODO: ??? E ˆX > a and E ˆXθ ↓ a as θ ↓ θa [Check!].\n\nlog φ(θ) >\n\nE ˆX =\n\nd\ndθ\n\nFix b > E ˆXθ.\nTrick: Apply WLLN to tilted ( ˆXi)\n\nlog φ(θ) |θ=θa\n\nP( ˆX1 = x1,· · · , ˆXn = xn)\nP(X1 = x1,· · · , Xn = xn)\n\n=\n\neθ ∑n\ni xi\nφn(θ)\n\n=⇒\n\nP( ˆSn = s)\nP(Sn = s)\n\n(cid:123)(cid:122)\n\n(cid:125)\n\n(cid:124)\n\ninterp as Radon-Nikodyn density\n\nP(y1 ≤ ˆSn ≤ y2)\nP(y1 ≤ Sn ≤ y2)\nP(a ≤ Sn\nn\nP(a ≤ Sn\nn\n\n≤ eθy2\nφn(θ)\n\n≤ b) ≥ e−θbn φn(θ)\n≤ b) → 1\n\nas n → ∞\n\nwhere we use y1 = an, y2 = bn.\n\nlim inf\nn→∞\n\n1\nn\n\nlog P(\n\nSn\nn\n\n≥ a) ≥ −bθ + log φ(θ)\n\nLet θ ↓ θa.\n\nlim inf\nn→∞\n\n1\nn\n\nlog P(\n\nSn\nn\n\n≥ a) ≥ −bθa + log φ(θa)\n\n4\n\n=\n\neθs\nφn(θ)\n\n(1.29)\n\n(1.30)\n\n(1.31)\n\n(1.32)\n\n(1.33)\n\n(1.34)\n\n(1.35)\n\n\fTrue ∀b > a, let b ↓ a\n\nlim inf\nn→∞\n\n1\nn\n\nlog P(\n\nSn\nn\n\n≥ a) ≥ −aθa + log φ(θa) = G(θa)\n\n(1.36)\n\nWhy is it called tilting?\n\n2\n\nIntro to next lecture\n\nSuppose X, Y continuous.\nTODO: Format better\n\nP(x, y) = P(X = x, Y = y) ↔\n\nfX(x) density of X\nconditional dist of Y given X = xpY|X(y|x) = P(Y = y|X = x) ↔ y (cid:55)→ fY|X(y|x) conditional density of Y given X = x\n\n(2.2)\n\nmarginal distpX(x) = P(X = x) ↔\n\nf (x, y) joint density\n\n(2.1)\n\n(2.3)\n\n(2.4)\n\nreltiaonp(x, y) = pX(x)pY|X(y, x) ↔\n\n5\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec13.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #13\n10/6/2016\n\n1 Conditional Distributions\nDeﬁnition 1.1. Given measurable spaces (S1,S1) and (S2,S2), deﬁne the product measurable\nspace\n\n(S1 × S2,S1 ⊗ S2) = σ(A × B : A ∈ S1, B ∈ S2)\n\nRandom variables\n\nX = (Ω,F, P (cid:55)→ (S1,S1))\nY = (Ω,F, P (cid:55)→ (S2,S2))\n\n(1.1)\n\n(1.2)\n(1.3)\n\n(X, Y) is a RV with values in S1 × S2, has a distribution µ: a PM on S1 × S2.\nX has a distribution µ1: a PM on S1.\nWhat is conditional distribution of Y given G?\nOld write-up on web page: If S1 = S2 = S countable, then P(Y = y | X = x) = f (y | x)\n\nhas properties:\n\n• f (y | x) ≥ 0\n• ∑y f (y | x) = x for all x\n• P(X = x, Y = y) = P(X = x)P(Y = y | X = x)\n\nDeﬁnition 1.2. A kernel Q from S1 to S2 is a map Q : (S1 × S2) → [0, 1] such that\n(a) For ﬁxed s1, B (cid:55)→ Q(s1, B) is a PM on S2\n(b) For ﬁxed B ∈ S2, s1 (cid:55)→ Q(s1, B) is a measurable function S1 → R\nWarning: for h : S1 × S2 → R\n(a) h is measurable\n\n(b)\n\n∀s1 : s2 → h(s1, s2) is measurable S2 → R\n∀s2 : s1 → h(s1, s2) is measurable S1 → R\n\n(1.4)\n(1.5)\n\n(a) =⇒ (b) but not vice versa.\nExample 1.3. S1 = S2 = [0, 1], h(x, x) = 1x∈A, h(x, y) = 0. Non-measurable on A ⊂ [0, 1]\n\nWe interpret P(Y ∈ B|X = s1) = Q(s1, B).\n\n1\n\n\fProposition 1.4. Given PM µ on S1 × S2, a PM µ1 on S1, and a kernel Q from S1 to S2, TFAE:\n\n(cid:17)\n\nµ1(ds1) provided h ≥ 0 or h\n\nBR1 µ(A × B) =(cid:82)\nBR2 µ(D) =(cid:82)\nBR3 (cid:82)\n\nS1\n\nS1×S2\n\nis µ-integrable\n\nA Q(s1, B)µ1(ds1) ∀A ∈ S1,∀B ∈ S2\nQ(s1, Ds1)µ1(ds1) ∀D ∈ S1 ⊗ S2\n\n) =(cid:82)\n\n(cid:16)(cid:82)\n\n˜s(cid:124)(cid:123)(cid:122)(cid:125)\n\n˜s=(s1,s2)\n\nh(s1, s2)µ(d\n\nS1\n\nh(s1, s2)Q(s1, ds2)\n\nS2\n\nHere, Ds1 := {s2 : (s1, s2) ∈ D} ⊂ S2.\n\nLemma 1.5. For each D ∈ S1 ⊗ S2,\n(a) Ds1 ∈ S2 for all s1 ∈ S1\n(b) map s1 (cid:55)→ Q(s1, Ds1) is measurable\nProof. Let D be collection of all D satisfying (i,ii).\nD is a λ-class. For D ∈ D have (Dc)s1 = {s2 : (s1, s2) (cid:54)∈ D} = (Ds1)c ∈ S2 so Dc ∈ D.\nCan also show D closed under increasing limits using closure of S2 and PM Q(s,·) under\nincreasing limits:\n\nDn ↑ D =⇒ Dn\ns1\n\n(1.6)\nLet I = {A × B : A ∈ S1, B ∈ S2} be generated by rectangles. As D = A × B implies\nBy deﬁnition 1.1, S1 ⊗ S2 = σ(I). By Dynkin’s π − λ theorem, σ(I) ⊂ D.\n\nthat ∀s1 ∈ S1 : Ds1 = B ∈ S2, we have I ⊂ D.\n\n↑ Ds1 =⇒ Q(s1, Dn\ns1\n\n) ↑ Q(s1, Ds1)\n\nTheorem 1.6 (Easy theorem). Given a PM µ1 on S1, given a kernel Q from S1 to S2, the deﬁnition\n\n(cid:90)\n\nµ(D) =\n\ndeﬁnes a PM µ on S1 × S2.\n\nQ(s1, Ds1)µ1(ds1) D ∈ S1 ⊗ S2\n\nS1\n\n(1.7)\n\n2\n\n\fProof.\n\nµ(S1 × S2) =\n\n(cid:90)\n\nS1\n\n\u001a\u001a>1\nµ1(ds1) = µ1(S1) = 1\n\n(cid:124)\n\n(cid:123)(cid:122)\n\nQ(s1, S2)\n\u001a\n\u001a\n\n\u001a\nPM\n\n\u001a\n\n(cid:125)\n\nµ(E) ≥ 0 and µ(∅ = 0) follow from Q(s1,·) and µ1 being measures, as does countable\nadditivity: if {Ei} are pairwise disjoint\n\nµ\n\nEi\n\n=\n\nQ(s1, (∪iEi)s1)µ1(ds1) =\n\nS1\n\n∑\ni\n\nS1\n\nQ(s1, (Ei)s1)µ1(ds1) = ∑\n\ni\n\nµ(Ei)\n\n(1.9)\n\n(cid:33)\n\n(cid:90)\n\n(cid:32)(cid:91)\n\ni\n\n(cid:90)\n\n(1.8)\n\n(1.10)\n\n(1.11)\n\n(1.12)\n\nTheorem 1.7 (Hard theorem). Given PM µ on S1 × S2, deﬁne marginal PM µ1 on S1 by\nµ1(A) = µ(A × S2).\n\nIf S2 is a Borel space, then ∃ kernel Q from S1 to S2 such that proposition 1.4 hold.\n\nProof. Fix B ∈ S2. Consider ν(A) := µ(A × B), A ∈ S1. ν is a (sub-probability) measure\non S1.\n\nν(A) = µ(A × B) ≤ µ(A × S2) = µ1(A) =⇒ ν (cid:28) µ1\n\nConsider the Radon-Nikodyn density\n\ndν\ndµ1\n\n(s1) = Q(s1, B)\n\n(def of Q(s1, B))\n\nwhich satisﬁes the properties\n\ns1 (cid:55)→ Q(s1, B) is measurable\n\n(cid:90)\n\n(cid:90)\n\nS1\n\ndν\ndµ1\n\nA\n\n(s1)µ1(ds1) ⇐⇒ µ(A × B) =\n\nν(A) =\n\n(1.13)\nThese hold for any B ∈ S2, so Q(s1, B) satisﬁes the ﬁrst property of a kernel Q : S1 × S2 →\nR and BR1.\nIt remains to show that Q satisﬁes the second property of a kernel, namely B (cid:55)→ Q(s1, B)\nis a PM on S2 ∀s1 ∈ S1.\n\nQ(s1, B)µ1(ds1) ∀A ∈ S1\n\nIssue: If h1\nAs S2 is a Borel space, wlog assume S2 = R. For each rational r ∈ Q do construction\nfor B = (−∞, r].\nWrite F(s, r) = Q(s1, (−∞, r]). Note\n\nA h2dµ1.\n\na.e.= h2 (wrt µ1), then(cid:82)\n\nA h1dµ1 =(cid:82)\n\ns1 (cid:55)→ F(s1, r)is measurable\n\nµ(A × (−∞, r1]) =\n\nF(s1, r)µ1(ds1) ∀A ∈ S1\n\n(1.14)\n\n(1.15)\n\n(cid:90)\n\nA\n\n3\n\n\fConsider r1 < r2 ∈ Q. For any A ∈ S1\n(cid:90)\n\nA\n\nµ(A × (r1, r2]) =\n\n(F(s1, r2) − F(s1, r1))µ(ds1) ≥ 0\n\nso\n\nF(s1, r2) ≥ F(s1, r1)\n\na.e.in S1\n\n(1.16)\n\n(1.17)\n\nModify F(s1, r) on null-set to make monotone on rationals: Redeﬁne F(s1, r) over the\nnull set {s1 : F(s1, r2) < F(s1, r1)} such that F(s1, r) = Φ(r) is monotone for r ∈ Q. Repeat\nfor all rational pairs (r1, r2) to get a version of F(s1, r) such that for any s1 ∈ A, r (cid:55)→ F(s1, r)\nis monotone on rationals. (A)\nSince F is monotone on rationals and F(s1, r) = Q(s1, (−∞, r]) where B (cid:55)→ Q(s, B) is a\n\nprobability measure\n\n(cid:41)\n\nConsider rn ↓ r ∈ Q.\n\nlimr↑∞ F(s1, r) = 1 ∀s1\nlimr↓∞ F(s1, r) = 0 ∀s1\n\nµ(A × (r1, rn]) → 0 ∀A\nF(s1, rn) ↓ F(s1, r) a.e.\n\n(B)\n\n(cid:41)\n\n(C)\n\n(1.18)\n\n(1.19)\n\nModify on another null-set rn ↓ r ∈ Q =⇒ F(s1, rn) ↓ F(s1, r) ∀s1.\nRemark 1.8 (Deterministic Fact). If r (cid:55)→ F(r) rational has properties (A), (B), (C), then\n\nis a distribution function\n\nUse fact to deﬁne\n\nwhere\n\nF(r)\n\nˆF(x) = lim\nr↓x\nr>x\nr∈Q\n\nˆF(r) = F(r)\n\nˆF(s1x, x) = lim\nr↓x\n\nf (s1, r) ∀x ∈ R\n\ns1 → ˆF(s1, x) is measurable\nx → ˆF(s1, x) is a dist function\n\nDeﬁne Q by Q(s1,·) is the PM with distribution function F(s1, x).\n\n4\n\n(1.20)\n\n(1.21)\n\n(1.22)\n\n(1.23)\n(1.24)\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec14.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #14\n10/11/2016\n\n1 Last Class\nGiven PM µ on S1 × S2:\n• Exists PM µ1 on S1\n• if S2 Borel space, then there exists kernel Q from S1 to S2 such that (BR1)-(BR3) hold.\n\nInterpretation: If µ = dist(X, Y) then µ1 = dist(X), Q(x, B) = P(Y ∈ B | X = x).\n\n2 Product Measure\nGiven PM µ1 on (S1,S1), µ2 on (S2,S2), there exists a product measure µ = µ1 ⊗ µ2 on\nS1 × S2 such that\n(a) µ(A × B) = µ1(A) × µ2(B) for all A ∈ S1, B ∈ S2\n\n(b) D ∈ S1 ⊗ S2, µ(D) =(cid:82) µ2(Ds1)µ1(ds1)\n(cid:90)\n(cid:90)\n\nProduct measures also satisfy:\n\nTheorem 2.1 (Fubini). For measurable h : S1 × S2 → R\n\n(cid:90)\n\nh(s1, s2)µ(ds) =\n\nh(s1, s2)µ2(ds2)µ1(ds1)\n\n(2.1)\n\nS1\n\nS2\n\nprovided h ≥ 0 or |h| is µ-integrable.\n\ndist(X, Y) = µ1 ⊗ µ2 ⇐⇒ X and Y are independent, dist(X) = µ1 and dist(Y) = µ2.\nRemark 2.2. Fubini’s theorem works for σ-ﬁnite measures. If λ = Lebesgue measure on R1,\nthen Fubini’s theorem reads\n\nEh(X1, X2) = Eh1(X1) where h1(x1) = Eh(x1, X2)\n\n(2.2)\n\nThe general identity is (usually) best viewed as calculating the same quantity in 2\n\ndifferent ways.\n\nExample 2.3. If X ≥ 0 then EX =(cid:82) ∞\n\nD = {(x, t) : x ≥ t}, µ = dist(X)\n\n0 P(X ≥ t)dt.\n\n1\n\n\fλ(Dx) = x. Dt = (t, ∞).\nBy Fubini\n\n(µ × λ)(D) =\n\n(µ × λ)(D) =\n\n(cid:90)\n(cid:90)\n\nλ(Dx)\n\n(cid:124) (cid:123)(cid:122) (cid:125)=x\n(cid:124) (cid:123)(cid:122) (cid:125)\n\nµ(t, ∞)\n=P(X≥t)\n\nµ(dx) = EX\n\nλ(dt)\n\n(2.3)\n\n(2.4)\n\n(everyone else).\n\nExample 2.4. j = 1, 2. X1, X2 independent. µj = dist(Xj).\n\nφj(t) = E exp(itXj) for t ∈ R the characteristic function (probabilists) or Fourier transform\nParseval’s identity refers to(cid:90)\n\n(cid:90)\n\nφ2(t)µ1(dt) =\n\nφ1(t)µ2(dt)\n\nTo show this\n\nE exp(iX1X2) = Eh1(X1)\n\nh1(x1) = E exp(ix1X2) = φ2(x1)\n\n=⇒ E exp(iX1X2) = Eφ2(X1) =\n\nφ2(t)µ1(dt)\n\nSimilarly\n\nE exp(iX1X2) = Eh2(X2)\n\nh2(x2) = E exp(iX1x2) = φ1(x2)\n\n=⇒ E exp(iX1X2) = Eφ1(X2) =\n\nφ1(t)µ2(dt)\n\nExample 2.5 (Convolution formula (Undergrad)). Suppose X and Y independent densities\nfX, fY, distribution functions FX, FY.\n\n2\n\n(cid:90)\n\n(cid:90)\n\n(2.5)\n\n(2.6)\n(2.7)\n\n(2.8)\n\n(2.9)\n(2.10)\n\n(2.11)\n\n\fThen S = X + Y has density f (s) =(cid:82) ∞\n\n−∞ fY(s − x) fX(x)dx.\n\nExample 2.6. No regularity assumptions.\n\nP(S ≤ s) = µx ⊗ µy(A) =\n\n(cid:124)\n(cid:123)(cid:122)\n(cid:125)\nFY(s − x)\nSuppose µx has density fX =⇒ P(S ≤ s) =(cid:82) FY(s − x) fX(x)dx. Formally, d\n=µy(Dx)\n“change of variable”(cid:82) (·)µx(dx) =(cid:82) (·) fX(x)dx\n\nµY has a density fY.\n\nµx(dµ)\n\n(cid:90)\n\n(2.12)\n\ndx provided\n\n2.1 Justifying identities involving differentiation by checking integral\n\nform\n\nHow to justify (?):\n\n(cid:90)\n\nfS(s)\n\n(?)\n=\n\nfY(s − x) fX(x)dx\n\nNeed to show\n\n(cid:90) s0\n\n(cid:18)(cid:90) ∞\n\n−∞\n\n−∞\n\n(cid:19)\n\nfY(s − x) fX(x)dx\n\n(cid:90) (cid:18)(cid:90) s0\nds = P(S ≤ s0)\nfY(s − x)ds\n(cid:90)\nFY(s0 − x)µ(dx)\n\n(cid:19)\n(∗∗)\n= P(S ≤ s0)\n\nµX(dx)\n\n−∞\n\n=\n\n=\n\n3\n\n(2.13)\n\n(2.14)\n\n(2.15)\n\n(2.16)\n\n\fExample 2.7. Suppose (X, Y) has joint density f (x, y), marginal f1(x).\nDeﬁne f (y | x) = f (x, y)/ f1(x).\nDeﬁne a kernel Q by Q(x,·) is the PM with density y (cid:55)→ f (y | x).\nThen this Q is the kernel in general theorem about µ = dist(X, Y).\nNeed to verify (BR1):\n\nP(X ∈ A, Y ∈ B) =\n\nLeft =\n\nQ(x, B)µX(dx)\n\nA\n\n(cid:90)\n(cid:90) (cid:90)\n(cid:90) (cid:90)\n\n=\n\nf (y|x)= f (x,y)/ f1(x)\n\n1x∈A1y∈B f (x, y)dxdy\n\n(cid:90) (cid:90)\n(cid:18)(cid:90)\n1x∈A1y∈B f (y | x) f1(x)dxdy\n1y∈B f (y | x)dy\n\nf1(x)dx\n\n(cid:19)\n\nFubini=\n\n1x∈A\n\n= Right\n\n(2.17)\n\n(2.18)\n\n(2.19)\n\n(2.20)\n\n(2.21)\n\n3 RVs and PMs\nKnow: X = (Ω,F, P) → (S,S) has distribution µ = dist(X) a PM on (S,S). “given µ1, is\nthere an X with dist(X) = µ?” Non-trivial “yes” answer.\n\nKnow: ∃ RV U with uniform distribution [0, 1]\nKnow: For any PM µ on R, the RV X = F−1\nKnow: Binary expansion U = 0.b1(U)b2(U)b3(u) · · · gives inﬁnite sequence of RBs\n\nµ (U) has dist(X) = µ\n\n(bi(U))i independent P(b1(U) = 0) = 1/2, P(b1(U) = 1) = 1/2.\nDeﬁnition 3.1. (S,S) is a Borel space if there exists a Borel-measurable A ⊂ R and a\nbijection φ : A → S such that φ and φ−1 are measurable.\nRemark 3.2. φ identity map on (S0,S1) to (S0,S2) is measurable iff S2 ⊂ cS1. Same for φ−1\niff S1 ⊂ S2.\n\nBoth φ and φ−1 measurable ⇐⇒ S1 = S2.\nOutsource to analysis:\n\nTheorem 3.3. Every complete separable metric space is a Borel space.\n\nConsider a PM ν on a Borel space (S,S). Let µ be the PM on A, the push-forward of ν\n\nunder φ−1.\n\n4\n\n\fX = F−1(U) is a RV with dist = µ. ν is the push-forward of ν under φ\n\n=⇒ φ(F−1\n\nµ (U)) has distribution ν\n\n(3.1)\n\nHave proved:\n\nLemma 3.4. Given a PM ν on a Borel space (S,S), there exists measurable h : [0, 1] → S such\nthat H(U) has distribution ν.\n\nI(1), I(2),· · · disjoint\n\n(3.2)\n(U). Then Uk ∼ Uniform[0, 1],\n\nRemark 3.5. πk = kth prime number.\n\nI(k) = {πk, π2\n\nk,· · · } inﬁnite set\n\nGiven sequence µk of PMs on R, deﬁne Uk = ∑∞\nindependent as k varies.\n\ni=1 2−ibπi\n\nk\n\n5\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec15.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #15\n10/13/2016\n\n1 More RVs and distributions\nCorollary 1.1. Given a PM µ on S × R.\n\nGiven a RV X : Ω → S where dist(X) = µ1 = marginal of µ.\nGiven a RV U : Ω → [0, 1], dist(U) is U[0, 1], U independent of X.\nThen ∃ f : S × [0, 1] → R such that, with Y = f (X, U), then dist(X, Y) = µ.\n\nProof. Let Q be a kernel from S to R associated with µ.\n\nLet f (s, u) be the inverse distribution function of PM Q(s,·)\nf (s, U) has distribution Q(s,·) since Q(s, B) = λ{u :\n\n(U ∼ U[0, 1] has distribution λ = Lebesgue measure).\n\nCheck that this f works:\nP(X ∈ A, Y ∈ B) = P(X ∈ A, f (X, U) ∈ B)\n\n(cid:90) (cid:90)\n(cid:90)\n\n=\n\n=\n\nFubini\n=\n\nDef of Q\n\n1X∈A\nµ(A × B)\n\n(cid:19)\n1X∈A1 f (X,U)∈Bµ(dx) ⊗ λ(du)\n\n(cid:18)(cid:90)\n\n1 f (X,U)∈Bλ(du)\n\nµ(dx) =\n\nf (s, u) ∈ B} for all B ∈ B\n\n(cid:90)\n\nA\n\nQ(x, B)µ(dx)\n\n(1.1)\n\n(1.2)\n\n(1.3)\n\n(1.4)\n\nThis theorem, along with the following, justiﬁes Markov chains in MT setting.\n˜πn,m : (x1, x2,· · · , xn) → (x1,· · · , xm), πn,m the\nNotation: Let 1 ≤ m < n < ∞,\nassociated map P (Rn) → P (Rm) such that dist(X1,· · · , Xn) → dist(X1,· · · , Xm).\nTheorem 1.2 (Kolmogorov Extension (Consistency) Theorem). Given PMs µn on Rn, 1 ≤\nn < ∞, which are consistent in the sense πn,mµn = µm, 1 ≤ m < n < ∞.\nThen ∃ a PM µ∞ on R∞ such that π∞,mµ∞ = µm, 1 ≤ m < ∞.\nProof. Take U1, U2,· · · independent U[0, 1]. Deﬁne X1 = F−1\n(U1). Inductively, suppose\nwe have deﬁned X = (X1,· · · , Xn) as functions of (U1,· · · , Un) such that dist(Xn) = µn.\n˜Xn+1 =\n( ˜Xn, Xn+1)) = µn+1. To do that, apply the corollary with S = Rn, X = ˜Xn, U = Un+1,\nµ = µn+1 on Rn × R.\nExample 1.3. Given measurable h : R → R and a PM µ that is invariant under h, i.e.\ndist(X) = µ =⇒ dist(h(X)) = µ.\nFor each n, take dist(Xn) = µ. Deﬁne Xi = h(Xi+1), 1 ≤ i ≤ n− 1, µn = dist(X1,· · · , Xn).\nTheorem =⇒ µ∞ = dist(Y1, Y2,· · · ) such that dist(Y1,· · · , Yn) = dist(X1,· · · , Xn) ∀n.\n\nWe can show ∃ fn+1 such that deﬁning Xn+1 = fn+1(Xn, Un+1) we have dist(\n\nThis constructs inﬁnite (Xn, 1 ≤ n < ∞). Deﬁne µ∞ = dist(Xn, 1 ≤ n < ∞).\n\nµ1\n\nYi = h(Yi+1) for all 1 ≤ i < ∞.\n\n1\n\n\f2\n\nIntermission: example relevant to data\n\nHypothesis: Probabilities from gambling odds are indistinguishable from “true probabili-\nties” as formalized in math.\n\nQuestion: Does this hyp make predictions that can be checked against data?\nModel: Z1 = point difference at half time. Z2 = point differencei n second half. Home\n= −Z1 (symmetric), Z1 ⊥ Z2, Z1 has continuous\n\nteam wins ⇐⇒ Z1 + Z2 > 0. Assume Zn\ndist.\n\nd\n\nP(home team wins | Z1 = z) = P(Z2 ≥ −z | Z1 = z)\n= P(Z2 ≥ −z) by indep.\n= P(Z2 ≤ z) by symmetry\n= FZ(z)\nP(home team wins | Z1) = F2(z1)\n\nd\n= U[0, 1]\n\n(2.1)\n(2.2)\n(2.3)\n(2.4)\n\n(2.5)\n\n3 Conditional Expectation in measure theory setting\n\n3.1 Undergraduate version\nX, Y R-valued, A an event.\n\nEX is a number.\nE[X | A] is a number.\nE[X | Y = y] is a number depending on y i.e. a function of y, say = h(y).\nWrite E[X | Y] = h(Y), view as a RV. Useful because of tower property: EE[X | Y] =\n\nEX.\n\nAnother way to deﬁne it is as a best least-squares estimator.\n\n3.2 Measure theory setup\n\nConsider a sub-σ-ﬁeld G ⊂ F. We will deﬁne E[X | G] to be a certain G-measurable RV.\nSuppose know information in G. Fair stake now = Y, say\n(a) Y is G-measurable\n(b) EY1G = EX1G ∀G ∈ G\n\n2\n\n\f(b) is because of the following betting strategy: Choose G ∈ G, bet if G happens, not\nif Gc happens, gain (X − Y)1G. Fair ⇐⇒ E(gain) = 0 ∀strategies ⇐⇒ E(X − Y)1G =\n0 ∀G.\n\nDeﬁne E[X | G] to be the RV Y satisfying (a) and (b).\nExistence: For G ∈ G, deﬁne ν(G) = EX1G. P(G) = 0 =⇒ ν(G) = 0. ν (cid:28) P as PMs\n\non (Ω,G).\n\nRN works for ν a signed-measure. Deﬁning property of RN density is (b).\nRadon-Nikodym =⇒ ∃ density dν\nRadon-Nikodym =⇒ G-measurable.\nUniqueness:\n\ndP (ω) = Y(ω).\n\nLemma 3.1. If Y is G-measurable, if E|Y| < ∞. If E(Y1G) ≥ 0, ∀G ∈ G, then Y ≥ 0 a.s.\nProof. If not, G := {Y < 0} has P(G) > 0 and EY1G < 0. Contradiction.\nCorollary 3.2. If Y1 and Y2 each satisfy (a) and (b), then Y1\nProof.\n\na.s.\n= Y2.\n\nE(Y1 − Y2)1G = 0 ∀G =⇒\n\nLemma\n\nY1 ≥ Y2 a.s. and Y1 ≤ Y2 a.s. =⇒ Y2\n\na.s.= Y2\n\n(3.1)\n\nLemma 3.3 (Technical Lemma).\n\nG-measurable V.\n\n(a) If Z = E[X | Y] then E[VZ] = E[VX] for all bounded\n\n(b) If Z is G-measurable, then to prove Z = E[X | Y] it sufﬁces to prove EZ1A = EX1A ∀A ∈\n\nA where A is a π-class such that G = σ(A).\n\n(a) Use def for V = 1G, monotone class theorem\n\nProof.\n(b) Dynkin π − λ lemma\n\n3\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec16.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #16\n10/18/2016\n\n1 General properties of Conditional Expectation\n\n1.1 Idea\nMimic general properties of ordinary expectations\n\nE(X1 + X2) = EX1 + EX2\n\nE(cX) = cEX\n\n(1.1)\n\nbut with G-measurable RVs playing the role of constants c.\n\n1.2 Some basic properties of CE\nLet X : (Ω,F P) → R, E|X| < ∞, G ⊂ F. E[X | G] is the RV Z such that\n(a) Z is G-measurable\n(b) E[Z1G] = E[X1G] ∀G ∈ G.\nLemma 1.1. For Z = E[X | G], E[VZ] = E(VX], we have\n(a) E[X1 + X2 | G] = E[X1 | G] + E[X2 | G]\n(b) E[VX | G] = VE[X | G] for bounded G-measurable V.\n(c) If 0 ≤ Xn ↑ X a.s., then E[Xn | G] ↑ E[X | Y] a.s.\n(d) If X ≥ 0 a.s., then E[X | G] ≥ 0 a.s.\n(e) |E[X | G]| ≤ E[|X| | G] a.s.\n(f) E[E[X | G]] = EX\n(g) If X is G-measurbale, then E[X | G] = X\n\nIf G is trivial, then E[X | G] = EX.\n\n(h) Tower Property: If G ⊂ H then E[X | G] = E[E[X | H | G]].\nProof.\n\n(a) Write Zi = E[Xi | G].\n\nNeed to show Z := Z1 + Z2 = E[X1 + X2 | G]\nZ is G-measurable because Zi are G-measurable.\n(cid:123)(cid:122)\n\n(cid:124) (cid:123)(cid:122) (cid:125)\n\nE[Z1G]\n\n=E[X11G]+E[X21G]\n\n∀G ∈ G\n\n(1.2)\n\n(cid:125)\n\n(X1 + X2)1G\n=E[X11G]+E[X21G]\n\n(cid:124)\n\n1\n\n\f(b) Deﬁne Z = VE[X | G]. To show Z = E[VX | G], need to show Z, V, and E[X | G]\n\nare G-measurable.\nZ is G-measurable by Lemma applied to V1G. TODO: Check\n\nE[E[X | G]] V1G(cid:124)(cid:123)(cid:122)(cid:125)\n\nG-meas\n\n= E[X V1G(cid:124)(cid:123)(cid:122)(cid:125)\n\nG-meas\n\n] ∀G ∈ G\n\n(1.3)\n\n(c) Exercise.\n\n(d) Exercise.\n\n(e) Exercise.\n(f) G = Ω in def.\n(g) By deﬁnition.\n\nG trivial =⇒ E[X | G] constant =⇒ E[X | G] = EX\n\n(h) Write Z = E[X | G]. Need to check E[Z1G] = E[E[X | H]1G]. But LHS = E[X1G] by\ndeﬁnition of Z, and RHS = E[X1G] by deﬁnition of E[X | H] and G ∈ G =⇒ G ∈ H.\n\n(L2 setting): Now assume EX2 < ∞.\n• X (cid:55)→ E[X | G] is the orthogonal projection in Hilbert space\n\n• Cauchy-Schwarz E|VX| ≤(cid:112)(EX)2(EV)2 < ∞\n\nFrom Lemma\n\nE[(X − E[X | G]) | V] = 0\n\nfor V G-measurable and EV2 < ∞. This gives\nLemma 1.2. X − E[X | G] and V are orthogonal ∀V G-measurable.\n\nRecall Var(X) = E[X − E[X]]2.\n\nDeﬁnition 1.3. The conditional variance\n\nVar(X | G) = E[(X − E[X | G])2 | G]\n\nLemma 1.4 (Bias-variance decomposition). If Y is G-measurable, EY2 < ∞\n\nE[(X − Y)2 | G] = Var(X | G) + (E[X | G] − Y)2\n\n(1.4)\n\n(1.5)\n\n(1.6)\n\n2\n\n\fProof.\n\nE[(X − Y)2 | G] = E[X2 − 2XY + Y2 | G]\n\n= E[X2 | G] − 2YE[X | G] + Y2\n= (E[X2 | G] − E[X | G]2) + (E[X | G]2 − 2YE[X | G] + Y2)\n= Var(X | G) + (E[X | G] − Y)2\n\nLemma 1.5. Var(X) = EVar(X | G) + VarE[X | G]\nProof. Replace X by X− changes no term, so wlog assume EX = 0.\n\n(X − E[X | G])\nVar(X) = E[X2] = E[E[X2 | G]]\n(cid:125)\n(cid:124)\n\nE[X2 | G] = E\n\n\n\n2\n\n ,\n\n| G\n\nE[ab | G] = 0\n\n(cid:123)(cid:122)\n(cid:123)(cid:122)\n(cid:125)→b\n(cid:124)\n+ E[X | G]\n→a\n= E[a2 | G] + b2\n= Var(X | G) + (E[X | G])2,\nVar(X) = E[Var(X | G) + (E[X | G])2]\n(cid:123)(cid:122)\n\nE[E[X | G]] = EX = 0\n(cid:125)\n= EVar(X | G) + E[E[X | G] − 0]2\n\n(cid:124)\n\n=VarE[X|G]\n\n(1.7)\n(1.8)\n(1.9)\n(1.10)\n\n(1.11)\n\n(1.12)\n\n(1.13)\n(1.14)\n(1.15)\n(1.16)\n\nLemma 1.6 (Connection with independence). A S-valued RV X is independent of G ⇐⇒\nE[h(X) | G] = Eh(X) ∀ bounded measurable h : S → R.\nProof. ⇒. NTS E[Eh(x)1G] = E[h(X)1G] ∀G ∈ G. But Eh(X) is a consstant so LHS\n= (Eh(X))(E1G) and by independence RHS = (Eh(X))(E1G)\n\n⇐. Take h = 1B for B ⊂ S. From the same argument\n\nE[h(X)1G] = E[h(x)]E[1G]\n= P(X ∈ B, G) = P(X ∈ B)P(G)\n\n(1.17)\n(1.18)\n\nHolds ∀B, G =⇒ X and G independent.\n\n2 Background to conditional independence\n\nRecall\nDeﬁnition 2.1. X, Y independent ⇐⇒ E(h1(X)h2(Y)) = (Eh1(X))(Eh2(Y)) for all bounded\nmeas. h1, h2\n\n3\n\n\fExample 2.2. Bayes (Xi) conditionally independent given Θ\n\n(i) Random Θ, values in {PMs on R} = P (R)\n(ii) Conditional on Θ = θ ∈ P (R) take X1, X2, X3,· · · IID(θ).\n\nSimple Markov property for (Xn, n ≥ 0) Past X0:(n−1) and future Xn+1 conditionally in-\n\ndependnet given present Xn.\nP(Xn+1 = xn+1 | Xn = xn, Xn−1 = xn−1,· · · , X0 = x0) = P(Xn+1 = xn+1 | Xn = xn)\n(2.1)\n\nLocally dependent : Given (W ˜x, ˜x = (x1, x2) ∈ Z2).\n\nIdea: W ˜x depends only on W˜y : ˜y ∈ N( ˜x) and not on the other Ws.\nFormally: TODO: Conditionally indep given ...\n\n4\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec17.pdf.txt",
+		"content": "1 Conditional independence/expectation\nJensen’s inequality: Eφ(X) ≥ φ(EX) if φ convex, E|X| < ∞, E|φ(X)| < ∞\n\nindependent\n\nConditional Jensen’s inequality: E[φ(X) | G] ≥ φ(E[X | G]) a.s.\nRecall in MT, independence is property of G1, G2. Random variables X and Y are\n⇐⇒ σ(X) and σ(Y) are independent\n⇐⇒ E[h1(X1)h2(X2)] = (Eh1(X1)) × (Eh2(X2)) ∀hi : Si → R bounded meas.\n⇐⇒ E[h1(X1) | X2] = Eh1(X1) a.s. ∀h1\nUndergrad version: Given discrete RV V, deﬁne P(X1 = x1 | V = v), P(X2 = x2 |\nV = v). Then construct (X1, X2, V) such that P(X1 = x2, X2 = x2 | V = v) = P(X1 =2|\nV = v) × P(X2 = x2 | V = v).\nMT version: X1 and X2, with σ-ﬁelds H1,H2, are conditionally independent given G\n\nmeans\n\nE[\n\n(cid:124) (cid:123)(cid:122) (cid:125)\n\nh1(X1)\n\nbdd H1-meas RV\n\nh2(X2) | G] = E[h1(X1) | G] × E[h2(X2) | G] ∀hi\n\nHomework later: This is equivalent to\n\nE[h1(X1) | G, X2] = E[h1(X) | G] a.s. ∀h1\n\nOnce you know G, knowing also X2 gives no extra information about X1.\n\nFeynman Liang\nSTAT 205A\nLecture #17\n10/20/2016\n\n(1.1)\n\n(1.2)\n\n1.0.1 Relation between conditional probability and conditional expectation\n\nUndergrad: Conditional probabilities and expectations are related in the following way:\n\nP(Y = y | X = x) =\nE[h(Y) | X = x] = ∑\ny\n\nP(X = x, Y = y)\n\nP(X = x)\nh(y)P(Y = y | X = x)\n\n(1.3)\n\n(1.4)\n\nGraduate: (Conditional probability) (X, Y) : (Ω,F, P) → S1 × S2 get kernel Q from S1\n(Conditional expecation) W : (Ω,F, P) → R, E|W| < ∞, G ⊂ F, E[W | G] = Z,\n\nto S2. Q(x, B) means P(Y ∈ B | X = x).\nspeciﬁed by E[Z1G] = E[W1G] ∀G ∈ G.\n\nWhere did the connection between the two go?\n\n1\n\n\fWrite I : (Ω,F ) → (Ω,G) identity function, (I, Y) : Ω → (Ω,G) × (S2,S2), α(ω, B)\nkernel associated with (I, Y), α(ω, B) means P(Y ∈ B | G)(ω). This is called the regular\nconditional distribution for Y given G.\nWrite W = h(Y), h : S(Y) → R, G = σ(X).\nWhat is E[h(Y) | X = x] in MT?\n\nh(y)α(ω, dy)\n\n(1.5)\n\nE[h(Y) | G](ω) =\n\nProof is a homework exercise.\n\n(cid:90)\n\n2 Martingales\nA σ-ﬁeld G is a collection of events. A ∈ G means A is an event.\n\nFor RV X, say X is G-measurable to mean σ(X) ⊂ G.\n\n2.1 General setup\nDeﬁnition 2.1. For a probability space (Ω,F, P), a sequence of nested sub-σ-ﬁelds F0 ⊂\nF1 ⊂ F2 ⊂ · · · ⊂ F is called a ﬁltration.\n\nWe interpret Fn as the “information known at time n.”\n\nDeﬁnition 2.2. A sequence (Xn)n≥0 is adapted to (Fn) means Xn ∈ Fn ∀n.\nDeﬁnition 2.3. A R-valued process (Xn)0≤n<∞ is a martingale (MG) if\n(a) E|Xn| < ∞ ∀n\n(b) (Xn) is adapted to (Fn)\n(c) E[Xn+1 | Fn] = Xn, 0 ≤ n < ∞\n\n• sub-martingale: E[Xn+1 | Fn] ≥ Xn, 0 ≤ n < ∞, (Xn below i.e. sub Xn+1)\n• super-martingale: E[Xn+1 | Fn] ≤ Xn, 0 ≤ n < ∞\n\nTypical uses of the theory:\n• Complicated (Yn)\n• We look for h such that h(Yn) is a MG\n• Take Fn = σ(Y0, Y1,· · · , Yn)\n• Xn = h(Yn), (Xn) is adapted to (Fn)\nConvention: If we deﬁne Xn and say “Xn is a MG”, we are taking\n\nFn = σ(X0, X1,· · · , Xn)\n\n(2.1)\n\nthis is called the natural ﬁltration.\n\n2\n\n\fExample 2.4. Let ξ1, ξ2,· · · be independent RVs, Fn = σ(ξ1,· · · , ξn) the natural ﬁltration.\n(1) If E|ξi| < ∞ and Eξi = 0 ∀i, then Sn = ∑n\n\ni=1 ξi is a MG. To check this, note\n\n] = Sn + Eξn+1 = Sn (2.2)\n\n(2) As in (1), suppose also σ2\n\nE[Sn+1 | Fn] = E[ Sn(cid:124)(cid:123)(cid:122)(cid:125)∈Fn\n\n(cid:124)\n\nindep\n\n(cid:125)\n(cid:123)(cid:122)\n+ξn+1 | Fn] = Sn + E[ξn+1 | Fn\nn − ∑n\ni < ∞. Then Qn = S2\nn+1 − S2\nn − σ2\nE[Qn+1 − Qn | Fn] = E[2 Sn(cid:124)(cid:123)(cid:122)(cid:125)∈Fn\n(cid:124)\nξn+1 | Fn] + E[ξ2\n(cid:123)(cid:122)\n(cid:124)\n\n(cid:125)\n= 2Sn E[Sn+1 | Fn]\n\ni = Eξ2\nQn+1 − Qn = S2\n\n= 0\n\n=0\n\ni=1 σ2\ni is a MG.\nn+1 − σ2\nn+1 = 2Snξn+1 + ξ2\n(cid:125)\n(cid:123)(cid:122)\nn+1 | Fn\n] − σ2\n\nn+1\n\nn+1\n\nindep\n\n(3) Suppose (xii) independent, Eξi = 1, then Mn = ∏n\n\ni=1 ξi is a MG.\n\nMn+1 = Mn(cid:124)(cid:123)(cid:122)(cid:125)∈Fn\n\nξn+1\n\nE[Mn+1 | Fn] = E[Mnξn+1 | Fn] = MnE[ξn+1 | Fn] = MnE[ξn+1] = Mn · 1 (2.7)\n\n(2.3)\n(2.4)\n\n(2.5)\n\n(2.6)\n\n(4) Take (ξi) iid. Take density functions f and g > 0. Deﬁne Ln = ∏n\n\ni=1\n\n(a) If (ξi) have density f then ∀g, (Ln) is a MG.\nn∏\n(cid:90) g(y)\n(cid:90)\n\nEYi =\n\nLn =\n\ni=1\n\nYi\n\nf (y)dy\n\nf (y)\ng(y)dy = 1\n\n=\n\nYi =\n\ng(ξi)\nf (ξi)\n\ng(ξi)\nf (ξi).\n\n(b) If (ξi) has density g then, provided ELn < ∞, (Ln) is a sub-MG.\n\n(a) =⇒ (1/Ln) is a sub MG\n\nconditional Jensen =⇒ 1/Ln = E(1/Ln | Fn) ≥\n\n1\n\nE[Ln+1 | Fn]\n\n3\n\n(2.8)\n\n(2.9)\n\n(2.10)\n\n(2.11)\n\n=⇒ E[Ln+1 | Fn] ≥ Ln sub MG\n\n(2.12)\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec18.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #18\n10/25/2016\n\n1 Review\n\n• General constructions of martingales\n• Can deﬁne F∞ = σ(∪nFn) ⊂ F\n• Usually not given a RV X∞\n• When we consider XT for a stopping time T, care about {T = ∞}\n\nDeﬁnition 1.1. A ﬁltration (Fn, 0 ≤ n < ∞) on (Ω,F, P) is a nested sequence of σ-ﬁelds,\nFi ⊂ Fi+1.\nExample 1.2. Consider any X with E|X| < ∞. Then Xn = E(X | Fn), 0 ≤ n < ∞ is a\nmartingale.\n\nRandom variable (Xn, 0 ≤ n < ∞ adapted to ﬁltration Fn means Xn ∈ Fn, 0 ≤< ∞.\n\nE[Xn | Fn−1] = E[E[Xn | Fn] | Fn−1]\n\nFn−1 ⊂ Fn =⇒\n\n= E[Xn | Fn]\n\nSimilarly, for any event A, Yn = P(A | Fn) is a martingale.\n\ntower\n\n(1.1)\n(1.2)\n\n2 Doob Decomposition\nDeﬁnition 2.1. For any X = (Xn), deﬁne ∆X\nn ∈ Fn, n ≥ 1\n)martingale ⇐⇒ ∆X\nn | Fn−1) = 0 (≥ 0 for sub-martingale a.s. n ≥ 1\nE[∆X\nn , n ≥ 1) a martingale difference sequence.\n\nX0 ∈ Fn, E|X| ≤ ∞. Call (∆X\n\nn = Xn − Xn−1, n ≥ 1. Then ∆X\n\nConsider any (Xn, n ≥ 0) adapted to (Fn) and E|Xn| < ∞ ∀n. Deﬁne (Yn) by Y0 = X0,\nn |\n∆Y\nn = ∆X\nn = E[∆X\nFn−1] (drift, predictable part). Then\n\nn | Fn−1] (shocks, martingale part). Deﬁne (Zn) by Z0 = 0, ∆Z\n\nn − E[∆X\n\nn is a (sub-\n\n1. Xn = Yn + Zn a.s.\n2. (Yn) is a martingale\n3. Zn ∈ Fn−1, n ≥ 1 (Zn is predictable) and Z0 = 0 and E|Zn| < ∞\n\nThis is the unique decomposition with these properties, called the Doob decomposition.\n\nUniqueness:\n\nE[∆X\n\nn | Fn−1) = E[∆Y\n\nn | Fn−1) + E[∆Z\n\nn | Fn−1)\n\n= 0(martingale) + ∆Z\nn\n\n1\n\n(2.1)\n(2.2)\n\n\f3 Convexity Theorem\nIf (Xn) is a martingale then (Xn − X0, n ≥ 0) is a martingale. Often say “WLOG assume\nX0 = 0.”\nTheorem 3.1 (Convexity Theorem). (Xn) adapted to (Fn), φ convex function, E[φ(Xn)] < ∞\n\n1. If (Xn) is a martingale then (φ(Xn)) is a sub-martingale\n2. If (Xn) is a sub-martingale and if φ is increasing, then (φ(Xn)) is a sub-martingale.\n\nProof.\n\n(cid:125)\nE[φ(Xn+1) | Fn) ≥ φ( E[Xn+1 | Fn]\n≥Xn, sub-martingale\n\n(cid:123)(cid:122)\n\n(cid:124)\n\n) by conditional Jensen’s inequality.\n\n(3.1)\n\n≥ φ(Xn) because φ is increasing\n\n(3.2)\n\nThis checks φ(Xn) is a sub-martingale.\n\nn is a sub-martingale.\n\nExample 3.2. If (Xn) is a martingale, then (provided integrable)\n(a) |Xn|p (p ≥ 1) is a sub-martingale, x → |x|p is convex.\n(b) X2\n(c) exp(θXn) (−∞ < θ < ∞) is a sub-martingale.\n(d) max(Xn, c) is a sub-martingale.\n(e) min(Xn, c) is a super-martingale.\n\n4 Stopping times in martingales\nDeﬁnition 4.1. A RV T : Ω → {0, 1, 2, . . .} ∪ {∞} is a stopping time if\n\n{T = n} ∈ Fn, 0 ≤ n < ∞\n\n(4.1)\n\nEquivalent condition:\n\n{T ≤ n} ∈ Fn, 0 ≤ n < ∞\n\n(4.2)\nDeﬁnition 4.2. For a stopping time T, deﬁne FT (the pre-T σ-ﬁeld), as the collection of\nsets A ∈ F such that\n(a) A ∩ {T = n} ∈ Fn, 0 ≤ n < ∞\n(b) A ∩ {T ≤ n} ∈ Fn, 0 ≤ n < ∞\nMany “obvious” properties:\n(a) If (Xn) is adapted, T is a stopping time, T < ∞, then XT is FT-measurable.\n\n2\n\n\fProof. Need to show {XT ∈ B} ∈ FT for all B. Equivalently\n\n{Xt ∈ B} ∩ {T = n} ∈ Fn\n(cid:124)\n(cid:125)\n(cid:123)(cid:122)\n{Xn ∈ B}\n∈Fn, adapted\n\n(cid:124)\n(cid:125)\n(cid:123)(cid:122)\n∩ {T = n}\n∈Fn, stop time\n\n∈ Fn\n\n(4.3)\n(4.4)\n\n(b) If T1 ⊂ T2 are stopping times, FT1 ⊂ FT2.\n(c) If S and T are stopping times, then {S = T} ∈ FS ∩ FT and for A ⊂ {S = T},\n\nA ∈ FS ⇐⇒ A ∈ FT.\n\n(d) Given an adapted process (Xn) and a stopping time T, the process ˆXn = Xmin(n,T) is\n\nadapted. Call ˆX the stopped process.\n\nIf want to sum ∑T\n\nn=1 Xn, can use ∑∞\n\nn=1 Xn1T<n.\n\n5 Story: stock market\n\nYou can buy a stock at end of any day n. Xn = the price of one share at the end of day\nn. Hn = the number of shares I hold during day n (bought day n − 1 or earlier) Yn = my\naccumulated proﬁt at the end of day n\n\nQuestion: What is the relation between Xn, Hn, and Yn?\nAnswer: The relation is given by ∆Y\n\nn = Hn∆X\n\nn , Y0 = 0.\n\nDeﬁnition 5.1. We write Y = H · X (martingale transform or discrete time stochastic integral)\nTheorem 5.2 (2.7 Durett). Suppose (Xn) is adapted and (Hn) is predictable. Consider Y = H · X\n(for simplicity assume Hn is bounded).\n\n1. If (Xn) is a MG, then (Yn) is a MG.\n2. If (Xn) is a sub-MG and Hn ≥ 0, then (Yn) is a sub-MG.\n\n3\n\n\fProof. 2.\n\nn | Fn−1)\nn | Fn−1) = E[Hn∆X\n(cid:125)\n(cid:123)(cid:122)\n(cid:124)\nn | Fn−1)\nE[∆X\n≥0,sub-MG\n\n= Hn(cid:124)(cid:123)(cid:122)(cid:125)≥0\n\nE(∆Y\n\n≥ 0\n\n(5.1)\n(5.2)\n\n(5.3)\n\nHence (Yn) is a sub-MG.\nCorollary 5.3. If (Xn) is a (sub)-MG, T a stopping time, then ˆXn = Xmin(n,T) is a (sub)-MG.\nProof. Buy 1 share at end of day 0. Sell at end of day T. Hn = 10≤n≤T. (Hn) is predictable\nbecause {n ≤ T} = {T ≤ n − 1}c ∈ Fn−1. The process Y = H · X is explicitly Yn =\nXmin(n,T) − X0. Apply Theorem.\n\n4\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec19.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #19\n10/27/2016\n\n1 Last class\n(Xn) sub-MG wrt (Fn), i.e. E[Xn | Fn−1] ≥ Xn−1.\n\n(Hn) predictable process, bounded. Interpret Hn = # shares held on day n.\nDeﬁne Y = H · X by Y0 = 0, ∆Y\nn = Hn∆X\nn\nThen (Yn) is a sub-MG provided Hn ≥ 0\n\nRemark 1.1. If E[Z1A] ≥ 0 for all A ∈ G, then E[Z | G] ≥ 0 a.s.\n\n2 Today\nCorollary 2.1. (Xn) a sub-MG. 0 ≤ T1 ≤ T2 ≤ t0 stopping times. Then E[XT2 | FT1] ≥ XT1\nProof. Fix event A ∈ FT1. Strategy:\n\nIf A happens, buy 1 share at T1, sell at T2.\nIf A doesn’t happen, do nothing.\n\nIn math: Hn = 1A1T1<n≤T2.\nWant to check H is predictable, that is\nA ∩ {T1 < n ≤ T2} ∈ Fn−1\n(cid:124)\n(cid:125)\n= A ∩ {T1 ≤ n − 1}\ndef of A ∈ FT1\n\n(cid:123)(cid:122)\n\n∈Fn−1\n\n(cid:124)\n\n(cid:125)\n\\A ∩ {T2 ≤ n − 1}\n\n(cid:123)(cid:122)\n\n∈Fn−1\n\nSo H is predictable.\n\nSo (Yn) is a sub-MG, Yn = (XT2∧n − XT1∧n)1A\n\n=⇒ EYt0 ≥ EY0 = 0\n=⇒ E[(XT2 − XT1)1A] ≥ 0\n=⇒ E[XT2 − XT1 | FT1] ≥ 0 a.s.\n\n1\n\nbecause T2 ≥ T1\n\n∀A ∈ FT1\n??\n\n(2.1)\n(2.2)\n\n(2.3)\n(2.4)\n(2.5)\n\n\f3 Optional Sampling Theorem (OST)\n\nTheorem 3.1 (Basic version). If (Xn) is a (sub-)MG,\n\n0 = T0 ≤ T1 ≤ T2 ≤ · · · are stopping times,\nTi ≤ ti (constant) for every i,\nthen (XTi, i = 0, 1, 2, . . .) is a (sub-)MG wrt (FTi, i = 0, 1, 2 . . .).\nIn particular, EXT ≥ EX0 for sub-MG, = EX0 for MG.\nMany other versions without restriction T ≤ t0 exist.\n\n4 Maximal inequalities\nX∗\nN = max(X0, X1, . . . , XN)\nN ≥ x) ≤ ∑N\nalways P(X∗\nMG get better than above\nif independent P(X∗\nLemma 4.1. (Xn) a super-MG, Xn ≥ 0 a.s.\n\nN ≥ x) = 1 − ∏N\n\nn=0 P(Xn ≥ x)\n\nn=0 P(Xn ≤ x)\n\nWrite X∗ = supn Xn, so X∗\nThen P(X∗ ≥ λ) ≤ EX0\n\nλ , all λ > 0\n\nN ↑ X∗ as N → ∞.\n\nProof. Deﬁne T = min{n : Xn ≥ λ}. Apply OST to 0 and T ∧ N.\n\n2\n\n\f=⇒ EX0 ≥ EXT∧N = EXT1T≤N + EXn1T>N\n\n≥ λP(T ≤ N) + 0\n\n=⇒ P(T ≤ N) ≤ λ\n=⇒ P(X∗\nN ≥ λ) ≤ λ\nN → ∞ =⇒ P(X∗ > λ) ≤ λ\nApply to λj ↑ λ (check) =⇒ P(X∗ ≥ λ) ≤ λ\n\n−1EX0\n−1EX0\n−1EX0\n−1EX0\n\nLemma 4.2 (Doob’s L1 maximal inequality). (Xn) sub-MG. For λ > 0\n\nλP(X∗\nProof. T = min{n : Xn ≥ λ}.\n\nNλ) ≤ E[Xn1X∗\n\nN≥λ] ≤ EX+\n\nN = E max(X, 0)\n\nApply OST to T ∧ N and N =⇒ EXT∧N ≤ EXN.\n=⇒ EXT1T≤N + \u0018\u0018\u0018\u0018\u0018\u0018\nXT ≥ λ =⇒ λP(T ≤ N) ≤ EXN1T≤N = EXn1X∗\n\nEXn1T>N ≤ EXN1TN + ((((((\nEXN1T>N\nN≥λ\n\nCorollary 4.3. If (Xn) is a MG then (because Yn = |Xn| is a sub-MG)\n\nλP( max\n0≤n≤N\n\n|Xn| ≥) ≤ E|Xn|/λ\n\nAlso, Zn = X2\n\nn is a sub-MG (provided EX2\n\nn < ∞).\n\nApply Lemma to (Zn)\n\nλP( max\n0≤n≤N\n\nλ2P( max\n0≤n≤N\n\nn ≥ λ) ≤ EX2\nX2\nn ≥ λ2) ≤ EX2\nX2\n−2EX2\n\n|Xn| ≥ λ) ≤ λ\n\nN\n\nN\n\nN\n\nP( max\n0≤n≤N\n\nDifferent bounds for same quantity (c.f. Markov/Chebyshev)\n\nLemma 4.4 (Doob’s L2 maximal inequality). (Xn) sub-MG.\n\nE(0 ∨ X∗\n\nN)2 ≤ 4E(X+\nN)2\n\n3\n\n(4.1)\n(4.2)\n(4.3)\n(4.4)\n(4.5)\n(4.6)\n\n(4.7)\n\n(4.8)\n\n(4.9)\n\n(4.10)\n\n(4.11)\n\n(4.12)\n\n\fProof.\n\n(cid:124)\n(cid:123)(cid:122)\n(cid:125)\nE(0 ∨ Z)2\n=⇒ E(0 ∨ X∗\n\na\n\n= 2\n\nλP(Z ≥ λ)dλ\n\nλP(X∗\n\nN ≥ λ)dλ\nN≥λ]dλ\n\nE[XN1X∗\n\nN)2 = 2\n≤ 2\n≤ 2\n\n= 2E\n\nN1X∗\n\nE[X+\n\nN≥λ]dλ\n\n(cid:90) ∞\nX+\nN≥λdλ\n1X∗\nN\nN(0 ∨ X∗\n= 2E[X+\nN)]\n(cid:123)(cid:122)\n(cid:124)\n(cid:125)\n(cid:123)(cid:122)\n× E[(0 ∨ X∗\nN)2]\nE[(X+\n\n0\n\n(cid:21)\n\na\n\nb\n\n(cid:125)\n\nN)2]\n\n0\n\n0\n\n(cid:90) ∞\n(cid:90) ∞\n(cid:90) ∞\n(cid:90) ∞\n(cid:20)\n(cid:115)\n\n0\n\n0\n\n(cid:124)\n(cid:19)p\n\n(cid:18) p\n\np − 1\n\n(4.13)\n\n(4.14)\n\n(4.15)\n\n(4.16)\n\n(4.17)\n\n(4.18)\n\n(4.19)\n\nCauchy-Schwarz ≤ 2\n\n√\n\na ≤ 2\n\nba =⇒ a ≤ 4b.\n\nIf we use Hölder instead of Cauchy-Schwarz\n\nE[(0 ∨ X∗\n\nN)p] ≤\n\nE[(X+\n\nN)p]\n\n1 < p < ∞\n\n(4.20)\n\nExample 4.5 (not true for p = 1). X0 = 1, simple symmetric random walk on Z, stop at\nT = min{n ≥ 1 : Xn = 0}.\n\n(Xn) is a MG. EXn = 1 ∀n.\nN ↑ X∗ = supn Xn. Elementary P(X∗ ≥ m) = m−1.\nX∗\n=⇒ EX+ = ∞ =⇒ EX∗\n∴ EXn = 1 ∀N, so cannot bound the ratio for p = 1.\n\nN ↑ ∞.\n\n4\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec2.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #2\n8/30/2016\n\n1 Measure Theory Continued\nNotation: B := σ{open sets of Stopo}.\nFor f : S1 → S2, have pullback f −1 : S2 → S1\n(a) f −1 commutes with ﬁnite Boolean operations and monotone limits, i.e.\n\nf −1(B1 ∪ B2) = f −1(B1) ∪ f −1(B2)\nf −1(B1 ∩ B2) = f −1(B1) ∩ f −1(B2)\n\nBn ↑ B =⇒ f −1(Bn) ↑ f −1(B)\n\n(1.1)\n(1.2)\n(1.3)\n\nf is measurable if f −1(B) ∈ S1 for all B ∈ B such that S2 = σ(B).\n\n(b) Given S2, { f −1(B) : B ∈ S2} is a σ-ﬁeld: “the pullback of a σ-ﬁeld is a σ-ﬁeld.”\nDeﬁnition 1.1. A function f : S1 → S2 between two measurable spaces is measurable if\nf −1(B) ∈ S1 for all B ∈ S2.\nLemma 1.2.\nProof. {B ∈ S2 : f −1(B) ∈ S1} ⊃ σ(B) is a σ-ﬁeld by commutativity of f −1 wrt Boolean\noperations. It also ⊃ B.\nf cts : Stopo\nLemma 1.3.\nProof. cts =⇒ f −1(Gopen\nprevious lemma implies f is measurable wrt σ{Sopen\nLemma 1.4 (π-system sufﬁciency). If S2 = R, it sufﬁces to check f −1(−∞, x] ∈ S1 for all\nx ∈ R.\nProof. σ{(−∞, x] : x ∈ R} = σ(R) = S2\n\n⊃ S1, where S1 is the Borel σ-algebra on S1. The\n\nis measurable (i.e. cts =⇒ meas)\n\n1 → Stopo\n\n2\n\n) ∈ Sopen\n\n1\n\n2\n\n} = S1.\n\n1\n\nLemma 1.5 (Composition). If h and g are measurable, then f = g ◦ h is measurable.\n\n1\n\n\fLemma 1.6 (Multi-input composition). Suppose { fi : (S,S) → R}d\ni=1 are measurable and\ng : Rd → R is measurable. Then g( f1(s), f2(s),· · · , fd(s)) is a measurable function S1 → R.\n\nProof. Apply lemma 1.5 to (S, Rd, R) and h(s1) =(cid:2) f1(s1)\n\nf2(s1)\n\nfd(s1)(cid:3). Sufﬁces\n(cid:110)∏d\ni=1(−∞, ˆxi] : ˆx ∈ Rd(cid:111)\n\n· · ·\n\n.\n\nto show h : SRd measurable.\n\nUse fact that Bd = Borel σ-ﬁeld on Rd = σ-ﬁeld generated by\nThen\n\n(cid:33)\n\nh−1\n\n(−∞, xi]\n\n=\n\n{s1 : fi(s1) = xi} ∈ S1\n\n(1.4)\n\n(cid:32) d∏\n\ni=1\n\nd(cid:92)\n\ni=1\n\nand by lemma 1.4 we are done.\nCorollary 1.7. { fi : S → R} measurable, then f1 + f2, f1 · f2, and max{ f1, f2} are measurable.\nProof. g(x1, x2) = x1 + x2, x1 · x2, and max{x1, x2} are all continuous hence measurable.\nApplying lemma 1.6 with { fi} and g shows that the composition is measurable.\n\nThis is very important, make sure to grok the following deﬁnition:\n\nDeﬁnition 1.8. For arbitrary xn ∈ ¯R, n ∈ N, deﬁne\n\nlim sup\n\nn\n\nlim inf\n\nn\n\nxn := lim\n\nxn := lim\n\nN↑∞ sup\nn≥N\nN↑∞ inf\nn≥N\n\nxn = inf N ↑ ∞ sup\nn≥N\nxn = sup N ↑ ∞ inf\nn≥N\n\nxn ∈ ¯R\nxn ∈ ¯R\n\n(1.5)\n\n(1.6)\n\n(1.7)\n\nNote that both lim sup and lim inf exist ∈ ¯R, regardless of whether limn xn does, and\n\nThese deﬁnitions may be generalized to ascending and descending sequences of sets,\n\nlim sup ≥ lim ≥ lim inf.\nwhere sup is taken to be ∪ and inf as ∩.\nLemma 1.9. Given measurable functions { fi : S → ¯R}∞\nf∗(s) = lim infn fn(s). Then f ∗ and f∗ are measurable functions S → ¯R.\n\ni=1, deﬁne f ∗(s) = lim supn fn(s) and\n\n2\n\n\fProof.\n\n{s : lim sup\n\nn\n\nfn(s) ≤ x} = {ss : fn(s) ≤ x + 1/i ult. ∀i ∈ N}\n\n= ∩∞\n= ∩∞\n= ∩∞\n\ni=1{s : fn(s) ≤ x + 1/i ult.}\ni=1 ∪∞\n(cid:123)(cid:122)\ni=1 ∪∞\n\nN=1 {s : fn(s) ≤ x + 1/i ∀n ≥ N}\n(cid:125)\nN=1 ∩∞\nn=N {s : fn(s) ≤ x + 1/i}\n\n(cid:124)\n\n∈S\n\n(1.8)\n\n(1.9)\n(1.10)\n(1.11)\n\nso f ∗ meaurable.\n2 On R-valued measurable functions (S,S) → R\nDeﬁnition 2.1. For A ∈ S, the indicator function 1A(s) =\n\n(cid:40)\n\n1,\n0,\n\nif s ∈ A\notherwise\n\nLet (cid:126)c ∈ Rn and {Ai}n\n\nstep function on Ai\n\nfunction if f (s) = ∑i\n\n(= ci for s ∈ Ai).\n(cid:27)\nLemma 2.2. Let hmeas; S → [0, L]. For i ≥ 1, deﬁne\n2i ≤ h(s)\nThen hi(s) ↑ h(s) and each hi is a simple function.\nExercise 2.3. Prove this.\n\nhi(s) = max\nj≥0\n\n(cid:26) j\n\n2i :\n\nj\n\n1 be a partition of S into measurable sets. f : (S,S) → R is a simple\n(cid:124)(cid:123)(cid:122)(cid:125)\nci1Ai\n\n= 2−i(cid:106)\n\n(cid:107) ≤ h(s)\n\n2ih(s)\n\n(2.1)\n\n3 Measures\n(S,S) a measurable space.\nDeﬁnition 3.1. A measure is a function µ : S → [0, ∞] such that\n(a) µ(∅) = 0\n(b) (Countable additivity) For countable disjoint Ai ∈ S, µ(∪iAi) = ∑i µ(Ai) ≤ ∞\nDeﬁnition 3.2. µ is a probability measure if in addition µ(S) = 1.\nµ(S) < ∞ is a ﬁnite measure.\nIf ∃Sn ↑ S s.t. µ(Sn) < ∞ for all n, then µ is a σ-ﬁnite measure\n\n3\n\n\f3.1 Elementary Properties\n• If A ⊂ B, then µ(A) ≤ µ(B)\n• If (A ∪ B) ≤ µ(A) + µ(B), with equality if A ∩ B = ∅\n• For probability measures, µ(Ac) = 1 − µ(A)\n• (Monotonicity) An ↑ A =⇒ µ(An) ↑ µ(A).\n\nAn ↓ A and some µ(An) < ∞ =⇒ µ(An) ↓ µ(A)\n\n• (Continuity) An ↓ ∅, ∃n : µ(An) < ∞, then µ(An) ↓ 0.\n\n4\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec20.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #20\n11/1/2016\n\nLet S1 = min{n : Xn ≤ a}, T1 = min{n : Xn ≥ b}, S2 = min{n > T1 : Xn ≤ a},\n\n1 Upcrossing Inequality\nTake any R-valued (Xn, n ≥ 0) and any a < b ∈ R.\nT2 = min{n > S2 : Xn ≥ b}, . . .\nDeﬁnition 1.1. Deﬁne Un = Un[a, b] = max{k : Tk ≤ n} to be the number of upcrossings\nover [a, b] completed by time n.\n\nTheorem 1.2 (Upcrossing Inequality). Suppose (Xn) is a sub-MG. Then\n\n(b − a)EUn ≤ E(Xn − a)+ − E(X0 − a)+\n\n≤ EX+\n\nn + |a|\n\n(1.1)\n(1.2)\n\nProof. For the second inequality, note (x − a)+ ≤ x+ + |a| so E(X − a)+ ≤ EX+ + |a|.\n\n(Trick) When Xn ≥ a ∀n, we will prove\n\n(b − a)EUn ≤ EX+\n\nn − EX+\n\n0\n\n(1.3)\n\nFor general MG (Xn), apply the result to max(Xn, a) − a, which is a sub-MG.\nUse the “buy low, sell high” strategy: buy 1 share at Si (low) and sell at Ti (high).\nConsider Y = H · X, where Hn = ∑i 1Si<n≤Ti. (Hn) is predictable and Hn ≥ 0, so (by\nDurett 2.7) (Yn) is a sub-MG.\nUn∑\n\n(1.4)\n\nYn =\n\ni=1\n\n(cid:124)\n(cid:123)(cid:122)\n(cid:125)\n(XTi − XSi\n≥ (b − a)Un + 0\n\nproﬁt\n\nEYn ≥ (b − a)EUn\n\n(cid:124)\n(cid:125)\n) + (Xn − XSUn+1)1n>SUn+1\n\n(cid:123)(cid:122)\n\nvalue of stock if buy at SUn+1\nand sell at time n < TUn+1\n\n(1.5)\n(1.6)\n\n1\n\n\fConsider the opposite strategy K: Kn = 1 − Hn (“Buy high, sell low”). (Kn) is also\npredictable, Kn ≥ 0, so\n(Xn − Yn) = Xn − (H · X)n =\n\ni + X0 − n∑\n∆X\n\ni + X0 = (K · X)n + X0\n∆X\n\nHi∆X\n\ni =\n\nn∑\n\nn∑\n\ni=1\n\ni=1\n\ni=1\n\n(cid:124)\n(cid:125)\n(cid:123)(cid:122)\n(1 − Hi)\n\n=Ki\n\n(1.7)\n\n(1.8)\n(1.9)\n(1.10)\n\nis a sub-martingale and\n\n0\n\nE[X0 − \u0000\u0000\u0012\nY0] ≤ E[Xn − Yn]\nEX0 ≤ EXn − EYn\n(b − a)EUn ≤ EXn − EX0\n\n2 Martingale convergence\n\na.s.→ X∞ for some X∞ with E|X∞| < ∞.\n\nTheorem 2.1 (Martingale Convergence Theorem (MCT)). If (Xn) is a sub-MG, supn\n∞, then Xn\nProof. Un[a, b] ↑ U∞[a, b] so by monotone convergence theorem, upcrossing inequality, and\nthe assumption EX+\n\nEX+\n\nn <\n\nn < ∞\n\nEU∞[a, b] = lim\nn\n\nEUn[a, b] ≤ supn\n\nn + |a|\n\nEX+\nb − a\n\n< ∞\n\nThis implies that U∞[a, b] < ∞ a.s., hence\n\nP(Un[a, b] < ∞ ∀a, b ∈ Q, a < b) = 1\n\n(2.1)\n\n(2.2)\n\nFor reals (xn), if lim supn xn > lim infn xn, then U∞[a, b] = ∞ for some a < b.\nlim inf xn ∈ [−∞, ∞]. Therefore, Xn → X∞ a.s..\nFatou’s Lemma: If Yn ≥ 0, then E lim infn Yn ≤ lim infn EYn.\n\nSince U∞[a, b] < ∞ for all rational a < b, the contrapositive implies lim sup xn =\nWe have so far X∞ ∈ [−∞, ∞], but we would like E|X∞| < ∞. To show this, recall\nn → X+∞ a.s. implies (by Fatou’s Lemma) that EX+∞ ≤ lim infn EX+\nX+\n\nn < ∞. Also\n\nEX−\n\nn = EX+\n\nn − EXn ≤ EX+\n\nn − EX0\n\nsince (Xn) a sub-MG means EX0 ≤ EXn. As X−\nn ≤ sup\n\n∞ ≤ lim inf\n\nEX−\n\nEX−\n\nn\n\nn\n\nn → X−∞ a.s., by Fatou’s Lemma\n\nEX+\n\nn − EX0 < ∞\n\n(2.3)\n\n(2.4)\n\nSince EX+∞ < ∞ and EX−∞ < ∞, we have E|X∞| < ∞.\n\n2\n\n\fa.s.→ X∞ and 0 ≤ EX∞ ≤ EX0.\n\nCorollary 2.2. If (Xn) is a super-MG, Xn ≥ 0 a.s., then Xn\nProof. Apply MCT to −Xn, so Xn\nEX0.\nExample 2.3 (WARNING: MCT does not imply EXn → EX∞). Consider a simple random\nwalk X0 = 1, stopped at T = min{n : Xn = 0}. Let Yn = Xmin(T,n). Then Yn → 0 = Y∞\na.s., but EYn = 1 ∀n which differs from EY∞ = 0.\nThis is similar to uniform convergence: if continuous fn converge uniformly to f , then f\n\na.s.→ X∞. Use Fatou’s Lemma: EX∞ ≤ lim infn EXn ≤\n\nis continuous. Not necessarily true for pointwise convergence.\n\nFor sequences of expectations to converge, we need uniform integrability.\n\n3 Facts about Uniform (Equi-)Integrability\n\nConsider R-valued RVs (Yα)\n\nDeﬁnition 3.1. A family (Yα) is uniformly integrable (UI) if\n\n= 0\n\n(3.1)\n\n(cid:105)\n\n(cid:104)|Yα|1|Yα|≥b\n(cid:105)\n\nlim\nb→∞ sup\n\nα\n\nE\n\n(cid:104)|Y|1|Y|>b\n\n“We have integrability uniformly over all RVs Yα in the family”\n\nIf E|Y| < ∞, then limb→∞ E\nFacts relating to UI (see Durrett or Bilingsley)\n1. If supα\n\n= 0\n\nE|Yα|q < ∞ for some q > 1, then (Yα) is UI, which implies that supα\na.s.→ Y∞ and (Yn) is UI, then E|Y∞| < ∞ and E|Yn − Y∞| → 0 (i.e. Yn → Y∞ in L1)\n\nE|Yα| <\n\n∞\n\n2. If Yn\n\n3. If Yn → Y∞ in L1, then (Yn) is UI.\n4. If E|Y| < ∞, the family {E[Y | G] : ∀G ⊂ F} is UI.\n\nTheorem 3.2. For a MG (not sub-MG!) (Xn), TFAE:\n\n(a) (Xn) is UI\n(b) Xn converges in L1\n(c) There exists a RV X∞ with E|X∞| < ∞ such that Xk = E[X∞ | Fk] ∀k\nIf any of these conditions hold, then ∃X∞ such that Xn → X∞ both a.s. and in L1.\nProof. (c) =⇒ (a), item 4..\nsome X∞ a.s., which implies by 2. that Xn → X∞ in L1 i.e. (b).\n\n(a) implies (by item 1.) that supn\n\nE|Xn| < ∞, which by MCT implies Xn converges to\n\n3\n\n\fGiven (b), Xn → X∞ in L1, which means that E|Xn − X∞| → 0 with E|X∞| < ∞. We\nneed to prove that EX∞1A = EXk1A for any A ∈ Fk. Fix A and k. By the MG property, for\nn > k, E[Xn | Fk] = Xk so EXn1A = EXk1A. Hence\n\n|EX∞1A − EXn1A| ≤ E|X∞ − Xn| → 0\n\n(3.2)\n\nas n → ∞, so |EX∞1A − EXk1A| = 0.\n\nUsing UI with MCT leads to a convergence property for conditional expectations.\n\nTheorem 3.3 (Levy 0-1 Law). Let (Yn)n≥0 be any process, Fn the natural ﬁltration σ(Yk, 0 ≤\nk ≤ n). Let Z be any RV with E|Z| < ∞ and Z ∈ F∞.\nThen Xn = E[Z | Fn] is a UI martingale, so theorem 3.2 implies Xn → X∞ both a.s. and in\n\nL1. In terms of Z\n\nE[Z | Fn] → E[Z | F∞]\n\nas n → ∞\n\n(3.3)\n\n(3.4)\n(3.5)\n\n(3.6)\n\nIn fact, X∞ = Z because\n\nE[X∞ | Fn] = Xn = E[Z | Fn]\n\n0 = E[X∞ − Z | Fn] = X∞ − Z\n\nMG property\nX∞ − Z is F∞-meas\n\nRemark 3.4. In particular, take Z = 1A for some event A. Then\n\nP(A | Fn)(ω) a.s.→ 1A(ω)\n\nfor all A ∈ σ(Yn, n ≥ 0).\n\nIn English:\n\nIf we are learning gradually all the information that determines the outcome of\nan event, then we will become gradually certain what the outcome will be.\n\nFor independent (Yn), let A ∈ F∞ be some tail event. Then\n\nP(A | Fn)(ω) = P(A) a.s.→ 1A as n → ∞\n\n(3.7)\nwhich implies that 1A is a constant a.s. and hence P(A) ∈ {0, 1}. This is Kolmogorov’s\nzero-one law.\n\n4\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec21.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #21\n11/3/2016\n\n(1.1)\n\n(1.2)\n\n(1.3)\n\n(1.4)\n\n“Converge or Oscillate Inﬁnitely”\n\n1\nLemma 1.1. Let (Xn) be a MG such that |Xn − Xn−1| ≤ K ∀n. Then P(C ∪ D) = 1 for the\nevents\n\n(cid:110)\n(cid:26)\n\nC =\n\nD =\n\n(cid:111)\n\nω : lim\n\nn→∞ Xn(ω) exists and is ﬁnite\n\nω : lim sup\nn→∞\n\nXn(ω) = +∞ and lim inf\n\nn\n\nXn(ω) = −∞\n\n(cid:27)\n\nDeﬁne T = min{n : Xn < −L}. The stopped process (XT∧n, n ≥ 0) is a MG which is\n\nProof. WLOG assume X0 = 0. Fix L > 0.\nalways ≥ −L − K (by def of T and assumption |Xn − Xn−1| ≤ K).\na.s. as n → ∞ (This is obvious for T < ∞ but still true for T = ∞).\n\nBy the (positive super-MG) convergence theorem, XT∧n converges to some ﬁnite limit\nThis implies {infn Xn > −L} = {T = ∞} ⊂ C.\nAs L was arbitrary, letting L → ∞ yields\n\nA1 =\n\ninf\nn\n\n(cid:110)\n(cid:26)\n\nXn > −∞(cid:111) ⊂ C\n(cid:27)\n\nXn < ∞\n\n⊂ C\n\nApplying the same argument to −Xn yields\n\nsup\nn\nNoting D = (A1 ∩ A2)c completes the proof.\n\nA2 =\n\n2 Conditional Borel-Cantelli\nLemma 2.1 (Conditional Borel-Cantelli Lemma). Consider events (An) adapted to (Fn).\nDeﬁne Bn = ∪m≥nAm and B = ∩nBn = lim supn An = {An i.o.}. Then\n(a) {An i.o.} a.s.\n(b) P(Bn+1 | Fn)\na.s.\n= B2 means P(B1∆B2) = 0.\nB1\nProof. ?? Consider K < n. Then B ⊂ Bn ⊂ BK and\n\nn=1 P(An | Fn−1) = ∞}\na.s.→ 1B as n → ∞\n\n= {∑∞\n\nP(B | Fn) ≤ P(Bn+1 | Fn) = P(Bn+1 |n) ≤ P(BK | Fn)\n\n(2.1)\n\n1\n\n\fTaking n → ∞, by martingale convergence theorem\nP(Bn+1 | Fn) ≤ lim sup\n\n1B ≤ lim inf\n\nn\n\nn\n\nP(Bn+1 | Fn) ≤ 1BK\n\n(2.2)\n\nLet K ↑ ∞. Then 1BK ↓ 1B\n?? Consider Xn = ∑n\n(cid:40)\n|1An+1 − P(An+1 | Fn)| ≤ 1. Then ?? implies that P(C ∪ D) = 1. We want to show\n\na.s.= limn P(Bn+1 | Fn).\nm=1(1Am − P(Am | Fm−1)), which is a MG, and |Xn+1 − Xn| =\n(cid:40)\n\n(cid:41)\n\n(cid:41)\n\n1Am = ∞\n\na.s.=\n\n∑\nm\n\n∑\nm\n\nP(Am | Fm−1) = ∞\n\n(2.3)\n\nObserve that Xn = ∑n\n+∞ and lim infn Xn = −∞}, we have that both sums are inﬁnite:\n\nm=1 P(Am | Fm−1). On event D = {ω : lim supn Xn =\n\nm=1 1Am − ∑n\n\nn∑\n\n∞ = lim sup\n\nP(Am | Fm−1) ≤ ∞\n∑\nm=1\nP(Am | Fm−1) ≥ − ∞\n∑\nm=1\nOn event C, either both sums are ﬁnite or both sums equal ∞.\n\n1Am − n∑\n1Am − n∑\n\n−∞ = lim inf\n\nn∑\n\nm=1\n\nm=1\n\nn\n\nn\n\nm=1\n\nm=1\n\n1Am\n\nP(Am | Fm−1)\n\n(2.4)\n\n(2.5)\n\n3\n\n“Product” martingales\n\nOur discussion thus far has examined sums of MGs. In this section, we consider products\nof MGs.\n\n3.1 Convergence for “Multiplicative” MGs\nTheorem 3.1 (Kakutani’s Theorem). Take (Xi, i ≥ 1) to be independent, Xi > 0, EXi = 1. We\nknow that Mn = ∏n\n\na.s.→ M∞ with EM∞ ≤ 1. Then TFAE:\n\ni=1 Xi is a MG hence by MCT Mn\n\n(a) EM∞ = 1\n(b) Mn → M∞ in L1\n(c) (Mn, n ≥ i) is UI\n(d) Set ai = EX1/2\n(e) ∑i(1 − ai) < ∞\nProof. Conditions ?????? are equivalent by the L1 MG convergence theorem.\n\nand note that 0 ≤ ai ≤ 1, ∏∞\n\ni=1 ai > 0.\n\ni\n\nConditions ???? are equivalent by calculus: use 1 − x + x2 ≤ e−x ≤ 1 − x for small\n\nx > 0.\n\n2\n\n\fSuppose ?? holds. Consider\n\nNn =\n\nX1/2\n1\na1\n\n· X1/2\n2\na2\n\n· · · · · X1/2\nn\nan\n\n·\n\nwhich is a MG. Note\n\nE[N2\n\nn] =\n\nApply the Doob L2 maximal inequality:\n\nEMn\n∏n\ni=1 a2\ni\n\n≤\n\n1\n∏∞\ni=1 a2\ni\n\n= K < ∞\n\n(cid:20)\n\n(cid:21)\n\n≤ 4K\n\nE\n\nsup\nn\n\nNn\n(3.3)\nNote that Mn ≤ N2\ni . Therefore, E[supn Mn] ≤ (4K)2 < ∞. This\nimplies that (Mn, n ≥ 1) is UI. If Z ≥ 0, EZ < ∞, then the family {X : 0 ≤ X ≤ Z} is UI.\nThis yields ??.\na.s.→ N∞, so we\n\nSuppose that ?? is false, so ∏∞\n\ni=1 ai = 0. For the MG (Nn), we have Nn\n\nn since Mn = N2\n\ni=1 a2\n\nn ∏n\n\nmust have\n\nN∞ =\n\n∏∞\ni=1 X1/2\ni\n∏∞\ni=1 ai\n\n(3.4)\n\nSince the denominator is 0, then ∏∞\n\ni=1 X1/2\n\ni = M1/2∞ = 0 a.s., so ?? fails.\n\n3.2 Likelihood ratios (absolute continuity of inﬁnite product measures)\nGiven densities ( fi, 1 ≤ i < ∞) and (gi, 1 ≤ i < ∞), assume fi > 0 and gi > 0. Take\nΩ = R∞ with Xi((cid:126)ω) = ωi. Work with P, the product measure where the (Xi) are\nindependent with densities fi. Consider Q, where the (Xi) have densities gi.\nDeﬁnition 3.2. The likelihood ratio\n\nLn =\n\nn∏\n\ni=1\n\ngi(Xi)\nfi(Xi)\n\n(3.5)\n\nis the Radon-Nikodym density dQn\ndPn .\n\n(Qn is the probability measure with corresponding density f1 ⊗ f2 ⊗ · · · ⊗ fn)\nKnow: (Ln, n ≥ 1) is a MG wrt P.\nSuppose that (Ln, n ≥ 1) is UI. Then Ln → L∞ in L1 and Ln = E[L∞ | Fn]. What this\n\nmeans, from the deﬁnition of R-N density, is\n\n(3.1)\n\n(3.2)\n\n(3.6)\n(3.7)\n\n(3.8)\n\nQ(A) = ELn1A ∀A ∈ Fn\n\n= EL∞1A ∀A ∈(cid:91)\n\nFn\n= EL∞1A ∀A ∈ F∞\n\nn\n\n3\n\n\fso L∞ is the R-N density dQ\n∑i(1 − ai) < ∞.\n\nSimilarly, if Q (cid:28) P, then we can prove (Ln, n ≥ 1) is UI. So Q (cid:28) P ⇐⇒ (Ln, n ≥ 1)\nis UI ⇐⇒(cid:124)(cid:123)(cid:122)(cid:125)\n\ndP on R∞. Therefore, Q (cid:28) P.\n(cid:19)1/2\n\n(cid:90)\n\nKakutani\n\n=\n\ng1/2\ni\n\n(x) f 1/2\n\ni\n\n(cid:17)2\n\n(x)\n\ndx\n\ni\n\n(x) − f 1/2\n(cid:17)2\n\n(x)dx\n\n(3.9)\n\n(3.10)\n\n(3.11)\n\n(cid:18) gi\n(cid:90) (cid:16)\n\nfi\n\n(Xi)\n\ng1/2\ni\n\nai = E\n1\n2\n\nalgebra =⇒ 1 − ai =\nOur condition becomes Q (cid:28) P ⇐⇒\n(cid:90) (cid:16)\n\n∞\n∑\ni=1\n\ng1/2\ni\n\n(x) − f 1/2\n\n(x)\n\ni\n\ndx < ∞\n\n“ fi and gi become close for large i.”\n\nWe know that if f (cid:54)= g, then Q and P are singular.\n\n4\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec22.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #22\n11/8/2016\n\n1 Optional Sampling Theorem\n\nIntuition:\n\nMath/data:\n\nassumptions do we need?\n\nSetup for OST. Let (Xn, n ≥ 0) be a sub-MG. To conclude EX0 ≤ EXT, what extra\nKnow: Sufﬁcient T ≤ t0 < ∞ a.s. So, sufﬁcient that\nE|XT − XT∧n| → 0\nTheorem 1.1 (Optional Sampling Theorem (OST)). If\n(a) E|Xn|1T>n → 0 as n → ∞\n(b) E|XT| < ∞\nthen EX0 ≤ aEXT.\nProof. See Durrett.\n\n(1.1)\n\n1\n\n\fTheorem 1.2 (Useful version of OST). Suppose (Xn) is a sub-MG, T a stopping time, ET < ∞.\nWrite ∆\n\nn=Xn−Xn−1. If ∃b > 0 such that\n\nthen EX0 ≤ EXT.\nProof. Note XT = X0 + ∑T\n\nn=1\n\nConsider\n\nE[|∆n| | Fn−1] ≤ b\n\non {n ≤ T}\n\n∆n, and |XT| ≤ Y hence |XT∧n| ≤ Y.\n\nY = |X0| +\n\n|∆n|\n\nT∑\n\nn=1\n\nEY = E|X0| +\n\n|∆n|\n\nT∑\n\nn=1\n\n(1.2)\n\n(1.3)\n\n(1.4)\n\n(1.5)\n(1.6)\n\nE[|∆n|1T≥n | Fn−1] = 1T≥nE[|∆n| | Fn] ≤ b1T≥n\n\nE[|∆n|1T≥n] = EE[|∆n|1T≥n | Fn−1] ≤ bP(T ≥ n)\n\n(1.7)\nRecall E|W| < ∞ and P(An) → 0 =⇒ E(W1An)) → 0, so taking W = Y and An = {T >\nn} shows (a).\n\nbP(T ≥ n) = EX0 + bET < ∞\n\nEY ≤ E0 +\n\n∞\n∑\nn=1\n\nE|XT| ≤ EY < ∞ shows (b).\n\n2 Equalities from inequalities using martingales\n\nPrinciple: Given a MG proof of exact formula, one can often get equality conclusions out\nof inequality assumptions.\nCorollary 2.1 (Inequality version of Wald identity). Suppose (ξi) independent, µ1 ≤ Eξi ≤\nµ2, and supi\n\nE|ξi| < ∞.\ni=1 ξi. Then for any stopping time T where ET < ∞\n\nLet Sn = ∑n\n\nµ1ET ≤ EST ≤ µ2ET\n\nProof. Apply theorem 1.2 to Xn = Sn − nµ1 (i.e. ∆n = ξn − µ1).\n\nE[∆n | Fn−1] = ESn − µ1 ≥ 0 =⇒ (Xn) is a sub-MG\nE[|∆n| | Fn−1] = E|∆n| ≤ E|Sn| + |µ1| ≤ b\n\nWald: if (ξi) i.i.d.\n\nESt = (Eξ) · (ET)\n\nTheorem =⇒ EX0 ≤ EXT\n=⇒ 0 ≤ ESt − µ1ET\n=⇒ ESt ≥ µ1ET\n\n2\n\nby hypothesis\n\n(2.1)\n\n(2.2)\n(2.3)\n\n(2.4)\n\n(2.5)\n(2.6)\n(2.7)\n\n\fLemma 2.2. Take (ξi) i.i.d., Sn = ∑n\nE exp(θξ) = Eθb. Then\n\ni=1 ξi. Fix a > 0 and b > Eξ. Suppose ∃θ > 0 such that\n\nP(Sn ≥ a + nb for some n ≥ 0) ≤ e−θa\n\n(2.8)\n\nProof. Set ˆξi = ξi − b, so ˆSn = Sn − nb.\n\nE exp(θ ˆξ) = 1 by deﬁnition, so (exp(θ ˆSn), n ≥ 0) is a MG.\nApply L1 maximal inequality\n\nexp(θ ˆSn) ≥ λ) ≤ λ\n\n−1\n\nP(sup\nn\n\n(2.9)\n\nˆSn ≥ a) ≤ e−θa\nSet λ = eθa =⇒ P(supn\nLemma 2.3. Suppose (ξi) i.i.d., Sn = ∑n\nφ(θ) = E exp(θξ) = 1, T is a stopping time with ET < ∞, and ∀n : Sn ≤ B on {n < T}.\n\ni=1 ξi, ∃θ > 0 such that moment generating function\n\nThen E exp(θST) = 1.\n\nProof. Xn := exp(θSn) is a MG. Need to check eq. (1.2) from theorem 1.2.\n\n∆n = Xn − Xn−1 = Xn−1(exp(θSn) − 1)\n|∆n| ≤ Xn−1|exp(θξn) − 1|\nE[|∆n| | Fn−1] ≤ Xn−1E|exp(θξ) − 1|\n\nas {n ≤ T} = {n − 1 < T} we have\n\nSn−1 ≤ B\nXn−1 ≤ eθB\n\n(2.10)\n(2.11)\n(2.12)\n\n(2.13)\n(2.14)\n\nThis veriﬁes theorem 1.2 so apply MG version to conclude EX0 = EXT. TODO: Follow\nup\n\n3\n\n\f2.1 Boundary crossing inequalities\nSetting:\n\ni=1 ξi\n\n• (ξi) i.id.\n• Sn = ∑n\n• |ξi| ≤ L\n• Eξ < 0\n• P(ξ > 0) > 0\nFix a < 0 < b, consider T = min{n : Sn ≥ b or Sn ≤ a}\n\nExercise 2.4. Check ET < ∞\n\n(cid:124) (cid:123)(cid:122) (cid:125)\n) = x, so P( St ≤ a\n\n(cid:124) (cid:123)(cid:122) (cid:125)\nLet P( ST ≥ b\n⇐⇒ ST≤b−L\nConsider φ(θ) = E exp(θξ) < ∞, φ(a) = 1, φ(cid:48)(0) = Eξ < 0, φ(θ) → ∞ as θ → ∞.\n=⇒ ∃θ > 0 : φ(θ) = 1.\nApply Lemma =⇒ E exp(θST) = 1.\n\n) = 1 − x.\n\n⇐⇒ ST≥a+L\n\nxeθb + (1 − x)eθ(a−L) ≤ 1 ≤ xeθ(b+L) + (1 − x)eθa\n\nRearranging\n\neθ(b+L) − eθa\nSpecial case for simple random walk:\n\n1 − eθa\n\n≤ x ≤ 1 − eθ(a−L)\neθb − eθ(a−L)\n\n1\n2\n\nP(ξ = 1) = p <\nP(ξ = −1) = q = 1 − p\na < 0 < b ∈ Z\n\nHere, the upper bound is an equality so\n\nx =\n\n1 − eθa\neθb − eθa\n\nφ(θ) = peθ + qe−θ = 1, so solving yields eθ = q/p and\n\nx =\n\n1 − (q/p)a\n\n(q/p)b − (q/p)a\n\nwhich is the undergraduate result from directly solving simple random walk.\n\n4\n\n(2.15)\n\n(2.16)\n\n(2.17)\n\n(2.18)\n(2.19)\n\n(2.20)\n\n(2.21)\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec23.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #23\n11/10/2016\n\n1 Patterns in coin-tossing\n\nSay in words (exercise X’s general pattern):\nis random, t ≤ W < ∞ a.s.\n\nFix pattern HTTHT. Toss fair coin until see this pattern — requires W tosses where W\n\nWhat is EW?\nConsider the strategy\n• bet $1 that toss i is H\n• if win, bet $2 that toss i + 1 is T\n• if win, bet $4 that toss i + 2 is T\n• if win, bet $8 that toss i + 3 is H\n• if win, bet $16 that toss i + 4 is T\n\nDo strategy for each 1 ≤ i ≤ W, stop after toss W.\n\nW is a stopping time, so the optional sampling theorem implies E[proﬁt] = 0.\n\ncost = W\n\nreturn = 32 + 4 = 36\nproﬁt = return − cost\n\n0 = E[proﬁt] = E[36 − W] = 36 − EW\n\nEW = 36\n\n(1.1)\n(1.2)\n(1.3)\n(1.4)\n(1.5)\n\n2 MG proof of Radon-Nikodym\nTheorem 2.1 (Radon-Nikodym). Let (S,S, µ) be a probability space, S = σ(Ai, i ≥ 0) count-\nable events.\nA ∈ S.\n\nIf ν (cid:28) µ, ν(S) < ∞, then ∃measurable h : S → [0, ∞] such that ν(A) = (cid:82)\n\nA hdµ for all\n\ndµ is the Radon-Nikodym density of νwrtµ.\n\nh = dν\nHeuristics: h(s) = dν\n\ndµ (s) = limA↓{s} ν(A)\nµ(A).\n\n1\n\n\fProof. Deﬁne Fn = σ(Ai, 1 ≤ i ≤ n) ﬁnite ﬁeld with 2n atoms.\n\nDeﬁne Xn(s) = ν(F)\n\nµ(F) for atom F (cid:51) s.\n\n= ν(F) for each F ∈ Fn\n\nClaim: (Xn,Fn) is a MG.\nJustiﬁcation: Take G ∈ Fn−1.\n\n(cid:123)(cid:122)\n(cid:125)\nG = (G ∩ An)\n\n(cid:124)\n\n(cid:124)\n(cid:123)(cid:122)\n∪ (G ∩ Ac\nn)\n\n(cid:125)\n\n(2.1)\n\nG1\n\nEquation (2.3) =⇒ = ν(G1) + ν(G2) = ν(G) = EXn−11G\n\n(2.2)\n(2.3)\n(2.4)\nBy MG convergence theorem, Xn → X∞ for some X∞ ≥ 0 a.s. If we prove (Xn, n ≥ 1)\n\nG2\nEXn1G = EXn1G1 + EXn1G2\nXn−1 = E[Xn | Fn−1]\n\nis UI, then Theorem from Lecture 20 implies Xn = E[X∞ | Fn] hence\n\nEX∞1F = EXn1F = ν(F)\nEX∞1F = ν(F)\nEX∞1F = ν(F)\n\n(cid:90)\n\nν(F) = EµX∞1F =\n\nX∞dµ\n\nF\n\neq. (2.3)\n∀F ∈ ∪nFn\n∀F ∈ σ (∪nFn) = S\n\nSo X∞ is R-N density dν\nLemma 2.2. Suppose ν (cid:28) µ. ∀ε > 0,∃δ(ε) > 0 such that\n\ndµ and we are done.\n\nµ(A) ≤ δ(ε) =⇒ ν(A) ≤ ε\n\n2\n\n(2.5)\n(2.6)\n(2.7)\n\n(2.8)\n\n(2.9)\n\n(2.10)\n\n\fProof. If false for ε,∃An such that µ(An) ≤ 2−n and ν(An) > ε. Consider Λ = {An i.o.}.\nBy Borel-Cantelli, µ(Λ) = 0 but ν(Λ) ≥ ε, contradicting ν (cid:28) µ.\n\nClaim: (Xn) is UI.\nJustiﬁcation: By eq. (2.3), EXn1Xn≥b = ν(Xn ≥ b). Given ε > 0, take b such that\nb ≤ δ(ε). Then\n\nν(S)\n\nν(Xn ≥ b) ≤\nlemma 2.2ν(XN ≥ b) ≤ ε\n\nMarkov\n\n=⇒ sup\n\nEXn1Xn≥b ≤ ε\n\nn\n\nEXn\n\nb\n\n=\n\nν(S)\n\nb\n\n≤ δ(ε)\n\n(2.11)\n\n(2.12)\n(2.13)\n\nSo UI.\n\nThe above proof relies on martingale convergence theorem for existence of R-N density\n\nX∞. It also only holds for countable events.\n\n3 Azuma’s inequality\nTheorem 3.1 (Azuma’s inequality). Let Sn = ∑n\n\nThen for λ > 0,\n\ni=1 Xi be a MG with |Xi| ≤ 1 a.s.\n\nso\n\nP(|Sn| ≥ λ\n\nP(Sn ≥ λ\n\n√\n\nn) ≤ e−λ2/2\n√\n\nn) ≤ 2e−λ2/2\n\n(3.1)\n\n(3.2)\n\nLemma 3.2. If EY = 0 and |Y| ≤ 1, then EeαY ≤ eα2/2 for all α.\n\nProof of Lemma 3.2.\n\nEeαY ≤\n\nconvexity\n\nEL(Y) =\nlinear\n\nL(EY) = L(0) = (eα + e−α)/2 ≤\n\ncalculus\n\neα2/2\n\n(3.3)\n\n3\n\n\fCalculus: coefﬁcient of α2n in series expansion\n\n1\n\n(2n)!\n\n≤ 1\n2nn!\n\n(3.4)\n\nProof of Azuma (Theorem 3.1). Apply lemma 3.2 to conditional distribution of Xi given Fi−1\n\nE[eαXi | Fi−1] ≤ eα2/2\nE[eαSn | Fn−1] = eαSn−1E[eαXn | Fn−1) ≤ eα2/2eαSn−1]\n\nTake E and apply tower property\n\nE[eαSn] ≤ eα2/2EeαSn−1\n\nE[eαSn] ≤(cid:16)\n\neα2/2(cid:17)n\n\n= eα2n/2\n\nApplying Markov inequality with φ = exp\n\n√\n\neαλ\n\nn) ≤ EeαSn\n√\n\nP(Sn ≥ λ\n√\nn\n√\nn) ≤ eα2n/2−αλ\n\nn\n\nMinimize over α by taking α = λ/\nP(Sn ≥ λ\n\n≤ eα2n/2−αλ\n\n√\n\nn\n\n√\n\nn = e−λ2/2\n\n(3.5)\n(3.6)\n(3.7)\n\n(3.8)\n\n(3.9)\n\n(3.10)\n\n(3.11)\n\n4 Method of bounded differences\nCorollary 4.1. Take (ξi, 1 ≤ i ≤ n) independent, arbitrary state spaces.\nin one coordinate only (i.e. |{i : yi (cid:54)= xi}| = 1), then | f ( ˜x) − f ( ˜y)| ≤ 1.\n\nTake R-valued Z = f (ξ1, ξ2, . . . , ξn) such that if ˜x = (x1, . . . , xn) and ˜y = (y1, . . . , yn) differ\nThen P(|Z − EZ| ≥ λ\nThis is useful for analysis of random algorithms: consider randomized traveling sales-\n\nman where the tour ˜x is changed at a single location yi (cid:54)= xi.\nProof. WLOG assume EZ = 0. Write Sm = E[Z | Fm] where Fm = σ(ξi, 1 ≤ i ≤ m), so\n(Sm, 1 ≤ m ≤ n) is a MG.\n\nn) ≤ 2e−λ2/2 for λ > 0.\n\n√\n\nIf we can show “Sm has bounded differences”\n\nthen Azuma’s inequality (theorem 3.1) yields the desired conclusion.\n\n|Sm − Sm−1| ≤ 1\n\n(4.1)\n\n4\n\n\f(4.2)\n\n(4.3)\n\n(4.4)\n\n(4.5)\n(4.6)\n(4.7)\n\n(4.8)\n(4.9)\n(4.10)\n(4.11)\n\nLemma 4.2. If Y is such that any 2 possible values within 1, then |Y − EY| ≤ 1.\nProof. min supp Y ≤ Y ≤ max supp Y and min supp Y ≤ EY ≤ max supp Y so\n\n|Y − EY| ≤ max supp Y − min supp Y ≤ 1\n\nIf we know all (ξi, i (cid:54)= m) then apply lemma 4.2 conditionally\n\n(cid:124)\n\nZ∗\n\n(cid:125)\n|Z − E[Z | ξi, i (cid:54)= m]\n\n(cid:123)(cid:122)\n\n| ≤ 1\n\nLemma 4.3. If W is independent of (Y,G), then E[Y | G, W] = E[Y | G].\nProof. Exercise.\n\nBy lemma 4.3\n\nE[Z∗ | Fm] = E[Z∗ | Fm−1, ξm] = E[Z∗ | Fm−1]\n\ntower property =⇒ = E[Z | Fm−1]\n\nThis is nice: Z and Z∗ are both conditioned on the same σ-ﬁeld Fm so\n|Sm − Sm−1| = |E[Z | Fm] − E[Z | Fm−1]|\n= |E[Z | Fm] − E[Z∗ | Fm]|\n≤ E[|Z − Z∗| | Fm]\n\nEquation (4.3) =⇒ ≤ 1\n\n5\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec24.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #24\n11/15/2016\n\n1 Examples using method of bounded differences\n\nTheorem 1.1 (Method of bounded differences, from last class). ξ1, ξ2, . . . , ξn independent,\nZ = f (ξ1, . . . , ξn) where f has the property\n\nThen\n\n|{i : xi (cid:54)= yi}| = 1 =⇒ | f ( ˜x) − f ( ˜y)| ≤ 1\n\nP(|Z − EZ| ≥ λ\n\n√\n\nn) ≤ 2e−λ2/2, λ > 0\n\n(1.1)\n\n(1.2)\n\nExample 1.2. Put n balls “at random” into m boxes.\n\nConsider Z(m, n) = # empty boxes.\nFrom combinatorics, EZ(n, m) = m(1 − 1/m)n.\nApply to ξi = box containing ball i, 1 ≤ i ≤ n. Equation (1.1) holds.\n\nExample 1.3 (Simple open (unsolvable?) problem). Take 2 independent Bernoulli(1/2)\nsequences of length n.\n\nWant to match digits between two strings such that no lines are crossing (i.e. longest\n\ncommon subsequence). In example 1.3, this is 01010.\nLet Zn = length of longest common subsequence.\nFact: n−1Zn\nTake ξi = (·\n\na.s.→ c as n → ∞, no formula for c.\n·) at position i.\n\n1\n\n\fAny change ˜x → ˜y has\n\nf ( ˜y) − f ( ˜x) ≥ −2\n⇐⇒ f ( ˜x) − f ( ˜y) ≤ 2\n\n(1.3)\n(1.4)\n\nSo Zn/2 satisﬁes eq. (1.1).\n\nDeﬁnition 1.4. A c-coloring of a graph G is a function color : V(G) → {1, 2, . . . , c} such that\n(v1, v2) ∈ E(G) =⇒ color(v1) (cid:54)= color(v2).\n\nThe chromatic number χ(G) = min{c : ∃c-coloring of G}\n\nDeﬁnition 1.5. The Erdös-Renyi random graph model G(n, p) has n vertices with each of the\n(n\n2) possible edges present with probability p.\n\nLet Z = χ(G(n, p)). Order vertices arbitrarily 1, 2, . . . , n.\nFor i ≥ 2, let ξi = (1(i,1)∈E(G), . . . , 1(i,i−1)∈E(G)). Since we can always just add a color\n\nwhen we increment i, eq. (1.1) holds for Z = f (ξ1, . . . , ξn).\nExample 1.6. Put n points IID uniform in unit square. Fix 0 < c < 1. Let Z(n, c) = max\nnumber of disjoint c × c squares containing 0 points.\n\nMoving any single point can only reduce Z(n, c) by 1, so eq. (1.1) holds.\n\n2 Reversed martingales\nConsider sub-σ-ﬁelds, G0 ⊃ G1 ⊃ G2 ⊃ . . ., G∞ = ∩nGn. In Durrett, Gn = F−n.\nDeﬁnition 2.1. (Xn,Gn) is a reversed martingale if\n(a) E|Xn| < ∞\n(b) E(Xm | Gn) = Xn, m ≤ n\n\n2\n\n\f(c) (Xn) adapted to (Gn)\nTogether, these imply Xn = E[X0 | Gn]\n\nReversed martingales are in some sense easier, since we are given that the limit X0\n\nalways exists\nTheorem 2.2. For a reversed MG, Xn → E[X0 | G0] a.s. and in L1.\nProof. (XN, XN−1, . . . , X0) is a MG. Let UN = # upcrossings of (XN, . . . , X0) over [a, b]. By\nthe upcrossing inequality\n\nEUn ≤ E|X0| + |a|\n\nb − a\n\n[As in proof for MGs] UN ↑ U∞, so\n\nEU≤\n\nE|X0| + a\n\nb − a\n\n=⇒ U∞ < ∞ a.s.\n\nSo Xn\n\na.s.→ X∞ for some X∞ ∈ [−∞, ∞].\n\nBut Xn = E[X0 | G] implies (Xn) is UI, which implies Xn\nNeed to show X∞ = E[X0 | G∞].\n\nn → ∞\nk → ∞\n\nXn ∈ Gn ⊂ Gk\nX∞ ∈ Gk\nX∞ ∈ G∞\n\nSo X∞ is G∞-measurable.\n\nNeed to show EX∞1G = EX01G, G ∈ G∞.\n\nXn = E[X0 | Gn] =⇒ EXn1G = EX01G\nL1→ X∞ =⇒ EXn1G → EX∞1G\n=⇒ EX01G = EX∞1G\n\nXn\n\nL1→ X∞, E|X∞| < ∞.\n\nn > k\n\nG ∈ G∞\n\n(2.1)\n\n(2.2)\n\n(2.3)\n(2.4)\n(2.5)\n\n(2.6)\n\n(2.7)\n(2.8)\n(2.9)\n\n3 Exchangeable sequences\n\nDeﬁnition 3.1. A sequence of RVs (X1, X2, . . .) is called exchangeable if\n\n(X1, X2, . . . , Xn)\nfor all n and all permutations π ∈ Sn.\n\nd\n= (Xπ(1), Xπ(2), . . . , Xπ(n))\n\n(3.1)\n\n3\n\n\fBy Kolmogorov’s consistency theorem, if this holds for all ﬁnite sequences, then it\ni=1 are exchangeable, R-valued, and E|X1| < ∞. Write Sn =\n\nholds for inﬁnite sequences as well.\nTheorem 3.2. Suppose (Xi)∞\n∑n\ni=1 Xi.\nThen n−1Sn → E[X1 | τ] a.s. and in L1, where τ = tail(Xi, i ≥ 1).\nCorollary 3.3. If (Xi) IID, E|X1| < ∞, then τ is trivial.\n=⇒ E[X1 | τ] = EX1 and Theorem =⇒ n−1Sn → EX1. This shows WLLN.\n= (Z2, W) and E|Z1| < ∞, then E[Z1 | W] = E[Z2 | W].\n\nd\n\nLemma 3.4. If (Z1, W)\nProof. Q is a kernel assoc with dist(Z1, W).\n\n(cid:90)\n\nZQ(W, dz)\n\nE[Z1 | W] = φ(W) where φ(W) =\nE[Z2 | W] = φ(W)\n\n= E[X | G], then X = E[X | G] a.s.\n\nComment: easy if EX2 < ∞, more work if only integrable.\n\nExercise 3.5. Let E|X| < ∞. If X d\nProof of theorem 3.2. Deﬁne Gn = σ(Sn, Xn+1, Xn+2, . . .) = σ(Sn, Sn+1, Sn+2, . . .).\nLemma 3.6. E[Xi | Gn]\nProof. Take permutation π of (1, . . . , n).\n\na.s.\n\n= E[Xi | Gn], 1 ≤ i ≤ n.\n\n(Xπ(1), . . . , Xπ(n), Xn+1, Xn+2, . . .)\n\nd\n= (X1, . . . , Xn, Xn+1, Xn+2, . . .)\n\nSet W = (Sn, Xn+1, Xn+2, . . .).\n\n=⇒\n=⇒\n=⇒\nLemma 3.4 =⇒\n\n(Xπ(1), . . . , Xπ(n), W)\n(Xπ(1), W)\n(Xi, W)\nE[Xi | W] = E[X1 | W]\n\nd\n= (X1, . . . , Xn, W)\nd\n= (X1, W)\nd\n= (X1, W)\n\nCan extend with Kolmogorov consistenty to inﬁnite sequences.\n\nGn ⊃ Gn+1 . . . decreasing.\n\n(3.2)\n\n(3.3)\n\n(3.4)\n\n(3.5)\n\n(3.6)\n\n(3.7)\n(3.8)\n\n(3.9)\n\nSn = E[Sn | Gn] =\n\nE[Xi | Gn] = nE[X1 | Gn]\n\n=⇒ n−1Sn = E[X1 | Gn] → E[X1 | G∞] a.s., L1\n\n(3.10)\nNote G∞ ⊃ τ. But lim n−1Sn is τ-measurable, so E[X1 | G∞] is τ-measurable. Combined\n\nwith the tower property, we have\n\nE[X1 | τ] = E[E[X1 | G∞] | τ] = E[X1 | G∞]\n\n(3.11)\n\nn∑\n\ni=1\n\n4\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec25.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #25\n11/17/2016\n\n1\n\n“Play Red”\n\nCards are shufﬂed and dealt out. Need to choose when to bet that next card is red (stopping\ntime).\n\nFinite S. X1, X2, . . . , XN uniform random ordering, clearly (ﬁnite) exchangeable se-\n\nquence.\n\nd\n\n= Z(2, W) the E[φ(Z1) | W]\n\nLemma 1.1 (Last class). If (Z1, W)\nProposition 1.2. If (X1, . . . , XN) is exchangeable, 0 ≤ T ≤ N − 1 a stopping time wrt natural\nﬁltration of (Xn), then XT+1\nProof. By exchangeability\n\nd\n= X1.\n\na.s.\n\n= E[φ(Z2) | W]\n\nBy ??\n\nOn {T = n}\n\n(Xn+1, X1, . . . , Xn)\n\nd\n= (XN, X1, . . . , Xn)\n\nP(Xn+1 ∈ A | Fn) a.s.= P(XN ∈ A | Fn)\n\nP(XT+1 ∈ A | FT) a.s.= P(XN ∈ A | FT)\n\nThis holds for all n. Taking expectation\n\nEP(XT+1 ∈ A) = P(XN ∈ A)\n\nXT+1\n\nd\n= Xn\n\nd\n= X1\n\n(1.1)\n\n(1.2)\n\n(1.3)\n\n(1.4)\n\n(1.5)\n\n2 de Finetti’s Theorem\nParametric Bayes: Let A and B > 0 be RVs. Given A = a and B = b, let (Xi, 1 ≤ i < ∞)\nbe IID ∼ N(a, b).\nRandom Measure (more generally): Let P (R) be space of all PMs on R, M a RV taking\nvalues in P (R). Given M = µ, let (Xi, i ≥ 1) be IID ∼ µ.\n\nThis gives an inﬁnite exchangeable sequence (Xi): de Finetti’s is the converse.\n\nTheorem 2.1 (de Finetti). Let (Xi, 1 ≤ i < ∞) be exchangeable R-valued. Let τ be tail σ-ﬁeld.\nThen conditionally on τ, the (Xi) are IID. That is\n\n1\n\n\f(a) X1, X2, . . . are conditionally independent given τ\n(b) ∃ kernel Q(ω,·) (random PM) such that Q(ω,·) is a regular conditional distribution of Xi\n\ngiven τ, each i\n\n(2.1)\nProof of ?? (Aldous’ favorite, easier ones exist in textbooks. Let φ : R → R be a bounded mea-\nsurable function. By exchangeability\n\nP(Xi ∈ A | τ)(ω) = Q(ω, A) ∀i\n\n(X1, . . . , Xn)\n\nd\n= (X1, XK, XK+1, . . . , Xn+K−1)\n\nLetting n → ∞ and appealing to Kolmogorov’s consistency theorem\n\n(X1, X2, . . .)\n\nd\n= (X1, XK, XK+1, . . .)\n\n(2.2)\n\n(2.3)\n\nThe equality in distributions imply equality in expectation of the pushforward measures\nφ∗PX1|X2,X2,... = φ∗PX1|XK,XK+1,... hence\n\nE[φ(X1) | X2, X3, . . .] = E[φ(X1) | XK, XK+1, . . .]\n\nApplying reversed MG convergence\n\nE[φ(X1) | X2, X3, . . .]\n\nd\n\n= E[φ(X1) | τ]\n\nExercise 2.2.\n\nd\n\n= Z then E[Z | G] a.s.= Z.\n\n• If E[Z | G]\n• If G ⊂ H, E[Z | G]\nBy exercise\n\nd\n\n= E[Z | H], then E[Z | G] a.s.= E[Z | H]\n\nE[φ(X1) | X2, X3, . . .] a.s.= E[φ(X1) | τ]\n\nThe same argument applied ∀k ≥ 1\n\nE[φ(XK) | XK+1, XK+2, . . .] a.s.= E[φ(XK) | τ] ⇐⇒ XK ⊥ (XK+1, XK+2, . . .) | τ\nBy exchangeability\n\n(X1, Xi+1, Xi+2, . . .)\n\nd\n= (Xi, Xi+1, . . .)\n\nApplying ??\n\nCondition on τ\n\nE[φ(X1) | Xi+1, Xi+2, . . .] a.s.= E[φ(Xi) | Xi+1, . . .]\n\nE[φ(X1) | τ] a.s.= E[φ(Xi) | τ]\n\n(2.4)\n\n(2.5)\n\n(2.6)\n\n(2.7)\n\n(2.8)\n\n(2.9)\n\n(2.10)\n\nTherefore, the conditional distributions of X1 and Xi given τ coincide (PX1|τ = PXi|τ)\n\n2\n\n\fProof of ??. Recall the Glivenko-Cantelli theorem:\nTheorem 2.3 (Glivenko-Cantelli). Deﬁne F(x1, x2, . . . , xn, t) = 1\ndistribution of (x1, . . . xn).\nn → ∞.\n\nn ∑n\nIf (Xi, i ≥ 1) are IID with distribution function F, then F(X1, . . . , Xn, t)\n\ni=1 1xi≤t the empirical\na.s.→ F(t) for each t as\n\nWe can apply this theorem conditionally (given τ).\nGiven exchangeable (Xi, 1 ≤ i < ∞), ?? implies\n\nwhich is the distribution function of Q(ω,·).\n\nF(X1, . . . , Xn, t) a.s.→ G(ω, t)\n\n(2.11)\n\n3 MGs in Galton-Watson processes\nξ takes values in {0, 1, 2, . . .}.\n\nEach individual in generation g has ξ offspring in generation g + 1, ξ independent.\nZn = # individuals in generation n\nZ0 = 1 as default\n\n“extinction” = event {Zn = 0 for some n}\n“survival” = event {Zn ≥ 1 ∀n}.\nWrite µ = Eξ < ∞\nLet F = σ(Z1, Z2, . . . , Zn).\n\nE[Zn+1 | Fn] = µZn\n=⇒ EZn+1 = µEZn\n=⇒ EZn = µn\n\n(3.1)\n(3.2)\n(3.3)\n\nIf µ < 1, then P(Zn ≥ 1) ≤ EZn ≤ µn → 0 so P(extinction) = 1.\n\n3\n\n\fConsider the case µ > 1. ?? implies that\n\nby MG convergence theorem\n\n(cid:16) Zn\nµn , n ≥ 0\n\n(cid:17)\n\nis a MG. As E[µ−nZn] = 1 ≤ ∞,\n\n−nZn\n\na.s.→ some W ≥ 0, EW ≤ 1\n\nµ\n\nW in L1 and EW = 1.\n\n(3.4)\nSuppose Eξ2 < ∞. Will show (µ−nZn, n ≥ 1) is UI, which would mean that µ−nZn →\nClearly {extinction} ⊂ {W = 0}. Can prove {extinction} a.s.= {W = 0}. So either\nCalculation µ−nZn is UI:\n\nextinction or Zn grows exponentially fast.\n\n=⇒ Var(µ\ninduction =⇒ Var(µ\n\nVar(Zn) = EVar(Zn | Fn−1) + Var E[Zn | Fn−1]\n−nZn) = µ\n−(n−1)Zn−1)\n−nZn) = Var(ξ) · n+1∑\n\n−(n+1)Var(ξ) + Var(µ\n\n−i ≤ K < ∞ ∀n\n\nµ\n\n=⇒ (µ\n\n−nZn, n ≥ 1) is UI\n\ni=2\n\n4 L2 theory [see Durrett for more]\n(Mn, n ≥ 0), M0 = 0, ∆n = Mn − Mn−1. Suppose EM2\n\nOrthogonality of increments: E[∆i∆j] = 0, i < j, because\nE[∆i∆j | Fj−1] = ∆iE[∆j | Fj−1] = 0\n\nn < ∞ for all n.\n\n(3.5)\n(3.6)\n\n(3.7)\n\n(3.8)\n\n(4.1)\n\nEM2\n\nn < ∞, or equivalently ∑∞\ni=1\n\ni ] < ∞.\na.s.→ M∞ and in L1. In fact, also have\n\nE[∆2\n\n(4.2)\n\n(4.3)\n\nn = ∑n\n\nSo EM2\nDeﬁnition 4.1. M − n is L2 bounded if supn\n\nE[∆2\ni ].\n\ni=1\n\nMn → M∞ in L2.\n\nIf (Mn) is L2 bounded, then (L1 convergence) Mn\nFor n1 < n2, E[(Mn2 − Mn1)2] = ∑n2\nlim\nn1→∞ sup\nn2>n1\n\nE[∆2\n\ni=n1+1\n\n(cid:107)Mn2 − Mn1(cid:107)2 = 0\n\ni ]. If L2-bounded\n\nL2 is a complete metric space, so\n\nMn → some M∞ ∈ L2\n\n4\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec26.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #26\n11/25/2016\n\n1 Brownian motion\nDeﬁnition 1.1. A R1-valued process (B(t), 0 ≤ t < ∞) is (standard) Brownian motion\n(Wiener process) if B(0) = 0 and\n(a) (“independent increments”) B(t0), B(t1) − B(t0), . . . , B(tn) − B(tn−1) are indepen-\n\ndent, any 0 ≤ t0 < t1 < · · · < tn\n\n(cid:124)(cid:123)(cid:122)(cid:125)\n(b) B(t) − B(s) ∼ N(0, t − s\n\nvariance\n\n) distribution\n\n(c) Sample path t (cid:55)→ B(t) are continuous.\nNeed proof of existence.\n\nProof. Write Q2 = dyadic rationals = {2−ji : i, j ≥ 0}. Sufﬁces to consider time interval\n[0, 1]. Enumerate Q2 as q1, q2, . . .. For each n, items (a) and (b) specify specify a joint\ndistribution of (B(q1), B(q2), . . . , B(qn)). These are consistent as n increases.\n\nind\n\n+ (0, t2 − s) = N(0, t2 − t1)\n\nTODO: Fig 26.1 Check N(0, s − t1)\nUse Kolmogorov extension theorem to show there exists a process (B(q), q ∈ Q2 ∩\nFor f : Q2 ∩ [0, 1] → R, and δ > 0, deﬁne\nw( f , δ) = sup\n0≤q1<q2≤1\nq2∈Q2\nq2−q1≤δ\n\n| f (q1) − f (q2)|\n\n(1.1)\n\n[0, 1]).\n\nLemma 1.2. (exists continuous extension from Q2 to all of R)\n\nIf w( f , δ) → 0 as δ → 0, then ∃ cts ˜f : [0, 1] → R such that ˜f (q) = f (q) ∀q ∈ Q2 ∩ [0, 1].\nf (q) (lim sup guaranteed well-deﬁned). If |t − s| < δ,\n\nProof. Deﬁne ˜f (t) = lim sup q↓t\nq∈Q2\nthen | ˜f (t) − ˜f (s)| ≤ w( f , δ). The lemma premise implies f is continuous.\n\nIt is sufﬁcient to show P(w(B(·), δ) ≥ ε) → 0 as δ ↓ 0, ε > 0 ﬁxed, because then\nw(B(·), δ) → 0 a.s. as δ ↓ 0 and by lemma 1.2 ∃ ˜B such that t (cid:55)→ ˜B(ω, t) is continuous a.s\n(item (c)). Easy to check (using property of normals) items (a) and (b) remains true for\nt ∈ R. Redeﬁne B(t, ω) ≡ 0 ∀t on null set.\n\nDeﬁne\n\n¯w( f , 2−m) = max\n0≤j≤2m−1\n\nsup\n\n2−mj≤q≤2−m(j+1)\n\n| f (q) − f (2−m)|\n\n(1.2)\n\n1\n\n\f(cid:18)\n\n(cid:19)\n\n−4EB4(2−m)\n\nB4(2−m) ≥ ε4\n\nmax\n2−n≤2−m\n(cid:18)\n= t1/2Z and P(Sm ≥ ε) ≤ ε−42−2mEZ4.\n≤ ε42−2mEZ4\n\nB4(2−m) ≥ ε4\n\n≤ ε\n(cid:19)\n\nd\n\nP\n\nmax\n2−n≤2−m\n\n(1.4)\n\n(1.5)\n\n(1.6)\n\nConsider 0 ≤ q1 < q2 ≤ 1 with q2 − q1 ≤ 2−m.\n\ninequality (see TODO: Fig 26.2 ref)\n\nTODO: Fig 26.2 They must be in either the same or adjacent intervals, so by the triangle\n\n| f (q2) − f (q1)| ≤ 3 ¯w( f , 2−m)\n\n(1.3)\n\nSo it sufﬁces to show P( ¯w(B(·), 2−m) ≥ ε) → 0 as m → ∞.\nDeﬁne Sm = sup0≤q≤2−m|B(q)|. ¯w(B(·), 2−m) is the max of 2m identically distributed\nFix m, take n > m. Consider B(2−ni, 0 ≤ i ≤ 2n−m). This is a martingale, so by\n\nRVs, so P( ¯w(B(·), 2−m) ≥ ε) ≤ 2mP(Sm ≥ ε).\nconvexity theorem B4(2−n, i ≥ 0) is a sub-martingale. Applying L1 maximal inequality\n\nP\n\nLet Z ∼ N(0, 1), so B(t)\n\nLet n → ∞, so\n\nP( ¯w(B(·), 2−m) ≥ ε) ≤ 2mP(Sm ≥ ε) ≤ 2−mε\n\n−4EZ4\n\nTaking m → 0, this quantity → 0 showing continuity.\nTheorem 1.3. For almost all ω, the sample path t (cid:55)→ B(ω, t) is nowhere differentiable.\nProof. From analysis: Consider f : [0, 1] → R. Fix C < ∞. Suppose ∃s such that f (cid:48)(s)\nexists and | f (cid:48)(s)| ≤ C/2. Then ∃n0 such that for n ≥ n0,\n\n| f (t) − f (s)| ≤ C|t − s| for all t such that |t − s| ≤ 3\nn\n\n(1.7)\nRewrite: deﬁne An = { f : above property holds for some s}. As n → ∞, An ↑ A ⊃ { f :\n| f (cid:48)(s)| ≤ C/2 for some s}\n(cid:19)\n\nFor 0 ≤ K ≤ n − 1, deﬁne\nk + 3\n\nk + 2\n\nk + 2\n\nk + 1\n\nk + 1\n\n(cid:18)\n\nY( f , k, n) = max\n\n| f (\n\nn\n\n) − f (\n\nn\n\n)|,| f (\n\nn\n\n) − f (\n\n)|,| f (\n\n) − f (\n\n)|\n\nk\nn\n\nn\n\nn\n\n(1.8)\nTODO: Fig 26.3\nGiven f ∈ An, suppose the s for which the property holds satisﬁes k/n ≤ s < (k + 1)/n.\n\nThen\n\n=⇒ YAn ⊂ Dn\n\n=⇒ Y( f , k, n) ≤ sC\nn\ndef= { f : Y( f , k, n) ≤ sC\nn\n\nfor some K ≤ n − 1}\n\n(1.9)\n\n(1.10)\n\n2\n\n\fComputing the probability\n\n(cid:18) k + 1\n\nn\n\nP\n\n\n\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)B\n\n(cid:124)\n(cid:18)\n\nP\n\nSo\n\nN(0,n−1)=n−1/2Z\nRegard B(·) as random\n\nY(B, k, n) ≤ 5C\nn\n\n= P\n\nn\n\n(cid:18) k\n\nn\n\n(cid:19)\n(cid:125)\n\n(cid:19)\n(cid:123)(cid:122)\n− B\n\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)(cid:12) ≤ sC\n = P(|Z ≤ sC/n1/2) ≤ (2π)−1/2 × 10C/n1/2\n(cid:18)(cid:12)(cid:12)(cid:12)(cid:12)B\n(cid:19)3 ≤ 100C3/n3/2\n(cid:18) k + 1\n(cid:18)\nP(B(·) ∈ Dn) ≤ n × P\nP(B(·) ∈ An) ≤ 100C3/n1/2\n\n(cid:19)(cid:12)(cid:12)(cid:12)(cid:12) ≤ sC\n(cid:19)\n\nY(B, k, n) ≤ 5C\nn\n\n≤ 100C3/n3/2\n\n(cid:18) k\n\nn\n\n− B\n\n(cid:19)\n\n(cid:19)\n\nn\n\nn\n\n(1.11)\n\n(1.12)\n\n(1.13)\n\n(1.14)\n\nLet n → ∞, P(B(·) ∈ A) = 0.\n\n3\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec27.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #27\n11/29/2016\n\n1 Aspects of Brownian motion\n\n(a) Model or many processes ﬂuctuating continuously (e.g. stock markets)\n\n(b) Limit of RVs with small step size\n\n(c) Gaussian process (multivariate normal over ﬁnite subsets)\n(d) Diffusion: continuous-path Markov processes\n\n(e) Martingale properties\nDeﬁnition 1.1. Brownian motion (B(t), 0 ≤ t ≤ ∞) has the proeprties\n(a) For s < t, B(t) − B(s)\n(b) For 0 ≤ t1 < t2 < · · · < tn, the increments (B(ti+1) − B(ti), 1 ≤ i ≤ n − 1) are\n\n= N(0, t − s)\n\nd\n\nindependent\n\n(c) Sample paths t (cid:55)→ B(t) are continuous\n\n1.1 Continuous-time martingales\nLet (Ft, 0 ≤ t < ∞) be a ﬁltration. (Mt,Ft) is a martingale (MG) if\n\n• E|Mt| < ∞, ∀t\n• Mt is adapted to Ft\n• For st, E[Mt | Fs] = Ms a.s.\nAll our MGs will have continuous paths — theory requires only right-continuity.\n\nDeﬁnition 1.2. T : Ω → [0, ∞] is a stopping time if {T ≤ t} ∈ Ft, all 0 ≤ t < ∞\nTheorem 1.3. If (Mt) is a MG, T a stopping time, P(T ≤ t0) = 1, then EMT = EM0.\nProof. Fix m, look at times that are multiples of 2−m.\nDeﬁne Tm = inf{2−mi : 2−mi > T}. This Tm is a stopping time for (M2−mi,F2−mi, i ≥ 0)\nand Tm ≤ t0 + 1. Apply discrete-time OST =⇒ EMTm = EM0 and MTm = E[Mt0+1 | FTm]\n(i.e .(MTm, m ≥ 1) is UI).\n\nAs m → ∞, Tm ↓ T, so right-continuity =⇒ MTm\nSince (MTm, m ≥ 1) is UI, EMTm → EMT.\n\na.s.→ MT.\n\n1\n\n\fWith BM we associate the natural ﬁltration Ft = σ(Bs, 0 ≤ s ≤ t) which makes all the\n\nBs measurable.\nProposition 1.4. The following are MGs\n\nt − t\n\n(a) Bt\n(b) B2\n(c) exp(θBt − θ2t/2)\n(d) B3\n(e) B4\n\nt − 3tBt\nt − 6tB2\nProof. Fix s < t.\n\nt + 3t2\n\nBt = Bs + (Bt − Bs).\nE[Bt | Fs] = Bs + E[Bt − Bs | Fs].\nBt − Bs is independent of (Bs1, Bs2,· · · , Bsn)) for all 0 ≤ s1 < s2 < · · · < sn ≤ s.\nBy measure theory on independence, independent increments on ﬁnite subsets =⇒\n\nBt − Bs independent of Fs\n\ndef= σ(Bu, 0 ≤ u ≤ s).\n\nHence\n\nE[Bt | Fs] = Bs + E[Bt − Bs | Fs]\n\n= Bs + E[Bt − Bs]\n= Bs + 0 = Bs\n\nWrite Yt = B2\nYt = Ys + 2Bs(Bt − Bs) + (Bt − Bs)2 − (t − s).\n(cid:125)\nE[Yt | Fs] = Ys + 2Bs E[Bt − Bs | Fs]\n\nt − t = (Bt + (Bt − Bs))2 − t.\n(cid:124)\n(cid:125)\n+ E[(Bt − Bs)2 | Fs)\nRemark 1.5. If W ∼ N(0, σ2), then E exp(θW) = exp(θ2σ2/2).\n\n=E(Bt−Bs)2\n\n(cid:123)(cid:122)\n\n(cid:123)(cid:122)\n\n=t−s\n\n(cid:124)\n\n=0\n\n−(t − s) = Ys.\n\nWrite\n\nZt = exp(θBt − θ2t/2)\n\n(cid:18)\n\n(cid:19)\n\n(1.1)\n(1.2)\n(1.3)\n\n(1.4)\n\n(1.5)\n\n(1.6)\n\n(1.7)\n\n(cid:18)\n\n− θ2\n2\n\n(cid:19)\n= Zs exp(θ(Bt − Bs)) exp\n(cid:124)\n(cid:125)\nE exp(θ(Bt − Bs))\n(cid:33)\n\nE[Zt | Fs] = Zs exp\n(cid:32)\nt , 0 ≤ t < ∞) is a MG and since differentiation is linear\n\n(t − s)\n(cid:123)(cid:122)\n\n=exp(θ2(t−s)/2)\n\n(t − s)\n\n− θ2\n2\n\n= Zs\n\nFor the rest, informally: (Zθ\n\ndk\ndθk Zθ\n\nt , 0 ≤ t < ∞\n\nshould be a MG.\n\nIf we differentiate k times, set θ = 0, we get a sequence of polynomials in Bt.\n\n2\n\n\fTypical stopping time is Tb = inf{t : B(t) = b} = inf{t : B(t) ≥ b > 0}.\nAlso, for b > 0, t > 0, {Tb ≤ t} = {sups≤t B(t) ≥ b}. Even though sup is an\n\nuncountable operation, this is measurable because\n\nsup\ns≤t\n\nB(t) = sup\nu≤t\nu∈Q\n\nB(u), Fn-meas.\n\n(1.8)\n\na\n\nLemma 1.6. Fix −a < 0 < b. Consider T = min{T−a, Tb} and ET = ab. Then P(BT = b) =\na+b = P(Tb < T−a) = P(Tb < T−a) and P(Bt = −a) = b\na+b.\nProof. Apply OST to 0 and T ∧ t.\n\n0 = EB0 = EBT∧t\n\n(1.9)\n\n(−a)2 b\n\nAs t → ∞, BT∧t\n\na.s.→ BT and |BT∧t| ≤ max(a, b) =⇒ 0 = EBT.\n\na+b = ab.\n\nt − t =⇒ EB2\n\nBT takes values (−a, b) only, so it must have the desired distribution.\nT∧t = E[T ∧ t]. Let t → ∞, so EB2\nApply OST to B2\nNote that P(Tb < ∞) ≥ P(Tb < T−a) → 1 as a → ∞, so Tb < ∞ a.s.\nFix c > 0 and −∞ < d < ∞. Consider T = inf{t : Bt = c + dt} ≤ ∞.\nTODO: Fig 27.1\n\nT = ET = b2 a\n\na+b +\n\n√\n\nd2 + 2λ)) for 0 ≤ λ < ∞, the Laplace transform\n\n(cid:16)\n\n(cid:17)\n\n.\n\nLemma 1.7. E exp(−λT) = exp(−c(d +\nof T.\nProof. Consider θ > max(0, 2d). Apply OST to exp(·) and T ∧ t.\n\nθBT∧t − θ2\n\n2 (T ∧ t)\n(cid:16)\n\n1 = E exp\nCase d ≤ 0, θ > 0. Here, θBT∧t − θ2\n2 (T ∧ t) ≤ θc, T ≤ Tc < ∞.\n2 (T ∧ t) ≤ sup\nCase d > 0, θ > 2d. Then θBT∧t − θ2\n(cid:17)\n]1T<∞. But Bt = c + dT on {T = ∞}.\n(cid:19)\n(cid:18)\n(cid:18)\n\nLet t → ∞. 1 = E[exp\n\nθ(c + ds) − θ2\n2 s\n\nθBT − θ2\n2 T\n\n(cid:19)\n\nas t → ∞ on {T = ∞}.\n\n(cid:16)\n\n(cid:17)\n\n1T<∞\nGiven λ > 0, deﬁne θ = θ(x) as solution of θd − θ2/2 = −λ, so\n\n1 = E exp\n\nθc +\n\nT\n\n= θc and → −∞\n\n(1.10)\n\n(1.11)\n(1.12)\n(1.13)\n\nθ(λ) = d +\n\n1 = E exp (cθ(λ) − λT)\n\n?\n> max(0, 2d)\n\nE exp(−λT) = exp (−cθ(λ))\n\nθd − θ2\n2\n(cid:112)\n\nd2 + 2λ\n\n3\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec3.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #3\n9/1/2016\n\n1 Measures continued\nExample 1.1. S = N, S = 2N.\n\n• Given p0, p2,· · · ≥ 0, ∑i pi = 1, deﬁne µ(A) := ∑i∈A pi for A ⊂ S. µ is a prob\nmeasure.\n• Given p.m. µ on S, deﬁne pi := µ({i}) and ∑i pi = 1 holds.\n\nDeﬁnition 1.2. A class of subsets of S, A, is a π-class (or π-system) if A1, A2 ∈ A =⇒\nA1 ∩ A2 ∈ A.\nDeﬁnition 1.3. A class of subsets of S, C, is a λ-class if:\n(a) S ∈ C\n(b) A, B ∈ S, A ⊂ B =⇒ B \\ A ∈ C\n(c) An ∈ C, An ↑ A =⇒ A ∈ C\nLemma 1.4 (Dynkin). If C is a λ-class, A is a π-class, C ⊃ A, then C ⊃ σ(A).\nProof. See Durrett.\nLemma 1.5 (Identiﬁcation of PMs). µ1, µ2 prob. meaures on (S,S). If µ1(A) = µ2(A) for all\nA ∈ A, A is a π-class such that S = σ(A), then µ1 = µ2 (i.e. µ1(B) = µ2(B) for all B ∈ S).\nProof. Consider C = {A ∈ σ(A) : µ1(A) = µ2(A)}, so C ⊃ A. To apply Dynkin’s, it\nsufﬁces to check C is a λ-class (clear from deﬁnition of PM).\nTheorem 1.6 (Existance of Lebesgue measure). ∃ σ-ﬁnite measure λ on (R1,B1) such that\nλ([a, b]) = b − a for all a, b ∈ R.\n\n∃ PM λ1 on [0, 1], called the uniform distribution on [0, 1], such that λ1([a, b]) = b − a.\n\nProof. See Durrett\nProposition 1.7. Given f meas : S1 → S2, PM µ on (S1,S1), can deﬁne PM ˆµ on S2 by\n\nˆµ(B) = µ( f −1(B))\n\n(1.1)\n\nfor all B ∈ §2\nProof.\n\nˆµ is PM because f −1 commutes with Boolean operations.\n\n1\n\n\f2 Probability measures on R\nGiven PM µ on R, deﬁne F(x) = µ((−∞, x]). F is\n\n• (Increasing) x1 < x2 =⇒ F(x1) < F(x2)\n• (Right-Continuous) xn ↓ x =⇒ F(xn) ↓ F(x)\n• limx→∞ F(x) = 1 and limx→−∞ F(x) = 0\n\nDeﬁnition 2.1. A function satisfying the above is called a distribution function.\nTheorem 2.2. Given a distribution function F, exists unique probability measure µ : F(x) =\nµ((−∞, x]) for all x.\n\n2.1 Pullback of random variables\n(Undergrad) U ∼ Unif[0, 1]. Then F−1(U) is a RV with distribution function F.\n\nDeﬁne G (version of F−1) on 0 < y < 1 as\n\nG(y) := sup{x : F(x) < y}\n= inf{x : F(x) ≥ y}\n\nG is increasing =⇒ G is measurable.\n\nFor each x, {y : G(y) ≤ x} = {y : y ≤ F(x)}\n\nLemma 2.3 (Push-forward). ∃ PM ˆµ on R such that\n\n(cid:124) (cid:123)(cid:122) (cid:125)\n\nλ1( [0, F(x)]\n=G−1(−∞,x]\n\n) = ˆµ((−∞, x])\n\nProof. Needs right-cts\n\n2\n\n(2.1)\n(2.2)\n\n(2.3)\n\n\f3 Coin-tossing space\n2-element set B = {H, T}.\n\nSequence space BN = {(cid:126)b = (b1, b2,· · · )) : bi ∈ B}.\ni=1, πi ∈ B, let Aπ = {(cid:126)b : bi = πi\nGiven ﬁnite sequence π = (πi)n\nDeﬁne σ-ﬁeld BN on BN as σ(all Aπ such that π is ﬁnite string).\n\nall sequences starting out as π.\n\nTheorem 3.1. ∃ PM µ on (BN,BN) such that µ(Aπ) = 1\n2|π|\nProof idea. Existance is ensured by theorem 1.6.\n\nConsider the binary expansion of real x ∈ (0, 1), e.g.\n\n∀π\n\nx = 0.1101101· · ·\n= 0.b1(x)b2(x)b3(x) · · ·\n\nIn general, bi = 12ix is odd. bi is measurable.\n\nDeﬁne g : [0, 1] → BN by x (cid:55)→ (b1(x), b2(x),· · · ). g is measurable.\nUse lemma 2.3 to get PM µ : B∞ → R+ mapping\n\n(cid:21)\nAπ (cid:55)→λ{x : g(X) ∈ Aπ}\n\n(cid:20) k\n\nfor some k if |π| = n\n\n=\n\n=\n\nk + 1\n2n\n\n2n ,\n1\n2n\n\n1 ≤ 1 ≤ n} ⊂ BN be\n\n(3.1)\n(3.2)\n\n(3.3)\n\n(3.4)\n\n(3.5)\n\n3\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec4.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #4\n9/6/2016\n\n1 Abstract Integration (MT version) (sketchy details)\n\nSetting:\n\n(cid:15) m a measure (ﬁnite or s-ﬁnite) on (S,S)\n(cid:15) Write H+ := set of measurable h : S ! [0, ¥]\nBasic Theorem There exists a unique map I : H+ ! [0, ¥] such that:\n(a) I(1A) = m(A),8A 2 S\n(b) I(h1 + h2) = I(h1) + I(h2),8hi 2 H+\n(c) I(ch) = cI(h),8h 2 H+,8c (cid:21) 0\n(d) If o (cid:20) hn \" h 2 H+, then I(hn) \" I(h) (cid:20) ¥\n\n(cid:0)in f ty h(x)dx will be the case S = R, m = Lebesgue measure.\n\n1.1 Background\n\nh !∫ ¥\n\nIn practice, write\n\n∫\n\nI(h) :=\n\nhdm :=\n\nA\n\n1.1.1 Deﬁnite integrals\n\n∫\n\n∫\n∫\n\nhdm =\nh(s)m(ds)\n(h1A)dm for a 2 S\n\nS\n\nS\n\nS\n\n(1.1)\n\n(1.2)\n\nFigure 1: Area under curve interpretation of deﬁnite integral\n\n1\n\n\f1.1.2 Steps\n\n(1) Deﬁne I(1A) := m(A)\n(2) For simple functions h = (cid:229)i ci1Ai, deﬁne I(h) = (cid:229)i cim(Ai)\n(3) For 0 (cid:20) h (cid:20) m, constant, can write h = limn hn, hn simple (old lemma) and deﬁne\n(4) For general h 2 H+, set hm = min(h, m), so hm \" h. Deﬁne I(h) = limm\"¥ I(hm).\nNote: Consider\n\nI(h) := limn I(hn)\n\n{\n\nh(s) =\n\n¥,\n0,\n\ns 2 Awhere m(A) = 0\ns ̸2 A\n\n(1.3)\n\nNotation (ALMOST EVERYWHERE): h1 = h2a.e. means fs : h1(s) ̸= h2(s)g has m-\n= max((cid:0)x, 0), h+(s) = (h(s))+ = max(h(s), 0)\nNotation: x 2 R, x+ = max(x, 0), x\nDeﬁnition: A measurable h : S ! ¯R is integrable (w.r.t. m) if\njhjdm < ¥. For\n\nHere, hm(s) = min(h(s), m) = m1A, I(hm) = m (cid:1) m(A) = 0, I(h) = limm\"¥ I(hm) = 0.\nmeasure = 0.\n=) x = x+ (cid:0) x\nintegrable h, deﬁne I(h) = I(h+) (cid:0) I(h\nLemma: Suppose h1, h2 integrable.\n(1) (LINEARITY): For c1, c2 2 R, h := c1h1 + c2h2, then h is integrable and\n\n, jxj = x+ + x\n∫\n\n, jx (cid:0) yj (cid:20) jxj + jyj\n\n) (but ﬁnite)\n\nhdm =\n\n∫\n\n∫\n\n∫\n\n(cid:0)\n\n(cid:0)\n\n(cid:0)\n\n(cid:0)\n\nS\n\nc1\n\nh2dm\n\nh1dm + c2\n\n∫\n∫\nh1dm = 0\n∫\n(2) If h1 = 0a.e., then\nh1dm (cid:21) 0\n(3) If h1 (cid:21) 0a.e., then\n(4) If h1 (cid:20) h2a.e., then\n(5)\n\n(cid:12)(cid:12) (cid:20)∫ jhjdm\n\n(cid:12)(cid:12)∫\n\nhdm\n\nProof of (5):\n\nh2dm\n\nh1dm (cid:20)∫\n(cid:12)(cid:12)(cid:12)(cid:12) =\n(cid:12)(cid:12)(cid:12)(cid:12)∫\n\nhdm\n\n(cid:12)(cid:12)(cid:12)(cid:12)∫\n(cid:12)(cid:12)(cid:12)(cid:12)∫\n∫\n∫\n\n∫\n(cid:12)(cid:12)(cid:12)(cid:12)∫\n(cid:12)(cid:12)(cid:12)(cid:12) +\n\nh\n\nh+dm (cid:0)\n\nh+dm\n\n(cid:0)\n\n)dm\n\n(h+ + h\njhjdm\n\n(cid:12)(cid:12)(cid:12)(cid:12)\n\n(cid:0)\n\ndm\n\n(cid:0)\n\nh\n\ndm\n\n(cid:12)(cid:12)(cid:12)(cid:12)\n\n(1.4)\n\n(1.5)\n\n(1.6)\n\n(1.7)\n\n(cid:20)\n\n=\n\n=\n\n2 Probability Theory (MT version)\n\nFreshman: A r.v. X is a quantity with a range of possible values, the actual values deter-\nmined somehow by chance. P(X (cid:20) 4) is the “chance it turns out that X (cid:20) 4”\n\nMT Version: Probability Space (Ω,F, P):\n\n2\n\n\f(cid:15) Ω : sample space, states of universe\n(cid:15) F : events, s-ﬁeld on Ω\n(cid:15) P: probability measure\n\nEvents A 2 F have probability P(A).\n\nR.\nP(fw : X(w) 2 Bg) = P(X 2 B).\n\nDeﬁnition: A random variable (r.v.) is a measurable function X : Ω ! (S,S) or often\nSo for measurable set B 2 S, fw : X(w) 2 Bg is an event in F and so has a probability\nA given RV X : Ω ! (S,S) has a distribution (or law) m deﬁned by m(B) = P(X 2 B)\nPushforward measure: The domain S of the RV has a PM obtained by pushing-forwards\n\nthe PM P on Ω\n\nFigure 2: Pushforward of p.m. P on Ω through X to a p.m. U on S.\n\nX2(w) + Y2(w) (cid:20) Z(w) + 4g) = P(X2 + Y2 (cid:20) Z + 4) = 1\n\nNotation by example: R-valued RVs X, Y, Z. X2 + Y2 (cid:20) 2 + 4a.s. means P(fw :\nGiven R-valued RVs Xn, X, Xn ! Xa.s. means P(fw : Xn(w) ! X(w) as n ! ¥g) =\nNote also: Given arbitrary R-valued Xn, n 2 N, can deﬁne X\n(w) := lim supn Xn(w) and X\n\n:= lim supn Xn,\nis a RV (lim sup of measurable functions are measur-\n\n(cid:3)\n\n(cid:3)\n\n1\n\n(cid:3)\n\nX\nable).\n\n2.1 Expectation\nThe expectation of a RV Y : (Ω,F, P) ! R is\n\n∫\n\n∫\n\nprovided EjYj :=\n\nE[Y] :=\n\nYdP\nΩ jYjdP (cid:20) ¥ (“Y is integrable”)\n\nΩ\n\n(2.1)\n\n2.2 “Change of variable” lemmas\nSee Jim Pitman’s notes for good explanation.\n\n3\n\n\fFigure 3: Functions of random variables h(X) viewed as composition of measurable func-\ntions h ◦ X : Ω ! R\n\n∫\n\n∫\n\n∫ ¥\n\nLemma 1: If h(X) is integrable, then Eh(X) =\nLemma 2: If n is a PM on R with density f , then\n\nS hdm for m = distribution of X\nR hdn =\n\n(cid:0)¥ h(x) f (x)dx provided h\n\nis n-integrable\n\nProof: Consider the collection of h for which the stated = is true.\n(cid:15) Consider h = 1B, B 2 S.\nLHS = Eh(X) = 1X2B = m(B) =\n(cid:15) Consider h = 1B, B (cid:26) R\n1Bdn = n(B) =\nLHS =\n\n1Bdm = RHS\n\n∫\n\n∫\n\n∫\n\nB f (x)dx (deﬁnition of density f (x) of n) = RHS\n\n2.2.1 Steps of sketch proof of Basic Theorem\nBoth sides of (cid:1) = (cid:1) are integrals, so:\n\n(cid:15) True for 1B,8B 2 S\n(cid:15) True for simple functions h\n(cid:15) True for bounded measurable h\n(cid:15) True for integrable h\n\nText: “Monotone class theorem”\n\n∫\n\nCan combine Lemma 1 and Lemma 2:\nLemma: Suppose RV X is R-valued, and its distribution has density f . Then Eh(X) =\nh(x) f (x)dx provided h(X) is integrable\n\n4\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec5.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #5\n9/8/2016\n\n1 Expectation and Inequalities\n\nn\n\n1.1 Expectation (Undergrad version)\n(1) EX is the limit of X1+X2+(cid:1)(cid:1)(cid:1)+Xn\n(2) EX is fair stake for random payoff X (conceptual basis of martingale theory)\n∫\n(3) EX = (cid:229)i iP(X = i) or\n(4) Eh(X) = (cid:229)i h(i)P(X = i) or\n(5) abstract rules: E(X + Y) = EX + EY even if dependent\n\nx f (x)dx (change of variable in MT, last lecture)\n\nfor iid (will prove as SLLN)\n\nh(x) f (x)dx (change of variable in MT, last lecture)\n\n∫\n\n1.2 Measure-theoretic version\nLet X : (Ω,F, P ! R be a random variable on a probability space.\nDeﬁnition 1.1. The expectation EX :=\n\nΩ X(w)P(dw)\n\n∫\n\nExpectation is well-deﬁned if:\n(a) EX < ¥ or 0 (cid:20) X (cid:20) ¥, where 0 (cid:20) EX (cid:20) ¥\n\n(a) =) (cid:0)¥ < EX < ¥\n\n∫\n\nFrom deﬁnition 1.1, can use proporties of abstract\n(cid:15) E1A = P(A)\n(cid:15) E(c1X1 + c2X2) = c1EX1 + c2EX2 (Linearity)\n(cid:15) (Monotone Convergence): If 0 (cid:20) X1 (cid:20) X2 (cid:20) (cid:1) (cid:1) (cid:1) (cid:20) ¥, Xn \" Xa.s., then EXn \" EX (cid:20)\n¥\n\n(a) a.s. means for all w outside some A where P(A) = 0\n(b) To prove this for a.s., consider 0 (cid:20) X11Ac (cid:20) X21Ac (cid:20) (cid:1) (cid:1) (cid:1) , then Xn1Ac \" X1Ac8w\nExample 1.2. X (cid:21) 0. EX < ¥ =) P(X < ¥) = 1. However, P(X (cid:20) ¥) = 1 ̸ =)\nEX < ¥.\n\nand EXn1Ac \" EX1Ac\n\nConsider P(X = i) (cid:24) ci\n\n(cid:0)3/2.\n\n1\n\n\f1.3 Inequalities\nLemma 1.3 (Markov’s Inequality). If X (cid:21) 0, EX < ¥, then P(X (cid:21) x) (cid:20) EX\nx , 0 < x < ¥.\nDeﬁnition 1.4. If EX2 < ¥, the variance Var(X) := EX2 (cid:0) (EX)2 = E(X (cid:0) EX)2 and\n0 (cid:20) Var(X) < ¥.\nLemma 1.5 (General form of Markov’s inequality). Let ϕ : R ! [0, ¥) be increasing. Then\nP(X (cid:21) x) (cid:20) Eϕ(X)\n\nϕ(X) provided not indeterminate (e.g. 0\n0).\n\nFigure 1: Illustration of h(x) (cid:20) ϕ(x)8x\n\n{\n\nProof. Deﬁne h(y) =\n\n= ϕ(x)1y(cid:21)x.\n\nif y < x\nif y (cid:21) x\n\n0,\nϕ(x),\nClear h(y) (cid:20) ϕ(y)8y.\nEϕ(X) (cid:21) Eh(X) = ϕ(X)E1X(cid:21)x = ϕ(x)P(X (cid:21) x)\nLemma 1.3 is lemma 1.5 with ϕ(x) = x+ = max(0, x).\n\nLemma 1.6 (Chebychev’s Inequality). If Var(X) < ¥, then P(jX (cid:0) EXj (cid:21) x) (cid:20) Var(X)\n0 < x < ¥.\nProof. Take Y = jX (cid:0) EXj and ϕ(x) = (x+)2 in lemma 1.5. For x > 0\n\nx2\n\nfor\n\nP(Y (cid:21) x) (cid:20) EY2\n\nx2 =\n\nVar(X)\n\nx2\n\nAnother case is to take ϕ(x) = eqx for parameter q > 0 and 0 < x < ¥\n\nIn particular\n\nP(X (cid:21) x) (cid:20) EeqX\neqx\n\n2\n\n(1.1)\n\n(1.2)\n\n\fLemma 1.7 (Basic Large Deviation Inequality). For 0 < x < ¥\n\nP(X (cid:21) x) (cid:20) inf\n\nEeqX\neqx\n\nq>0\n\n(Only useful if P(X (cid:21) x) ! 0 exponentially fast)\nExample 1.8. X (cid:24) Poisson(l), EX = l, VarX = l.\n\nBy lemma 1.5: P(X (cid:21) x) (cid:20) l/x.\nBy lemma 1.6: P(X (cid:21) x) (cid:20) l\n(x(cid:0)l)2\n\nEeqX = (cid:229)\ni\n\neqie\n\n(cid:0)lli = e\n|\n= exp((cid:0)x log\n\n(cid:0)leleq\n}\n{z\nexp((cid:0)qx (cid:0) l + leq\n((cid:3))\n(cid:0) l + x)\n\nq\n\n)\n\nx\nl\n\nP(X (cid:21) x) (cid:20) inf\n\nd\n\ndq ((cid:3)) = (cid:0)x + leq\n\nTake q such that leq = x.\n\n(1.3)\n\n(1.4)\n\n(1.5)\n\n(1.6)\n\n(1.7)\n\nFigure 2: TODO: Draw LD, MC, and Cheb bounds\n\nLemma 1.9 (Cauchy-Schwarz Inequality).\njE(XY)j (cid:20)\n\n√\n\n3\n\n(EX2)(EY2)\n\n(1.8)\n\n\fProof (Trick!) Recall quadratic equation: for a > 0\n\nApplying\n\nax2 + 2bx + c (cid:21) 08x () b2 (cid:20) ac\n| {z }\n{z\n}\n| {z }\n(cid:1)x2 + 2 E(XY)\n= E(Y2)\na>0\n=) b2 (cid:20) ac\n\nb\n\n(cid:21)0 8x\n\n|{z}\n(cid:1)x + EX2\n\nc\n\n|\n\nE (X + xY)2\n\n(1.9)\n\n(1.10)\n\n(1.11)\n\nExample 1.10. Given (xi)i2N, (yi)i2N 2 RN, take P(X = xi, Y = yi) = 1\nThen C-S yields\n\nn for 1 (cid:20) i (cid:20) n.\n\n)(\n\n)\n\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12) 1\n\nn\n\nvuut(\n\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12) (cid:20)\n\n(cid:229)\ni\n\nxiyi\n\n1\nn\n\n(cid:229)\ni\n\nx2\ni\n\n1\nn\n\n(cid:229)\ni\n\ny2\ni\n\n(1.12)\n\nDeﬁnition 1.11. ϕ is convex if 8x < y, l 2 [0, 1], ϕ(x + l(y (cid:0) x)) + l(ϕ(y) (cid:0) ϕ(x)).\n\nIn practice, ϕ′′\n\n(x) (cid:21) 0 =) ϕ is convex.\n\nLemma 1.12 (Jensen’s inequality). Interval I (cid:26) R, let ϕ : I ! R be convex. Then ϕEXx (cid:20)\nEϕX provided both expectations are well-deﬁned.\n\nProof. Intuition:\n\nFigure 3: Illustration of Jensen’s inequality and tangent line\n\nGiven x and convex ϕ, 9 tangent line l(y) such that l(y) (cid:20) ϕ(y) 8y and l(x) = ϕ(x).\n\n4\n\n\fSet x = EX, take tangent l((cid:1)) at x.\n\nϕ(X) (cid:21) l(x)\nEϕ(X) (cid:21) El(x)\n= l(EX)\n= l(x) = ϕ(x) = ϕ(EX)\n\nl linear\n\nExample 1.13. ϕ(x) = jxjp, 1 (cid:20) p. Then Jensen’s inequality says\n\njEYjp (cid:20) EjYjp\nApplying this with 0 < a < b < ¥, y = jXja, p = b\n(\n(EjXja)b/a (cid:20) EjXjb\n(EjXja)1/a (cid:20)\nEjXjb\n\n)\n\n1/b\n\na, shows\n\n(1.19)\nThe Lp norm is ∥X∥p := (EjXjp)1/p, p 2 [1, ¥) so this result says p 7! ∥X∥p is increas-\n\n(1.13)\n(1.14)\n(1.15)\n(1.16)\n\n(1.17)\n\n(1.18)\n\n(1.20)\n\n(1.21)\n\ning on p 2 [1, ¥).\nExample 1.14. For x 2 (0, ¥), consider\n(1) ϕ(x) = 1/x\n(2) ϕ(x) = (cid:0) log x,\nIf x > 0, then Eϕ(X) (cid:21) ϕ(EX). Applying Jensen’s\n(1) E 1\nx\n(2) (cid:0)E log X (cid:21) (cid:0) log EX () EX (cid:21) eE log X\nConsider (xi)n\n\n() EX (cid:21) 1\n\n(cid:21) 1\nEX\n\nE 1\nX\n\nn 1 (cid:20) i (cid:20) n.\ni=1 > 0, P(X = xi) = 1\n(cid:229)\ni\n\n|{z}\n\n(cid:21)\n\n1\nn\n\n1\nn\n\nArithmetic mean\n\nHarmonic mean\n\n(cid:21) e 1\n\nn (cid:229)i log xi =\n\n1\nn\n\n(cid:229)\ni\n\n1\nxi\n\n1\n(cid:229)i\n\n| {z }\n(\n)\n|\n\n(cid:213)\ni\n\n{z\n\nxi\n\n1/n\n\n}\n\nGeometric mean\n\n5\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec6.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #6\n9/13/2016\n\nIndependence (undergrad)\n\n1\nEvents A and B are independent if P(A \\ B) = P(A)P(B).\n\nR.V.s X, Y independent if P(X (cid:20) x, Y (cid:20) y) = P(X (cid:20) x)P(Y (cid:20) y).\nIdea: knowing the value of X doesn’t change the probabilities for Y\n\nIndependence (MT version)\n\n2\n(Ω,F, P) a probability space. Consider B1,B2 sub-s-ﬁelds of F.\nDeﬁnition 2.1. Call s-ﬁelds B1 and B2 independent if\n\nP(B1 \\ B2) = P(B1)P(B2) 8Bi 2 Bi\n\n(2.1)\n\n(cid:0)1(D) 2 F for all D 2 S. The collection fX\n\n(cid:0)1(D) : D 2 Sg is\n\nX is measurable =) X\n\na sub-s-ﬁeld of F, call it s(X) “the s-ﬁeld generated by X.”\nDeﬁnition 2.2. Call RVs X1 and X2 independent if s(X1) and s(X2) are independent.\nTheorem 2.3. For RVs X1, X2 with Xi taking values in (Si,Si), the following are equivalent:\n(i) X1 and X2 are independent\n(ii) P(X1 2 B1, X2 2 B2) = P(X1 2 B1)P(X2 2 B2) for all Bi 2 Si\n(iii) P(X1 2 B1, X2 2 B2) = P(X1 2 B1)P(X2 2 B2) for all Bi 2 Ai where Ai is a p-class,\n(iv) E[h1(X1)h2(X2)] = (Eh1(X1)) (Eh2(X2)) for all bounded measurable hi : §i 2 R\nComments:\n\ns(Ai) = Si\n\n1\n\n\f(cid:15) (iv) extends to integrable hi(Xi)\n(cid:15) If Xi are R-valued, (iii) can be used to show independence is equivalent to P(X1 (cid:20)\nx1, X2 (cid:20) x2) = P(X1 (cid:20) x1)P(X2 (cid:20) x2) for all xi 2 R\n(cid:15) The fact:\n\nif X1, X2 are independent, then g1(X1), g2(X2) independent (arbitrary mea-\nsurable gi)\n\nis true because s(g(X)) (cid:20) s(X).\n\nProof outline. (iv) =) (ii) =) (iii) special cases\n(ii) =) (iv) by “monotone class argument”:\n(iv) holds for hi = 1Bi indicator functions\n) holds for hi simple functions\n) holds for hi bounded measurable functions\nWant to use Dynkin’s p (cid:0) l Lemma:\nStep 1 Fix B2 2 A2. Consider the collection\n\nL = fA 2 S1 : P(X1 2 A, X2 2 B2) = P(X1 2 A)P(X2 2 B2)\n\n(2.2)\n\nCheck L is a l-class.\nBy hypothesis, L (cid:27) A1. Dynkin’s lemma implies L = S1\n\nStep 2 Consider\n\nL′\n\n= fB2 2 S2 : P(X1 2 B2, X2 2 B2) = P(X1 2 B1, X2 2 B2) 8B1 2 S1g\n\n(2.3)\n\nis a l-class (use linearity property).\n\nCheck L′\nBy step 1, L′ (cid:27) A2.\nBy Dynkin’s, L′ (cid:27) s(A2) = S2 =) (ii)\n\nDeﬁnition 2.4. B1,B2,(cid:1) (cid:1) (cid:1) ,Bn are (mutually) independent means\nP(Bi) 8Bi 2 Bi\n\nP(\\n\n\ni=1Bi) =\n\nn(cid:213)\n\ni=1\n\n(2.4)\n\nThis is stronger than pairwise independence.\n\nExample 2.5. X, Y for die throws, events fX = 3g, fY = 6g, fX = Yg. These events are\nonly pairwise independent, not mutually independent.\nExample 2.6. X1, X2 independent uniform on f0, 1,(cid:1) (cid:1) (cid:1) , n (cid:0) 1g. Deﬁne X3 = X1 + X2\nmodulo n. Then (X1, X2, X3) are pairwise independent, not mutually independent.\n\n2\n\n\fClaim. If X1,(cid:1) (cid:1) (cid:1) , Xk,(cid:1) (cid:1) (cid:1) , Xn independent, then f (X1,(cid:1) (cid:1) (cid:1) , Xk) and g(Xk+1,(cid:1) (cid:1) (cid:1) , Xn) are in-\ndependent for arbitrary measurable functions f and g.\n\nExercise 2.7. Formalize and verify. “Hereditary property of independence.”\nExercise 2.8. To show that events fAign\nP(\\i2I Ai) = (cid:213)\ni2I\n\ni=1 are independent, sufﬁces to show\nP(Ai) 8I (cid:26) f1, 2,(cid:1) (cid:1) (cid:1) , ng\n\n(2.5)\n\n3 Real-valued Random Variabls\n\nlim\n\nKnow that Xn ! Xa.s. means P(fw : Xn(w) ! X(w)a.s.n ! ¥g) = 1.\n\nLet Xi, Yi be real-valued random variables.\nDeﬁnition 3.1 (Convergence in probability). Xn !p X means\n8ϵ > 0\n\nn!¥ P(jXn (cid:0) Xj > ϵ) = 0,\n\n(3.1)\nDeﬁnition 3.2 (Convergence in Lp). For l (cid:20) p < ¥, say Xn ! X in Lp or Xn !Lp X to\nmean\n(and EjXnjp < ¥ for all n).\nLemma 3.3. If Xn ! X in Lp, then Xn !p X.\nProof. Use general form of Markov’s inequality ϕ(x) = jxjp applied to Xn (cid:0) X.\n\nEjXn (cid:0) Xjp = ∥Xn (cid:0) X∥p ! 0 as n ! ¥\n\n(3.2)\n\n(3.3)\n\n(3.4)\n\n(cid:20) c for\nmi.\n\n=) P(∥Xn (cid:0) X∥ > ϵ) (cid:20) EjXn (cid:0) Xjp\n\nϵp\n\n! 0 as n ! ¥\n\nDeﬁnition 3.4 (Variance). If EX2 < ¥, deﬁne the variance\n\nProposition 3.5. If (Xi)n\nDeﬁnition 3.6. If EX2\ni\n\nVar(X) = EX2 (cid:0) (EX)2 = E(X (cid:0) EX)2\ni=1 independent, then Var((cid:229)i Xi) = (cid:229)i Var(Xi)\n(cid:20) ¥, EX1X2 = (EX1)(E2), say X1 and X2 are uncorrelated\n\nIndependence =) pairwise independent =) uncorrelated\n\nTheorem 3.7 (L2 weak law of large numbers). Given Xi, i (cid:21) 1, suppose sup EX2\n(cid:229)n\nsome constant c and suppose uncorrelatd. Write mi = EXi, Sn = (cid:229)n\n\ni=1 Xi, ¯mi = 1\nn\n\ni\ni=1\n\nThen Sn\nn\n\n(cid:0) ¯mn ! 0 in L2 as n ! ¥.\n\n3\n\n\fProof.\n\n(\n\nE\n\n1\nn\n\nESn = ¯mn\nn(cid:229)\nVar(Sn) =\n)\nSn) (cid:20) c\nn\n\ni=1\n\n2\n\n1\nVar(\nn\n(cid:0) ¯mn\n\nSn\nn\n\nVar(Xi) (cid:20) cn\n(\n\n)\n\nSn\nn\n\n(cid:20) c\nn\n\n= Var\n\n! 0 as n ! ¥\n\n(3.5)\n\n(3.6)\n\n(3.7)\n\n(3.8)\n\n4\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec7.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #7\n9/15/2016\n\n1 Polynomial Approximation Theorems\n\nMain goal is to demonstrate proof techniques, results are not too important.\nTheorem 1.1 (Bernstein). Given continuous f : [0, 1] → R, deﬁne\n\n(cid:18) n\n\n(cid:19)\n\nm\n\nfn(x) :=\n\nn∑\n\nn=0\n\nxm(1 − x)n−m f (m/n),\n\n0 ≤ x ≤ 1\n\n(1.1)\n\n(1.2)\n\n(polynomial of degree n).\n\nThen fn converge uniformly to f i.e.\n\n| fn(x) − f (x)| → 0\n\nsup\n\nx\n\nas n → ∞.\nProof. Fix x. Take i.i.d. Bernoulli(x) r.v.s (Xi, 1 ≤ i < ∞). Let Sn := ∑n\nBinomial(n, x) and note fn(x) = E f (Sn/n).\n\ni=1 Xi ∼\n\nWant to bound\n\n| fn(x) − f (x)| = |E f (Sn/n) − f (x)|\n≤ E| f (Sn/n) − f (x)|\n\n(1.3)\n(1.4)\n\nWant to apply WLLN Sn/n p→ x, so split\nE| f (Sn/n) − f (x)| = E\n\n(cid:104)| f (Sn/n) − f (x)|1|Sn/n−x|≤δ + | f (Sn/n) − f (x)|1|Sn/n−x|>δ\n\n(cid:105)\n\n(1.5)\n\nFrom analysis, we have\n\n• M := sup| f (X)| ≤ ∞\n• (Uniformly Continuous) ∀ε > 0,∃δ > 0 : |y1 − y2| ≤ δ =⇒ | f (y1) − f (y2)| ≤ ε\n\n1\n\n\fChoosing ε > 0 and taking δ from uniform continuity\n\n(cid:104)| f (Sn/n) − f (x)|1|Sn/n−x|≤δ + | f (Sn/n) − f (x)|1|Sn/n−x|>δ\n\nE\n\n≤ ε + 2MP(|Sn/n − x| > δ|)\n≤ ε\n\n2M\nδ2 Var(Sn/n)\nx(−x)\n2M\nδ2\nM\n2δ2\nas n → ∞\n\n= ε +\n≤ ε +\n≤ ε\n= 0 holds ∀ε > 0\n\n1\nn\n\nn\n\n(cid:105)\n\n(1.6)\n(1.7)\n\n(1.8)\n\n(1.9)\n\n(1.10)\n\n(1.11)\n(1.12)\n\n2 Backgrounnd for proving a.s. limits\n\n2.1 Axioms\nFor events Bn, B\n\n• Bn ↑ B =⇒ P(Bn) ↑ P(B)\n• Bn ↓ B and ∃n : P(Bn) < ∞ =⇒ P(Bn) ↓ P(B)\n\nDeﬁnition 2.1. Event An inﬁnitely often (An i.o.) means ∩∞\n\nm=1 ∪∞\nEvent An ultimately (An ult.) means ∪m = 1∞ ∩ n = m∞An.\nn ult.)\n\nProposition 2.2. i.o. and ult. are opposites: (An i.o.)c = (Ac\n\nn=m An.\n\nLemma 2.3 (Weak).\n(i) P(An i.o.) ≥ lim supn P(An)\n(ii) P(An ult.) ≥ lim infn P(An)\nProof.\n\nn=mAn) ≥ max\nP(∪Q\nm≤n≤Q\nn=mAn) ≥ sup\nP(∪∞\nn≥m\nP(An i.o.) ≥ lim sup\n\nP(An)\n\nn\n\nP(An)\n\nP(An)\n\n2\n\nQ → ∞\nm → ∞\n\n(2.1)\n\n(2.2)\n\n(2.3)\n\n\fLemma 2.4 (First Borel-Cantelli). Events (An)∞\nProof.\n\nn=1, if ∑n P(An) < ∞ then P(An i.o.) = 0.\n\nn∑\n\nXn =\n\nX∞ =\n\ni=1\n∞\n∑\ni=1\n∞\n∑\nEX∞ =\ni=1\n=⇒ P(X∞ = ∞) = 0\n\n1Ai = (number of last n events that occur)\n\n1Ai = (total number of events that occur)\n\nP(Ai) <\nhyp\n\n∞\n\n(2.4)\n\n(2.5)\n\n(2.6)\n\n(2.7)\n\nLemma 2.5 (Second Borel-Cantelli). For independent events (Ai)∞\nP(An i.o.) = 1.\n\ni=1, if ∑i P(Ai) = ∞ then\n\n(Many variants under alternative assumptions exist)\n\nProof. Fix m. We will prove P(∪∞\n\nFact: 0 ≤ x ≤ 1 =⇒ 1 − x ≤ e−x.\nBy independence\n\nn=mAn) = 1 or prove P(∩∞\n\nn=mAc\n\nn) = 0.\n\nP(∩q\n\nn=mAc\n\nn) =\n\n=\n\nn=m\n\nq∏\nq∏\n\nn=m\n\nP(Ac\nn)\n\n(1 − P(An))\n\n≤ exp(− q∑\n\nn=m\n\nP(An))\n\nLet q ↑ ∞\n\nP(∩∞\n\nn=mAc\n\nn) ≤ exp(− ∞\n∑\nn=m\n\nP(An)) = 0\n\n(2.8)\n\n(2.9)\n\n(2.10)\n\n(2.11)\n\nLemma 2.6. Arbitrary R-valued r.v.s (Yn) and arbitrary −∞ < y < ∞.\n\nIf ∑n P(Yn ≥ y + ε) < ∞ for all ε > 0, then lim supn Yn ≤ y a.s..\n\nCorollary 2.7. If ∑n P(|Yn| ≥ ε) < ∞, each ε > 0, then Yn\nProposition 2.8 (Deterministic fact for real numbers). For reals (yn) and y, “lim supn yn ≤ y”\nequivalent to “yn ≤ y + ε” ult., each ε > 0, equivalent to “yn ≤ y + 1/j” ult., each j ≥ 1.\n\na.s.→ 0.\n\n3\n\n\fProof. By Hyp and B-C 1\n\n=⇒ P(Yn ≤ y + 1/j ult.) = 1)\nBy monotonicity P(Bj) = 1∀j =⇒ P(Bj for allj) = 1 hence\n\n=⇒ P(Yn ≤ y + 1/j ult., each j ≥ 1) = 1\n=⇒ P(lim sup\n\nYn ≤ y) = 1\n\nn\n\n(2.12)\n\n(2.13)\n(2.14)\n\nTheorem 2.9 (4th moment SLLN (strong law of large numbers)). Let (Xi, 1 ≤ i < ∞) be\ni.i.d., ∀i : EXi = 0, EX4 < ∞. Then\n\nn ≤ 3n2EX4\n\n(i) ES4\n(ii) Sn/n a.s.→ 0 as n → ∞\nProof.\n\n(i) ES4\n\nn = ∑i,j,k,l E[XiXjXkXl]\n\nNote that E[·] = 0 if some index j appears only once, e.g.\n\nE[X4]E[X6\n\n6] = 0\n\nE[X4X6X6X6] = \b\b\b\b*0\n(cid:19)\n(cid:19)(cid:18)n\n\n(cid:18)4\n\nES4\n\n2\n\nE[X2\n\nn = nEX4 +\n1X2\n2]\n(cid:124) (cid:123)(cid:122) (cid:125)\n= nEX4 + 3n(n − 1) (EX2)2\n≤EX4\n\n2\n\n≤ 3n2EX4\n\nP(|Sn/n| ≥ ε) ≤ E|Sn/n|4/ε4\n\n≤ ε\n≤ 3ε\nP(|Sn/n| ≥ ε) ≤ ∑\n\n−4n−4 × 3n2EX4\n−4EX4n−2\n3ε\n\n−4EX4n−2 < ∞\n\nn\n\nMarkov ineq φ(x) = x4\n\nHence\n\nFix ε > 0.\n\n=⇒ ∑\nn\n\n(2.15)\n\n(2.16)\n\n(2.17)\n\n(2.18)\n\n(2.19)\n(2.20)\n(2.21)\n(2.22)\n\nApplying corollary 2.7, Sn/n a.s.→ 0\nCorollary 2.10. If (Ai)∞\ni=1 independent Bernoulli(p), Sn = ∑n\nDeﬁnition 2.11. Given data real number xi,· · · , xn, deﬁne:\nEmpirical distribution Uniform distribution on (x1, xn)\n\ni=1 1Ai, then Sn/n a.s.→ p as n → ∞.\n\n4\n\n\fEmpirical distribution function G(x) = 1\n\nn ∑n\n\ni=1 1xi≤x\n\nFigure 1: Example empirical distribution function\n\nTheorem 2.12 (Glivenko-Cantelli). (Xi)∞\nn ∑n\n1\n\ni=1 1Xi(ω)≤x is empirical distribution of (X1(ω), X2(ω),· · · , Xn(ω)).\nFor ﬁxed x, events {Xi ≤ x} are i.i.d. Bern( f (x)).\nSLLN for events says\n\nGn(ω, x) → G(x) a.s. as n → ∞\n\ni=1 i.i.d., arbitrary distribution function F, Gn(ω, x) =\n\n(2.23)\n\nfor each x.\n\n5\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec8.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #8\n9/20/2016\n\n1 Glivenko-Cantelli Theorem\nTheorem 1.1. Let (Xi)N\nbe its empirical distribution function. Then\n\ni=1 be i.i.d. with distribution function F and Gn(w, x) = 1\nn\n\n(cid:229)n\ni=1 1Xi(w)(cid:20)x\n\njGn(w, x) (cid:0) F(x)j a.s.! 0\n\nas n ! ¥\n\nsup\n\nx\n\n(i.e. ∥Gn(w, x) (cid:0) F(x)∥¥ ! 0 or Gn\n\nL¥! F\n\nTo prove theorem 1.1, we need a lemma proved in a later homework.\n\nDeﬁnition 1.2. For a CDF F : R ! [0, 1], x 2 R is an atom if\n) = P(X = x) > 0\n\nF(x) (cid:0) F(x\n\n(cid:0)\n\n(1.1)\n\n(1.2)\n\njFn(x) (cid:0) F(x)j ! 0 almost surely.\n\nLemma 1.3. Let Fn, F be distribution functions. If\n(a) For all x 2 Q: Fn(x) ! F(x)\n(b) For each atom x of F: Fn(x) ! F(x) and Fn(x\nthen supx\nProof of theorem 1.1. Fix x 2 R. The events fXi (cid:20) xgn\ni=1 are i.i.d. with probability = F(x).\nBy SLLN, Gn(w, x) a.s.! F(x) as n ! ¥. Consider S = Q [ fatoms of Fg, which is\ncountable (TODO: why?). Notice P(Gn(w, x) ! F(x) 8x 2 S) = 1 so by lemma 1.3\nP(supx\n\njGn(w, x) (cid:0) F(x)j ! 0) = 1.\n\n) ! F(x\n\n(cid:0)\n\n(cid:0)\n\n)\n\n2 Gambling on a favorable game\nSuppose we are playing a game where we stake an amount s 2 R and recieve payoff\n\n{\n\n(2.1)\nConsider a strategy where at every time the stake s is equal to some proportion q 2\n\n+s, w.p. 1\n(cid:0)s, w.p. 1\n\n2 + a\n(cid:0) a\n2\n\n1\n\n\f[0, 1] of your currrent total. Let Xn denote your total fortune after n bets. Then\n\n{\n\nif win\nif loose\n1An+1\n\n|{z}\n\nwin (n + 1)st bet\n\nXn+1 = (1 (cid:0) q)Xn +\n\n2qXn,\n0,\n= (1 (cid:0) q)Xn + 2qXn\n= (1 (cid:0) q + 2q1An+1)Xn\n(1 (cid:0) q + 2q1Ai )\n\nn(cid:213)\n\n=) Xn = x0\nlog Xn\n\ni=1\nlog x0\n\n=\n\nn\n\n|\n}\nlog(1 (cid:0) q + 2q1Ai )\n\n{z\n\n+\n\n1\nn\n\nn(cid:229)\n\ni=1\n\n(2.2)\n\n(2.3)\n\n(2.4)\n\n(2.5)\n\n(2.6)\n\nn\n\nBy SLLN, as n ! ¥\n\n(\n\n)\n\n1\n2\n\n+ a\n(cid:25) 2aq (cid:0) 1\n2\n\n(2.7)\nn log Xn ! c is slightly weaker than xn (cid:25) ecn, c =“asymptotic growth rate”)\n\n(Note: 1\nThe optimal choice of q should maximize EY\n\nn\n\nlog Yn\n\na.s.! EY\n(\n\nEY =\n\nlog(1 + q) +\n\n(cid:0) a\n\n1\n2\n\nlog(1 (cid:0) q)\n\n(2.8)\n\n(2.9)\n\nq2\n\nfor a, q small\n\nYi\n\n)\n\nFigure 1: Asymptotic growth rate for different bet proportions q\n\n) the optimal choice is q = 2a\nHowever, notice that\n\nEXn = x0(1 + 2qa)n ! ¥\n\nbut Xn\n\na.s.! i f q (cid:21) qcrit (cid:25) 4a\n\n(2.10)\n\n2\n\n\f3 Almost-sure limits for maxima\n\nExample 3.1. (Xi)n\n1\n\nWrite Mn = sup1(cid:20)i(cid:20)n Xi. Then\n\niid(cid:24) Exp(1), P(X > x) = e\n\n(cid:0)x.\n\nlim sup\n\nn\n\nXn\nlog n\n\na.s.= 1\n\nand\n\nMn\nlog n\n\na.s.! 1\n(\n\nP\n\nn\n\n(BC 1)\n\n(cid:229)\nn2N\n\n)\nProof. Fix # > 0. P(Xn/ log n > 1 + #) = exp((cid:0)(1 + #) log n) = n\n(cid:20) 1 + # ult.\na.s.(cid:20) 1 + #\nXn\nlog n\na.s.(cid:20) 1\nXn\nlog n\n(cid:0)(1(cid:0)#) so\n\nlim sup\n}\nTo obtain a lower bound, P(Xn/ log n (cid:21) 1 (cid:0) #\n(\n\n(cid:0)(1+#) < ¥ =)\n\nXn\nlog n\n() lim sup\n=)\n#!0\n{z\n(cid:0)(1(cid:0)#) = ¥ =)\n=)\n#!0\n\nXn\nlog n\n\n(cid:21) 1 (cid:0) # i.o.\nXn\nlog n\n\na.s.(cid:21) 1\n\n(cid:229)\nn2N\n\nlim sup\n\n) = n\n\n)\n\nn\n\nn\n\nindep.\n\nP\n\n(BC 2)\n\n|\n\nn\n\nn\n\n(cid:0)(1+#)\n\n= 1\n\n= 1\n\nTogether, we have lim supn Xn/ log n a.s.= 1.\nTo prove the second part, we ﬁrst prove a deterministic lemma:\n\nXn\nbn .\n\nLemma 3.2 (Deterministic Lemma). If Xn (cid:21) 0 and 0 < bn \" ¥, then lim supn\nlim supn\nProof. “(cid:21)” is obvious. Fix j.\nmax1(cid:20)i(cid:20)n Xi\n\nmaxj(cid:20)i(cid:20)n Xi\n\nlim sup\n\nn\n\nbn\n\n(3.1)\n\n(3.2)\n\n(3.3)\n\n(3.4)\n\n(3.5)\n\n(3.6)\n\n(3.7)\n\nmax1(cid:20)i(cid:20)n Xi\n\nbn\n\n=\n\n= lim sup\n(cid:20) lim\n\nn\n\nn\nmax\nj(cid:20)i(cid:20)n\nxi\nbi\n\n= sup\ni(cid:21)j\n\nbn\n\nxi\nbi\n\n3\n\nLetting j ! ¥ shows “(cid:20)”.\n\nbn \" ¥, xj ﬁxed\n(cid:21) xi\nbn\n\nxi\nbi\n\n(3.8)\n\n(3.9)\n\n(3.10)\n\n\fCombining eq. (3.1) and lemma 3.2 imply lim supn\nIt remains to show lim infn\n\na.s.= 1. But since 1 a.s.= lim supn Mn/ log n (cid:21) lim infn Mn/ log n,\n\nMn\nlogn\n\nMn\nlog n\n\na.s.= 1.\n\nit sufﬁces to show lim infn Mn/ log n\n\nFix # > 0.\n\nP(Mn (cid:20) (1 (cid:0) #) log n) = P(X (cid:20) (1 (cid:0) #) log n)n\n)n\n\na.s.(cid:21) 1\n(\n= (1 (cid:0) n\n(cid:0)(1(cid:0)#))n\n(cid:20) exp\n(cid:0)n\n(cid:0)(1(cid:0)#)\n= exp ((cid:0)n#)\n\n1 (cid:0) x (cid:20) e\n\n(cid:0)x\n\n(3.11)\n(3.12)\n\n(3.13)\n(3.14)\n(3.15)\n\n(3.16)\n\n(3.17)\n\n(3.18)\n\n(3.19)\n\n(3.20)\n\n(cid:229)\nn\n\nP(Mn (cid:20) (1 (cid:0) #) log n) (cid:20) 1 (cid:0) 1\n\n1 (cid:0) e# =\n\n1\n1 (cid:0) e# < ¥\n\n(BC 1)\n\n=)\n=) lim inf\n() lim inf\n=)\n#!0\n\nlim inf\n\nMn (cid:21) (1 (cid:0) #) log n ult. a.s.\nMn\nlog n\nMn\nlog n\nMn\nlog n\n\na.s.(cid:21) 1 (cid:0) #\na.s.(cid:21) 1 (cid:0) #\na.s.(cid:21) 1\n\nn\n\nn\n\nn\n\nRemark 3.3. Here Xn/ log n ! 0 in probability (i.e. P(Xn/ log n (cid:21) #) = n\na.s. (which requires showing P(limn Xn/ log n = 0) = 1).\n\n(cid:0)# ! 0, but not\n\n4 Second moment Strong Law of Large Numbers\nTheorem 4.1 (Second moment SLLN). Given (Xi)n\n\ni=1 with:\n\nEX2\n\n(a) EXi = 0 for all i\n(b) supi\n(c) Orthogonal: E[XiXj] = 0 for all i ̸= j\nWrite Sn = (cid:229)n\n\ni=1 Xi. Then Sn/n a.s.! 0.\n\ni = B < ¥\n\nWe ﬁrst show a deterministic lemma used in the proof.\n\nLemma 4.2 (Deterministic Lemma). Given Sn 2 R, to show Sn/n ! 0 it sufﬁces to show 9\nsubsequence n(j) \" ¥ such that:\n(a) Sn(j)/n(j) ! 0 as j ! ¥\n\n4\n\n\f(b) Dj/n(j) ! 0 where Dj := maxn(j)(cid:20)n(cid:20)n(j+1)\n\njSn (cid:0) Sn(j)\n\nj\n\nFigure 2: d(j) and n(j) as deﬁned for lemma 4.2\n\nProof of lemma 4.2. Given n, for some j where n(j) (cid:20) n < n(j + 1)\n\nProof of theorem 4.1. Var(Sn) (cid:20) nB so by Chebyshev’s inequality\n\nj + Dj\nn(j)\n\na.s.! 0\n\n(cid:12)(cid:12)(cid:12)(cid:12) Sn\n\nn\n\nn(j)\n\n(cid:12)(cid:12)(cid:12)(cid:12) (cid:20)\n(cid:12)(cid:12)(cid:12)(cid:12) Sn\n(jSnj\n(jSn(j)\n\nn\n\n(cid:21) #\n\nP\n\nn(j)\n\nP\n\n(cid:12)(cid:12)(cid:12)(cid:12) (cid:20) jSn(j)\n)\n\n)\n\nj\n\n(cid:21) #\n\n(cid:20) nB\n\nn2#2 =\n\nB\nn#2\n\n(cid:20) B\n#2\n\n1\nj2\n\n(4.1)\n\n(4.2)\n\n(4.3)\n\n(4.4)\n\n(4.5)\n\n(4.6)\n\nTake a(j) = j2.\n\n(\n\n)\n\nj\n\njSn(j)\nn(j)\n\n(cid:21) #\n\n(cid:20) ¥ so by Borel-Cantelli 1 lim supn Sn(j)/n(j)\n\na.s.(cid:20) ϵ. Taking ϵ ! 0 yields\n(cid:229)j P\nlim supn Sn(j)/n(j) a.s.= 0, and since Sn(j)/n(j) (cid:21) 0 for all j, lim infn Sn(j)/n(j) (cid:21) 0 hence\nSn(j)/n(j) a.s.! 0.\n\nBy lemma 4.2 it sufﬁces to show Dj/j2 a.s.! 0 for Dj = maxj2(cid:20)n(cid:20)(j+1)2jSn (cid:0) Sj2j.\n\nD2\n\nj = max\n\nj2(cid:20)n(cid:20)(j+1)2\n\n(Sn (cid:0) Sj2)2 (cid:20) (j+1)2\n(cid:229)\nn=j2\n\nE(Sn (cid:0) Sj2)2 =\n\n(j+1)2\n(cid:229)\nn=j2\n\nVar\n\n(Sn (cid:0) Sj2)2\n)\n(\n\nSn (cid:0) Sj2\n\n0@ n(cid:229)\n\ni=j2+1\n\n1A\n\nXi\n\n=\n\n(j+1)2\n(cid:229)\nn=j2\n\nVar\n\nED2\nj\n\n(cid:20) (j+1)2\n(cid:229)\nn=j2\n\n(cid:20) (j+1)2\n(cid:229)\nn=j2\n\nB(n (cid:0) j2) = B\n\n2j+1(cid:229)\n\ni=1\n\ni =\n\n1\n2\n\n(2j + 1)(2j + 2)B\n\n5\n\n\fBy Chebyshev bound\n\n(\n\n)\n\n(cid:21) #\n\nDj\nj\n\n(cid:20) ED2\nj\n#2j4\n\n2 O(j\n\n(cid:0)2)\n\nP\nBy Borel-Cantelli 1, Dj/j2 a.s.! 0.\nRemark 4.3. Theorem 4.1 does not rely on independence, only bounded variance and or-\nthogonality.\n\n(4.7)\n\n5 Misc. MT\nDeﬁnition 5.1. For a RV X and a non-negative integrable RV Y (Y (cid:21) 0, EY (cid:20) ¥), X is\ndominated by Y (written X ≪ Y) means jXnj a.s.(cid:20) Y.\nTheorem 5.2 (Dominated Convergence Theorem). If Xn\n(a) EXn ! EX\n(b) EjXn (cid:0) Xj ! 0\n(c) EjXj < ¥\nProof. Fix ϵ > 0. Deﬁne AN = fjXn (cid:0) Xj (cid:20) ϵ for all n (cid:21) Ng. Then AN \" A, P(A) = 1\nimplies Ac\n\na.s.! X and Xn ≪ Y, then:\n\nn # Ac, P(Ac) = 0.\n\nEjXN (cid:0) Xj = EjXN (cid:0) Xj1AN + EjXN (cid:0) Xj1Ac\n\n(cid:20) ϵ + EjXN (cid:0) Xj1Ac\nn ! Ac by monotone convergence\n\nN\n\nN\n\nEjXN (cid:0) Xj (cid:20) ϵ + 0Ac\nlim sup\nTrue 8ϵ so EjXN (cid:0) Xj ! 0.\n\nN\n\n(5.1)\n\nTODO: Bernstein’s theorem from previous lecture\n\n(5.2)\n(5.3)\n\nThis proof may need Fatou’s lemma.\n\n6\n\n\f"
+	},
+	{
+		"fileName": "pdf_lecture-notes_205A_lecture-noteslec9.pdf.txt",
+		"content": "Feynman Liang\nSTAT 205A\nLecture #9\n9/22/2016\n\n1 Bounding maxima\n\nTheorem 1.1 (Kolmogorov’s Maximal Inequality). (Xi)n\n\nn = max1≤m≤n |Sm|\n\ni=1 Xi. S+\nn ≥ x) ≤ ES2\n\nSm = ∑m\nThen P(S+\nThe proof uses a general trick related to martingales of considering stopping times.\n\nx2 , x > 0.\n\ni=1 independent, EXi = 0, EX2\n\nn\n\ni < ∞.\n\nProof. Fix x. Event {S+\nn ≥ x} = ∪n\nNote (Sk, Ak) independent of Sn − Sk.\n\nNotice Sn = Sk + (Sn − Sk) so we can write\n\nk=1Ak where Ak = {|Sk| ≥ x,|Si| < x, all 1 ≤ i ≤ k}.\n\nE[Sn1Ak ]\n\nE(S2\n\n(cid:125)\nk1Ak ) + 2E(Sk1Ak (Sn − Sk)\n(cid:125)\n\n(cid:123)(cid:122)\n(cid:123)(cid:122)\n\nE(Sn−Sk)=0\n\n(cid:124)\n\n(cid:124)\n\n)\n\n=0\n\nn ≥ n∑\n\nES2\n\nk=1\n\n=\n\nn∑\n\nk=1\n\n≥ n∑\n\n(cid:124)\n(cid:125)\n+ E((Sn − Sk)21Ak\n\n(cid:123)(cid:122)\n\n≥0\n\n\n\n(1.1)\n\n(1.2)\n\n(1.3)\n\n(1.4)\n\nE(S2\n\nk1Ak )\n\nE(x21Ak )\n\nk=1\n\nk=1\n\n≥ n∑\n= x2P(∪n\n= x2P(|S+\n\n(1.5)\n(1.6)\nwhere we have used independence of Sk1Ak and (Sn − Sk) in ??, and |Sk| ≥ x on Ak in\n??.\n\nk=1Ak)\nn | ≥ x)\n\n2 Almost sure convergence\n“∑∞\nCauchy criterion:\n\ni=1 xi converges” means limn→∞ ∑n\n\ni=1 xi exists and is ﬁnite. This is equivalent to the\n\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)\n\nn∑\n\ni=K+1\n\nxi\n\nsup\nn≥K\n\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12) → 0 as K → ∞\n\n1\n\n(2.1)\n\n\fThus, ∑∞\n\ni=1 Xi converges a.s. means\n\nP(ω :\n\nlim\nN→∞\n\nN∑\n\ni=1\n\nTheorem 2.1. (Xi) independent, EXi = 0, σ2\nconverges a.s.\n\nXi(ω) exists, ﬁnite) = 1\n\n(2.2)\n\ni = Var|Xi| < ∞. If ∑∞\n\ni=1 σ2\n\ni < ∞, then ∑∞\n\ni=1 Xi\n\nComment:\n\nVar(\n\nn∑\n\ni\n\nVar\n=⇒ ∞\n∑\ni=1\n(cid:12)(cid:12)∑n\nExercise: Given theorem, show (*)\ni=k+1 Xi\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12)\n\nProof. Deﬁne Mk = supn≥k\nk → ∞.\n\nsup\nk<n≤N\n\n(cid:32)\n\nn∑\n\ni=k+1\n\nP\n\nXi\n\nXi) =\n∞\n∑\ni=1\n\n=\n\nn∑\n\n=1\n∞\n∑\ni=1\n\nσ2\ni\n\ni ≤ ∞(∗)\nσ2\n\nXi is ﬁnite a.s.\n\n(cid:12)(cid:12). By Cauchy criterion, sufﬁces to show Mk\n(cid:12)(cid:12)(cid:12)(cid:12)(cid:12) ≥ \u0001\n\n(cid:32) N∑\n\n−2Var\n\n(cid:33)\n\n(cid:33)\n\n≤\n??\n\nXi\n\ni=k+1\n\n\u0001\n\n−2\n\n= \u0001\n\nN∑\n\ni=k+1\n\nVar (Xi)\n\n(2.3)\n\n(2.4)\n\n(2.5)\n\na.s.→ 0 as\n\n(2.6)\n\n(2.7)\n\n(2.8)\n\n(2.9)\n\nAs N → ∞\n\nP(Mk > \u0001) ≤ \u0001\n\n−2\n\n∞\n∑\ni=1\n\nσ2\ni\n\nP(wk > \u0001) ≤ P(Mk > \u0001/2) ≤ 4\u0001\n\n−2\n\n(cid:12)(cid:12)(cid:12). Note Mk ≤ wk ≤ 2Mk and wk ↓ as k ↑. As k → ∞,\n\n(2.10)\n\nσ2\ni\n\n(cid:12)(cid:12)(cid:12)∑n2\n\n∞\n∑\n1\n\nwhere wk = supn1>n1>k\nwk ↓a.s. w∞\n\ni=n1+1 Xi\n\nP(w∞ > \u0001) = 0\n=⇒ w∞\na.s.= 0\n=⇒ wk ↓a.s. 0\na.s.→ 0\n=⇒ Mk\n\n2\n\n(2.11)\n(2.12)\n(2.13)\n(2.14)\n\n\fLemma 2.2 (Kronecker). (xn) ∈ Rω. Sn = ∑n\nthen sn\nan\n\n→ 0.\n\ni=1 xi. 0 < an ↑ ∞ as n ↑ ∞. If ∑i\n\nxi\nai\n\nconverges,\n\nProof. Exercise.\nCorollary 2.3. (Xi) independent, EXi = 0, EX2\n∑n\n\n→ 0 a.s..\n\n< ∞, then Sn\nan\n\nEX2\nn\na2\nn\n\ni < ∞. If 0 < an ↑ ∞ as n ↑ ∞ and if\n\nan converges a.s.. Lemma implies Sn\nXn\nan\nn ∼ cn2α, α > 0. Take a2\n\nn = n1+2α+\u0001 (\u0001 > 0 small).\n\na.s.→ 0.\n\na.s.→ 0 TODO: Check the 1/2.\nEX2\n\nn < ∞. Take a2\n\nn = n(log n)1+2\u0001. The corollary implies\n\nProof. Previous theorem implies ∑n\n\nSpecialization: Suppose also EX2\n\nSn\n\nn1/2+α+\u0001\n\na.s.→ 0.\n\nSpecialization: Suppose supn\n\nThen corrolary implies\nSn√\nn(log n)1+\u0001\nImplicitly from CLT: If (Xi) i.i.d., then\nSn√\nn\n\nLaw of iterated log.\n\na.s.→ 0\n\n(2.15)\n\n(cid:90) ∞\n\n0\n\nTheorem 2.4 (Strong Law of Large Numbers (SLLN)). Let (Xi) iid with E|Xi| < ∞, Sn :=\ni=1 Xi. Then Sn\n∑n\nn\n\nProof. Truncate, center, apply corollary (Z ≥ 0. EZk =(cid:82) ∞\n\n0 kzk−1P(Z ≥ z)dz ≈(cid:82) ∞\n\na.s.→ EX as n → ∞.\n\n0 xk f (x)dx)\n\n(Truncate): Deﬁne Yk = Xk1|Xk|≤k, so Yk are no longer iid. However\n\nP(Yk (cid:54)= Xk) =\n\n∑\nk\n\n∞\n∑\nk=1\n\nP(|X| > k) ≤\n\nP(|x| > x)dx = E|X| ≤ ∞\n\n(2.16)\n\na.s.→ EX.\n\n(2.17)\n\nBy Borel Cantelli 1, P(Yk = Xk e.v.) = 1. Thus, sufﬁces to prove 1\n\n(Center): Deﬁne X(cid:48)\n\nk = Yk − EYk. Claim:\n\nn ∑n\n\nk=1 Yk\n\nVar(X(cid:48)\nk)\nk2\n\n∑\nk\n\n< ∞\n\n3\n\n\fTo show the claim:\n\nEY2\n\nk =\n\n=\n≤\n\n(cid:90) ∞\n(cid:90) ∞\n(cid:90) ∞\n\n0\n\n0\n\n2yP(|Yk| > y)dy\n2yP(k ≥ |Xk| ≥ y)1y≤kdy\n2yP(|Xk| ≥ y)1y≤kdy\nEY2\n(cid:90) ∞\nk\nk2\n1\nk2\n\n2yP(|X| ≥ y)1y≤kdy\n\n P(|X| ≥ y)dy\n\n2y\n\n1\n(cid:123)(cid:122)\n(cid:125)\nk2 1y≤k\n\nG(y)\n\n∑\nk\n\n0\n\nVarX(cid:48)\nk2 ≤ ∑\nn\nk\n≤ ∑\nk\n(cid:90) ∞\n\n=\n\n0\n\n0\n\n∑\n\n(cid:124)\n\nk\n\n(cid:90) k\n\n(cid:90) ∞\n\n1\n\n1\n\n∑\nk\n\nk2 ≤\n\n1\nx2 dx\nk−1\n1\nk2 ≤\nk2 1y≤k = ∑\nk≥(cid:100)y(cid:101)\n=⇒ G(y) ≤ 2y\n≤ 4\n(cid:100)y(cid:101) − 1\n(cid:90) ∞\n\nVarX(cid:48)\nk2 ≤ 4\nn\n\n0\n\n∑\nk\n\n1\nx2 dx =\n\n1\n\n(cid:100)y(cid:101) − 1\n\n(cid:100)y(cid:101)−1\n\nP(|X| > y)dy = 4E|X|\n\nClaim: G(y) ≤ 4 for all 0 < y < ∞. True for y ≤ 1. Take y > 1\n\nHence\n\nApply corollary to X(cid:48)\nn\n\n1\nn\n\nn∑\n\ni=1\n\nX(cid:48)\n\ni\n\na.s.→ 0\n\n(Yi − EYi) a.s.→ 0\n\n1\nn\n\nn∑\n\ni\n\nNote EYi = EX1|X|≤? → EX by dominated convergence, so\n\n(EYi − EX) a.s.→ 0\n\n1\nn\n\nn∑\n\ni\n\n4\n\n(2.18)\n\n(2.19)\n\n(2.20)\n\n(2.21)\n\n(2.22)\n\n(2.23)\n\n(2.24)\n\n(2.25)\n\n(2.26)\n\n(2.27)\n\n(2.28)\n\n(2.29)\n\n(2.30)\n\n\fAdding ?? with ?? yields\n\n(Yi − EX) a.s.→ 0\nn∑\n\na.s.→ EX\n\nYi\n\n1\nn\n1\nn\n\nn∑\n\ni\n\ni\n\n(2.31)\n\n(2.32)\n\n5\n\n\f"
+	}
+];
+
+/***/ }),
+/* 81 */
+/***/ (function(module, exports) {
+
+var NA = "n/a";
+var getDatePattern = /([0-9]+\/[0-9]+\/[0-9]+)/
+var getLectureNumberPattern = /Lecture[\s]+#([0-9]+)/
+var getClassPattern = /[\s]*Feynman[\s]+Liang[\s]*\n[\s]*([A-Z]+[\s]+[0-9]+[A-Z])/
+var noteHeaderPattern = /[\s]*Feynman[\s]+Liang[\s]*\n[\s]*[A-Z]+[\s]+[0-9]+[A-Z][\s]*\n[\s]*Lecture[\s]+#[0-9]+[\s]*\n[\s]*[0-9]+\/[0-9]+\/[0-9]+[\s]*\n/
+
+function getLectureNumber(text) {
+  var number = text.match(getLectureNumberPattern);
+  if (number) {
+    return number[1];
   }
-  return null;
 }
 
-module.exports = getComponentName;
+function getClass(text) {
+  var clss = text.match(getClassPattern);
+
+  if (clss) {
+    return clss[1];
+  }
+}
+
+function isNoteHeader(text) {
+  return noteHeaderPattern.test(text);
+}
+
+function getDate(text) {
+  var date = text.match(getDatePattern);
+  if (date) {
+    return date[1];
+  }
+}
+
+function getHeaderData(fileContent) {
+  /**
+   * returns date, lecture number, and class name
+   */
+  var lectureDate = getDate(fileContent);
+  var lectureNumber = getLectureNumber(fileContent);
+  var className = getClass(fileContent);
+
+  return {
+    date: lectureDate || NA,
+    lectureNumber: lectureNumber || NA,
+    className: className || NA,
+  };
+}
+
+module.exports = getHeaderData;
+
+
+
+/***/ }),
+/* 82 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+module.exports = __webpack_require__(111);
+
+
+/***/ }),
+/* 83 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var React = __webpack_require__(20);
+var ClassTile = __webpack_require__(180);
+
+
+var App = React.createClass({
+  displayName: 'App',
+
+  propTypes: {
+    classNotes: React.PropTypes.arrayOf(
+      React.PropTypes.shape({
+        className: React.PropTypes.string.isRequired,
+        notes: React.PropTypes.arrayOf(
+          React.PropTypes.shape({
+            fileName: React.PropTypes.string.isRequired,
+            date: React.PropTypes.string.isRequired,
+            lectureNumber: React.PropTypes.string.isRequired,
+            className: React.PropTypes.string.isRequired,
+          }).isRequired
+        ).isRequired
+      }).isRequired
+    ).isRequired,
+  },
+
+  render: function() {
+    return (
+      React.createElement('div', { className: "all-classes" },
+        this.props.classNotes.map(function(classNotes) {
+          return React.createElement(ClassTile, {
+            className: classNotes.className,
+            notes: classNotes.notes,
+          });
+        })
+      )
+    );
+  }
+});
+
+module.exports = App;
+
+
+/***/ }),
+/* 84 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @typechecks
+ */
+
+var _hyphenPattern = /-(.)/g;
+
+/**
+ * Camelcases a hyphenated string, for example:
+ *
+ *   > camelize('background-color')
+ *   < "backgroundColor"
+ *
+ * @param {string} string
+ * @return {string}
+ */
+function camelize(string) {
+  return string.replace(_hyphenPattern, function (_, character) {
+    return character.toUpperCase();
+  });
+}
+
+module.exports = camelize;
+
+/***/ }),
+/* 85 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @typechecks
+ */
+
+
+
+var camelize = __webpack_require__(84);
+
+var msPattern = /^-ms-/;
+
+/**
+ * Camelcases a hyphenated CSS property name, for example:
+ *
+ *   > camelizeStyleName('background-color')
+ *   < "backgroundColor"
+ *   > camelizeStyleName('-moz-transition')
+ *   < "MozTransition"
+ *   > camelizeStyleName('-ms-transition')
+ *   < "msTransition"
+ *
+ * As Andi Smith suggests
+ * (http://www.andismith.com/blog/2012/02/modernizr-prefixed/), an `-ms` prefix
+ * is converted to lowercase `ms`.
+ *
+ * @param {string} string
+ * @return {string}
+ */
+function camelizeStyleName(string) {
+  return camelize(string.replace(msPattern, 'ms-'));
+}
+
+module.exports = camelizeStyleName;
+
+/***/ }),
+/* 86 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * 
+ */
+
+var isTextNode = __webpack_require__(94);
+
+/*eslint-disable no-bitwise */
+
+/**
+ * Checks if a given DOM node contains or is another DOM node.
+ */
+function containsNode(outerNode, innerNode) {
+  if (!outerNode || !innerNode) {
+    return false;
+  } else if (outerNode === innerNode) {
+    return true;
+  } else if (isTextNode(outerNode)) {
+    return false;
+  } else if (isTextNode(innerNode)) {
+    return containsNode(outerNode, innerNode.parentNode);
+  } else if ('contains' in outerNode) {
+    return outerNode.contains(innerNode);
+  } else if (outerNode.compareDocumentPosition) {
+    return !!(outerNode.compareDocumentPosition(innerNode) & 16);
+  } else {
+    return false;
+  }
+}
+
+module.exports = containsNode;
+
+/***/ }),
+/* 87 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(process) {
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @typechecks
+ */
+
+var invariant = __webpack_require__(1);
+
+/**
+ * Convert array-like objects to arrays.
+ *
+ * This API assumes the caller knows the contents of the data type. For less
+ * well defined inputs use createArrayFromMixed.
+ *
+ * @param {object|function|filelist} obj
+ * @return {array}
+ */
+function toArray(obj) {
+  var length = obj.length;
+
+  // Some browsers builtin objects can report typeof 'function' (e.g. NodeList
+  // in old versions of Safari).
+  !(!Array.isArray(obj) && (typeof obj === 'object' || typeof obj === 'function')) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'toArray: Array-like object expected') : invariant(false) : void 0;
+
+  !(typeof length === 'number') ? process.env.NODE_ENV !== 'production' ? invariant(false, 'toArray: Object needs a length property') : invariant(false) : void 0;
+
+  !(length === 0 || length - 1 in obj) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'toArray: Object should have keys for indices') : invariant(false) : void 0;
+
+  !(typeof obj.callee !== 'function') ? process.env.NODE_ENV !== 'production' ? invariant(false, 'toArray: Object can\'t be `arguments`. Use rest params ' + '(function(...args) {}) or Array.from() instead.') : invariant(false) : void 0;
+
+  // Old IE doesn't give collections access to hasOwnProperty. Assume inputs
+  // without method will throw during the slice call and skip straight to the
+  // fallback.
+  if (obj.hasOwnProperty) {
+    try {
+      return Array.prototype.slice.call(obj);
+    } catch (e) {
+      // IE < 9 does not support Array#slice on collections objects
+    }
+  }
+
+  // Fall back to copying key by key. This assumes all keys have a value,
+  // so will not preserve sparsely populated inputs.
+  var ret = Array(length);
+  for (var ii = 0; ii < length; ii++) {
+    ret[ii] = obj[ii];
+  }
+  return ret;
+}
+
+/**
+ * Perform a heuristic test to determine if an object is "array-like".
+ *
+ *   A monk asked Joshu, a Zen master, "Has a dog Buddha nature?"
+ *   Joshu replied: "Mu."
+ *
+ * This function determines if its argument has "array nature": it returns
+ * true if the argument is an actual array, an `arguments' object, or an
+ * HTMLCollection (e.g. node.childNodes or node.getElementsByTagName()).
+ *
+ * It will return false for other array-like objects like Filelist.
+ *
+ * @param {*} obj
+ * @return {boolean}
+ */
+function hasArrayNature(obj) {
+  return (
+    // not null/false
+    !!obj && (
+    // arrays are objects, NodeLists are functions in Safari
+    typeof obj == 'object' || typeof obj == 'function') &&
+    // quacks like an array
+    'length' in obj &&
+    // not window
+    !('setInterval' in obj) &&
+    // no DOM node should be considered an array-like
+    // a 'select' element has 'length' and 'item' properties on IE8
+    typeof obj.nodeType != 'number' && (
+    // a real array
+    Array.isArray(obj) ||
+    // arguments
+    'callee' in obj ||
+    // HTMLCollection/NodeList
+    'item' in obj)
+  );
+}
+
+/**
+ * Ensure that the argument is an array by wrapping it in an array if it is not.
+ * Creates a copy of the argument if it is already an array.
+ *
+ * This is mostly useful idiomatically:
+ *
+ *   var createArrayFromMixed = require('createArrayFromMixed');
+ *
+ *   function takesOneOrMoreThings(things) {
+ *     things = createArrayFromMixed(things);
+ *     ...
+ *   }
+ *
+ * This allows you to treat `things' as an array, but accept scalars in the API.
+ *
+ * If you need to convert an array-like object, like `arguments`, into an array
+ * use toArray instead.
+ *
+ * @param {*} obj
+ * @return {array}
+ */
+function createArrayFromMixed(obj) {
+  if (!hasArrayNature(obj)) {
+    return [obj];
+  } else if (Array.isArray(obj)) {
+    return obj.slice();
+  } else {
+    return toArray(obj);
+  }
+}
+
+module.exports = createArrayFromMixed;
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 88 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(process) {
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @typechecks
+ */
+
+/*eslint-disable fb-www/unsafe-html*/
+
+var ExecutionEnvironment = __webpack_require__(6);
+
+var createArrayFromMixed = __webpack_require__(87);
+var getMarkupWrap = __webpack_require__(89);
+var invariant = __webpack_require__(1);
+
+/**
+ * Dummy container used to render all markup.
+ */
+var dummyNode = ExecutionEnvironment.canUseDOM ? document.createElement('div') : null;
+
+/**
+ * Pattern used by `getNodeName`.
+ */
+var nodeNamePattern = /^\s*<(\w+)/;
+
+/**
+ * Extracts the `nodeName` of the first element in a string of markup.
+ *
+ * @param {string} markup String of markup.
+ * @return {?string} Node name of the supplied markup.
+ */
+function getNodeName(markup) {
+  var nodeNameMatch = markup.match(nodeNamePattern);
+  return nodeNameMatch && nodeNameMatch[1].toLowerCase();
+}
+
+/**
+ * Creates an array containing the nodes rendered from the supplied markup. The
+ * optionally supplied `handleScript` function will be invoked once for each
+ * <script> element that is rendered. If no `handleScript` function is supplied,
+ * an exception is thrown if any <script> elements are rendered.
+ *
+ * @param {string} markup A string of valid HTML markup.
+ * @param {?function} handleScript Invoked once for each rendered <script>.
+ * @return {array<DOMElement|DOMTextNode>} An array of rendered nodes.
+ */
+function createNodesFromMarkup(markup, handleScript) {
+  var node = dummyNode;
+  !!!dummyNode ? process.env.NODE_ENV !== 'production' ? invariant(false, 'createNodesFromMarkup dummy not initialized') : invariant(false) : void 0;
+  var nodeName = getNodeName(markup);
+
+  var wrap = nodeName && getMarkupWrap(nodeName);
+  if (wrap) {
+    node.innerHTML = wrap[1] + markup + wrap[2];
+
+    var wrapDepth = wrap[0];
+    while (wrapDepth--) {
+      node = node.lastChild;
+    }
+  } else {
+    node.innerHTML = markup;
+  }
+
+  var scripts = node.getElementsByTagName('script');
+  if (scripts.length) {
+    !handleScript ? process.env.NODE_ENV !== 'production' ? invariant(false, 'createNodesFromMarkup(...): Unexpected <script> element rendered.') : invariant(false) : void 0;
+    createArrayFromMixed(scripts).forEach(handleScript);
+  }
+
+  var nodes = Array.from(node.childNodes);
+  while (node.lastChild) {
+    node.removeChild(node.lastChild);
+  }
+  return nodes;
+}
+
+module.exports = createNodesFromMarkup;
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
 /* 89 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
+/* WEBPACK VAR INJECTION */(function(process) {
 
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
-module.exports = __webpack_require__(105);
+/*eslint-disable fb-www/unsafe-html */
 
+var ExecutionEnvironment = __webpack_require__(6);
+
+var invariant = __webpack_require__(1);
+
+/**
+ * Dummy container used to detect which wraps are necessary.
+ */
+var dummyNode = ExecutionEnvironment.canUseDOM ? document.createElement('div') : null;
+
+/**
+ * Some browsers cannot use `innerHTML` to render certain elements standalone,
+ * so we wrap them, render the wrapped nodes, then extract the desired node.
+ *
+ * In IE8, certain elements cannot render alone, so wrap all elements ('*').
+ */
+
+var shouldWrap = {};
+
+var selectWrap = [1, '<select multiple="true">', '</select>'];
+var tableWrap = [1, '<table>', '</table>'];
+var trWrap = [3, '<table><tbody><tr>', '</tr></tbody></table>'];
+
+var svgWrap = [1, '<svg xmlns="http://www.w3.org/2000/svg">', '</svg>'];
+
+var markupWrap = {
+  '*': [1, '?<div>', '</div>'],
+
+  'area': [1, '<map>', '</map>'],
+  'col': [2, '<table><tbody></tbody><colgroup>', '</colgroup></table>'],
+  'legend': [1, '<fieldset>', '</fieldset>'],
+  'param': [1, '<object>', '</object>'],
+  'tr': [2, '<table><tbody>', '</tbody></table>'],
+
+  'optgroup': selectWrap,
+  'option': selectWrap,
+
+  'caption': tableWrap,
+  'colgroup': tableWrap,
+  'tbody': tableWrap,
+  'tfoot': tableWrap,
+  'thead': tableWrap,
+
+  'td': trWrap,
+  'th': trWrap
+};
+
+// Initialize the SVG elements since we know they'll always need to be wrapped
+// consistently. If they are created inside a <div> they will be initialized in
+// the wrong namespace (and will not display).
+var svgElements = ['circle', 'clipPath', 'defs', 'ellipse', 'g', 'image', 'line', 'linearGradient', 'mask', 'path', 'pattern', 'polygon', 'polyline', 'radialGradient', 'rect', 'stop', 'text', 'tspan'];
+svgElements.forEach(function (nodeName) {
+  markupWrap[nodeName] = svgWrap;
+  shouldWrap[nodeName] = true;
+});
+
+/**
+ * Gets the markup wrap configuration for the supplied `nodeName`.
+ *
+ * NOTE: This lazily detects which wraps are necessary for the current browser.
+ *
+ * @param {string} nodeName Lowercase `nodeName`.
+ * @return {?array} Markup wrap configuration, if applicable.
+ */
+function getMarkupWrap(nodeName) {
+  !!!dummyNode ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Markup wrapping node not initialized') : invariant(false) : void 0;
+  if (!markupWrap.hasOwnProperty(nodeName)) {
+    nodeName = '*';
+  }
+  if (!shouldWrap.hasOwnProperty(nodeName)) {
+    if (nodeName === '*') {
+      dummyNode.innerHTML = '<link />';
+    } else {
+      dummyNode.innerHTML = '<' + nodeName + '></' + nodeName + '>';
+    }
+    shouldWrap[nodeName] = !dummyNode.firstChild;
+  }
+  return shouldWrap[nodeName] ? markupWrap[nodeName] : null;
+}
+
+module.exports = getMarkupWrap;
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
 /* 90 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @typechecks
+ */
 
 
-module.exports = __webpack_require__(21);
 
+/**
+ * Gets the scroll position of the supplied element or window.
+ *
+ * The return values are unbounded, unlike `getScrollPosition`. This means they
+ * may be negative or exceed the element boundaries (which is possible using
+ * inertial scrolling).
+ *
+ * @param {DOMWindow|DOMElement} scrollable
+ * @return {object} Map with `x` and `y` keys.
+ */
+
+function getUnboundedScrollPosition(scrollable) {
+  if (scrollable === window) {
+    return {
+      x: window.pageXOffset || document.documentElement.scrollLeft,
+      y: window.pageYOffset || document.documentElement.scrollTop
+    };
+  }
+  return {
+    x: scrollable.scrollLeft,
+    y: scrollable.scrollTop
+  };
+}
+
+module.exports = getUnboundedScrollPosition;
 
 /***/ }),
 /* 91 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @typechecks
+ */
+
+var _uppercasePattern = /([A-Z])/g;
+
+/**
+ * Hyphenates a camelcased string, for example:
+ *
+ *   > hyphenate('backgroundColor')
+ *   < "background-color"
+ *
+ * For CSS style names, use `hyphenateStyleName` instead which works properly
+ * with all vendor prefixes, including `ms`.
+ *
+ * @param {string} string
+ * @return {string}
+ */
+function hyphenate(string) {
+  return string.replace(_uppercasePattern, '-$1').toLowerCase();
+}
+
+module.exports = hyphenate;
+
+/***/ }),
+/* 92 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @typechecks
+ */
+
+
+
+var hyphenate = __webpack_require__(91);
+
+var msPattern = /^ms-/;
+
+/**
+ * Hyphenates a camelcased CSS property name, for example:
+ *
+ *   > hyphenateStyleName('backgroundColor')
+ *   < "background-color"
+ *   > hyphenateStyleName('MozTransition')
+ *   < "-moz-transition"
+ *   > hyphenateStyleName('msTransition')
+ *   < "-ms-transition"
+ *
+ * As Modernizr suggests (http://modernizr.com/docs/#prefixed), an `ms` prefix
+ * is converted to `-ms-`.
+ *
+ * @param {string} string
+ * @return {string}
+ */
+function hyphenateStyleName(string) {
+  return hyphenate(string).replace(msPattern, '-ms-');
+}
+
+module.exports = hyphenateStyleName;
+
+/***/ }),
+/* 93 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @typechecks
+ */
+
+/**
+ * @param {*} object The object to check.
+ * @return {boolean} Whether or not the object is a DOM node.
+ */
+function isNode(object) {
+  return !!(object && (typeof Node === 'function' ? object instanceof Node : typeof object === 'object' && typeof object.nodeType === 'number' && typeof object.nodeName === 'string'));
+}
+
+module.exports = isNode;
+
+/***/ }),
+/* 94 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @typechecks
+ */
+
+var isNode = __webpack_require__(93);
+
+/**
+ * @param {*} object The object to check.
+ * @return {boolean} Whether or not the object is a DOM text node.
+ */
+function isTextNode(object) {
+  return isNode(object) && object.nodeType == 3;
+}
+
+module.exports = isTextNode;
+
+/***/ }),
+/* 95 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * 
+ * @typechecks static-only
+ */
+
+
+
+/**
+ * Memoizes the return value of a function that accepts one string argument.
+ */
+
+function memoizeStringOnly(callback) {
+  var cache = {};
+  return function (string) {
+    if (!cache.hasOwnProperty(string)) {
+      cache[string] = callback.call(this, string);
+    }
+    return cache[string];
+  };
+}
+
+module.exports = memoizeStringOnly;
+
+/***/ }),
+/* 96 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @typechecks
+ */
+
+
+
+var ExecutionEnvironment = __webpack_require__(6);
+
+var performance;
+
+if (ExecutionEnvironment.canUseDOM) {
+  performance = window.performance || window.msPerformance || window.webkitPerformance;
+}
+
+module.exports = performance || {};
+
+/***/ }),
+/* 97 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @typechecks
+ */
+
+var performance = __webpack_require__(96);
+
+var performanceNow;
+
+/**
+ * Detect if we can use `window.performance.now()` and gracefully fallback to
+ * `Date.now()` if it doesn't exist. We need to support Firefox < 15 for now
+ * because of Facebook's testing infrastructure.
+ */
+if (performance.now) {
+  performanceNow = function performanceNow() {
+    return performance.now();
+  };
+} else {
+  performanceNow = function performanceNow() {
+    return Date.now();
+  };
+}
+
+module.exports = performanceNow;
+
+/***/ }),
+/* 98 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -9573,7 +10589,7 @@ var ARIADOMPropertyConfig = {
 module.exports = ARIADOMPropertyConfig;
 
 /***/ }),
-/* 92 */
+/* 99 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -9589,9 +10605,9 @@ module.exports = ARIADOMPropertyConfig;
 
 
 
-var ReactDOMComponentTree = __webpack_require__(4);
+var ReactDOMComponentTree = __webpack_require__(5);
 
-var focusNode = __webpack_require__(83);
+var focusNode = __webpack_require__(54);
 
 var AutoFocusUtils = {
   focusDOMComponent: function () {
@@ -9602,7 +10618,7 @@ var AutoFocusUtils = {
 module.exports = AutoFocusUtils;
 
 /***/ }),
-/* 93 */
+/* 100 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -9618,11 +10634,11 @@ module.exports = AutoFocusUtils;
 
 
 
-var EventPropagators = __webpack_require__(22);
+var EventPropagators = __webpack_require__(23);
 var ExecutionEnvironment = __webpack_require__(6);
-var FallbackCompositionState = __webpack_require__(100);
-var SyntheticCompositionEvent = __webpack_require__(144);
-var SyntheticInputEvent = __webpack_require__(147);
+var FallbackCompositionState = __webpack_require__(106);
+var SyntheticCompositionEvent = __webpack_require__(149);
+var SyntheticInputEvent = __webpack_require__(152);
 
 var END_KEYCODES = [9, 13, 27, 32]; // Tab, Return, Esc, Space
 var START_KEYCODE = 229;
@@ -9992,7 +11008,7 @@ var BeforeInputEventPlugin = {
 module.exports = BeforeInputEventPlugin;
 
 /***/ }),
-/* 94 */
+/* 101 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -10008,20 +11024,15 @@ module.exports = BeforeInputEventPlugin;
 
 
 
-var CSSProperty = __webpack_require__(61);
+var CSSProperty = __webpack_require__(56);
 var ExecutionEnvironment = __webpack_require__(6);
+var ReactInstrumentation = __webpack_require__(8);
 
-var camelizeStyleName = __webpack_require__(165);
-var dangerousStyleValue = __webpack_require__(154);
-var getComponentName = __webpack_require__(35);
-var hyphenateStyleName = __webpack_require__(172);
-var memoizeStringOnly = __webpack_require__(175);
-var warning = __webpack_require__(3);
-
-if (process.env.NODE_ENV !== 'production') {
-  var _require = __webpack_require__(24),
-      getCurrentFiberOwnerName = _require.getCurrentFiberOwnerName;
-}
+var camelizeStyleName = __webpack_require__(85);
+var dangerousStyleValue = __webpack_require__(159);
+var hyphenateStyleName = __webpack_require__(92);
+var memoizeStringOnly = __webpack_require__(95);
+var warning = __webpack_require__(2);
 
 var processStyleName = memoizeStringOnly(function (styleName) {
   return hyphenateStyleName(styleName);
@@ -10091,18 +11102,11 @@ if (process.env.NODE_ENV !== 'production') {
   };
 
   var checkRenderMessage = function (owner) {
-    var ownerName;
-    if (owner != null) {
-      // Stack passes the owner manually all the way to CSSPropertyOperations.
-      ownerName = getComponentName(owner);
-    } else {
-      // Fiber doesn't pass it but uses ReactDebugCurrentFiber to track it.
-      // It is only enabled in development and tracks host components too.
-      ownerName = getCurrentFiberOwnerName();
-      // TODO: also report the stack.
-    }
-    if (ownerName) {
-      return '\n\nCheck the render method of `' + ownerName + '`.';
+    if (owner) {
+      var name = owner.getName();
+      if (name) {
+        return ' Check the render method of `' + name + '`.';
+      }
     }
     return '';
   };
@@ -10176,6 +11180,14 @@ var CSSPropertyOperations = {
    * @param {ReactDOMComponent} component
    */
   setValueForStyles: function (node, styles, component) {
+    if (process.env.NODE_ENV !== 'production') {
+      ReactInstrumentation.debugTool.onHostOperation({
+        instanceID: component._debugID,
+        type: 'update styles',
+        payload: styles
+      });
+    }
+
     var style = node.style;
     for (var styleName in styles) {
       if (!styles.hasOwnProperty(styleName)) {
@@ -10211,132 +11223,7 @@ module.exports = CSSPropertyOperations;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 95 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-
-
-var _prodInvariant = __webpack_require__(2);
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var PooledClass = __webpack_require__(16);
-
-var invariant = __webpack_require__(1);
-
-/**
- * A specialized pseudo-event module to help keep track of components waiting to
- * be notified when their DOM representations are available for use.
- *
- * This implements `PooledClass`, so you should never need to instantiate this.
- * Instead, use `CallbackQueue.getPooled()`.
- *
- * @class CallbackQueue
- * @implements PooledClass
- * @internal
- */
-
-var CallbackQueue = function () {
-  function CallbackQueue(arg) {
-    _classCallCheck(this, CallbackQueue);
-
-    this._callbacks = null;
-    this._contexts = null;
-    this._arg = arg;
-  }
-
-  /**
-   * Enqueues a callback to be invoked when `notifyAll` is invoked.
-   *
-   * @param {function} callback Invoked when `notifyAll` is invoked.
-   * @param {?object} context Context to call `callback` with.
-   * @internal
-   */
-
-
-  CallbackQueue.prototype.enqueue = function enqueue(callback, context) {
-    this._callbacks = this._callbacks || [];
-    this._callbacks.push(callback);
-    this._contexts = this._contexts || [];
-    this._contexts.push(context);
-  };
-
-  /**
-   * Invokes all enqueued callbacks and clears the queue. This is invoked after
-   * the DOM representation of a component has been created or updated.
-   *
-   * @internal
-   */
-
-
-  CallbackQueue.prototype.notifyAll = function notifyAll() {
-    var callbacks = this._callbacks;
-    var contexts = this._contexts;
-    var arg = this._arg;
-    if (callbacks && contexts) {
-      !(callbacks.length === contexts.length) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Mismatched list of contexts in callback queue') : _prodInvariant('24') : void 0;
-      this._callbacks = null;
-      this._contexts = null;
-      for (var i = 0; i < callbacks.length; i++) {
-        callbacks[i].call(contexts[i], arg);
-      }
-      callbacks.length = 0;
-      contexts.length = 0;
-    }
-  };
-
-  CallbackQueue.prototype.checkpoint = function checkpoint() {
-    return this._callbacks ? this._callbacks.length : 0;
-  };
-
-  CallbackQueue.prototype.rollback = function rollback(len) {
-    if (this._callbacks && this._contexts) {
-      this._callbacks.length = len;
-      this._contexts.length = len;
-    }
-  };
-
-  /**
-   * Resets the internal queue.
-   *
-   * @internal
-   */
-
-
-  CallbackQueue.prototype.reset = function reset() {
-    this._callbacks = null;
-    this._contexts = null;
-  };
-
-  /**
-   * `PooledClass` looks for this.
-   */
-
-
-  CallbackQueue.prototype.destructor = function destructor() {
-    this.reset();
-  };
-
-  return CallbackQueue;
-}();
-
-module.exports = PooledClass.addPoolingTo(CallbackQueue);
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 96 */
+/* 102 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -10352,18 +11239,16 @@ module.exports = PooledClass.addPoolingTo(CallbackQueue);
 
 
 
-var EventPluginHub = __webpack_require__(26);
-var EventPropagators = __webpack_require__(22);
+var EventPluginHub = __webpack_require__(22);
+var EventPropagators = __webpack_require__(23);
 var ExecutionEnvironment = __webpack_require__(6);
-var ReactControlledComponent = __webpack_require__(64);
-var ReactDOMComponentTree = __webpack_require__(4);
-var ReactGenericBatching = __webpack_require__(29);
-var SyntheticEvent = __webpack_require__(11);
+var ReactDOMComponentTree = __webpack_require__(5);
+var ReactUpdates = __webpack_require__(10);
+var SyntheticEvent = __webpack_require__(12);
 
-var inputValueTracking = __webpack_require__(77);
-var getEventTarget = __webpack_require__(49);
-var isEventSupported = __webpack_require__(50);
-var isTextInputElement = __webpack_require__(79);
+var getEventTarget = __webpack_require__(44);
+var isEventSupported = __webpack_require__(45);
+var isTextInputElement = __webpack_require__(74);
 
 var eventTypes = {
   change: {
@@ -10375,19 +11260,13 @@ var eventTypes = {
   }
 };
 
-function createAndAccumulateChangeEvent(inst, nativeEvent, target) {
-  var event = SyntheticEvent.getPooled(eventTypes.change, inst, nativeEvent, target);
-  event.type = 'change';
-  // Flag this event loop as needing state restore.
-  ReactControlledComponent.enqueueStateRestore(target);
-  EventPropagators.accumulateTwoPhaseDispatches(event);
-  return event;
-}
 /**
  * For IE shims
  */
 var activeElement = null;
 var activeElementInst = null;
+var activeElementValue = null;
+var activeElementValueProp = null;
 
 /**
  * SECTION: handle `change` event
@@ -10404,7 +11283,8 @@ if (ExecutionEnvironment.canUseDOM) {
 }
 
 function manualDispatchChangeEvent(nativeEvent) {
-  var event = createAndAccumulateChangeEvent(activeElementInst, nativeEvent, getEventTarget(nativeEvent));
+  var event = SyntheticEvent.getPooled(eventTypes.change, activeElementInst, nativeEvent, getEventTarget(nativeEvent));
+  EventPropagators.accumulateTwoPhaseDispatches(event);
 
   // If change and propertychange bubbled, we'd just bind to it like all the
   // other events and have it go through ReactBrowserEventEmitter. Since it
@@ -10417,7 +11297,7 @@ function manualDispatchChangeEvent(nativeEvent) {
   // components don't work properly in conjunction with event bubbling because
   // the component is rerendered and the value reverted before all the event
   // handlers can run. See https://github.com/facebook/react/issues/708.
-  ReactGenericBatching.batchedUpdates(runEventInBatch, event);
+  ReactUpdates.batchedUpdates(runEventInBatch, event);
 }
 
 function runEventInBatch(event) {
@@ -10440,18 +11320,11 @@ function stopWatchingForChangeEventIE8() {
   activeElementInst = null;
 }
 
-function getInstIfValueChanged(targetInst) {
-  if (inputValueTracking.updateValueIfChanged(targetInst)) {
-    return targetInst;
-  }
-}
-
 function getTargetInstForChangeEvent(topLevelType, targetInst) {
   if (topLevelType === 'topChange') {
     return targetInst;
   }
 }
-
 function handleEventsForChangeEventIE8(topLevelType, target, targetInst) {
   if (topLevelType === 'topFocus') {
     // stopWatching() should be a noop here but we call it just in case we
@@ -10470,52 +11343,105 @@ var isInputEventSupported = false;
 if (ExecutionEnvironment.canUseDOM) {
   // IE9 claims to support the input event but fails to trigger it when
   // deleting text, so we ignore its input events.
-  isInputEventSupported = isEventSupported('input') && (!document.documentMode || document.documentMode > 9);
+  // IE10+ fire input events to often, such when a placeholder
+  // changes or when an input with a placeholder is focused.
+  isInputEventSupported = isEventSupported('input') && (!document.documentMode || document.documentMode > 11);
 }
 
 /**
- * (For IE <=9) Starts tracking propertychange events on the passed-in element
+ * (For IE <=11) Replacement getter/setter for the `value` property that gets
+ * set on the active element.
+ */
+var newValueProp = {
+  get: function () {
+    return activeElementValueProp.get.call(this);
+  },
+  set: function (val) {
+    // Cast to a string so we can do equality checks.
+    activeElementValue = '' + val;
+    activeElementValueProp.set.call(this, val);
+  }
+};
+
+/**
+ * (For IE <=11) Starts tracking propertychange events on the passed-in element
  * and override the value property so that we can distinguish user events from
  * value changes in JS.
  */
 function startWatchingForValueChange(target, targetInst) {
   activeElement = target;
   activeElementInst = targetInst;
-  activeElement.attachEvent('onpropertychange', handlePropertyChange);
+  activeElementValue = target.value;
+  activeElementValueProp = Object.getOwnPropertyDescriptor(target.constructor.prototype, 'value');
+
+  // Not guarded in a canDefineProperty check: IE8 supports defineProperty only
+  // on DOM elements
+  Object.defineProperty(activeElement, 'value', newValueProp);
+  if (activeElement.attachEvent) {
+    activeElement.attachEvent('onpropertychange', handlePropertyChange);
+  } else {
+    activeElement.addEventListener('propertychange', handlePropertyChange, false);
+  }
 }
 
 /**
- * (For IE <=9) Removes the event listeners from the currently-tracked element,
+ * (For IE <=11) Removes the event listeners from the currently-tracked element,
  * if any exists.
  */
 function stopWatchingForValueChange() {
   if (!activeElement) {
     return;
   }
-  activeElement.detachEvent('onpropertychange', handlePropertyChange);
+
+  // delete restores the original property definition
+  delete activeElement.value;
+
+  if (activeElement.detachEvent) {
+    activeElement.detachEvent('onpropertychange', handlePropertyChange);
+  } else {
+    activeElement.removeEventListener('propertychange', handlePropertyChange, false);
+  }
+
   activeElement = null;
   activeElementInst = null;
+  activeElementValue = null;
+  activeElementValueProp = null;
 }
 
 /**
- * (For IE <=9) Handles a propertychange event, sending a `change` event if
+ * (For IE <=11) Handles a propertychange event, sending a `change` event if
  * the value of the active element has changed.
  */
 function handlePropertyChange(nativeEvent) {
   if (nativeEvent.propertyName !== 'value') {
     return;
   }
-  if (getInstIfValueChanged(activeElementInst)) {
-    manualDispatchChangeEvent(nativeEvent);
+  var value = nativeEvent.srcElement.value;
+  if (value === activeElementValue) {
+    return;
+  }
+  activeElementValue = value;
+
+  manualDispatchChangeEvent(nativeEvent);
+}
+
+/**
+ * If a `change` event should be fired, returns the target's ID.
+ */
+function getTargetInstForInputEvent(topLevelType, targetInst) {
+  if (topLevelType === 'topInput') {
+    // In modern browsers (i.e., not IE8 or IE9), the input event is exactly
+    // what we want so fall through here and trigger an abstract event
+    return targetInst;
   }
 }
 
-function handleEventsForInputEventPolyfill(topLevelType, target, targetInst) {
+function handleEventsForInputEventIE(topLevelType, target, targetInst) {
   if (topLevelType === 'topFocus') {
     // In IE8, we can capture almost all .value changes by adding a
     // propertychange handler and looking for events with propertyName
     // equal to 'value'
-    // In IE9, propertychange fires for most input events but is buggy and
+    // In IE9-11, propertychange fires for most input events but is buggy and
     // doesn't fire when text is deleted, but conveniently, selectionchange
     // appears to fire in all of the remaining cases so we catch those and
     // forward the event if the value has changed
@@ -10533,7 +11459,7 @@ function handleEventsForInputEventPolyfill(topLevelType, target, targetInst) {
 }
 
 // For IE8 and IE9.
-function getTargetInstForInputEventPolyfill(topLevelType, targetInst) {
+function getTargetInstForInputEventIE(topLevelType, targetInst) {
   if (topLevelType === 'topSelectionChange' || topLevelType === 'topKeyUp' || topLevelType === 'topKeyDown') {
     // On the selectionchange event, the target is just document which isn't
     // helpful for us so just check activeElement instead.
@@ -10545,7 +11471,10 @@ function getTargetInstForInputEventPolyfill(topLevelType, targetInst) {
     // keystroke if user does a key repeat (it'll be a little delayed: right
     // before the second keystroke). Other input methods (e.g., paste) seem to
     // fire selectionchange normally.
-    return getInstIfValueChanged(activeElementInst);
+    if (activeElement && activeElement.value !== activeElementValue) {
+      activeElementValue = activeElement.value;
+      return activeElementInst;
+    }
   }
 }
 
@@ -10556,19 +11485,12 @@ function shouldUseClickEvent(elem) {
   // Use the `click` event to detect changes to checkbox and radio inputs.
   // This approach works across all browsers, whereas `change` does not fire
   // until `blur` in IE8.
-  var nodeName = elem.nodeName;
-  return nodeName && nodeName.toLowerCase() === 'input' && (elem.type === 'checkbox' || elem.type === 'radio');
+  return elem.nodeName && elem.nodeName.toLowerCase() === 'input' && (elem.type === 'checkbox' || elem.type === 'radio');
 }
 
 function getTargetInstForClickEvent(topLevelType, targetInst) {
   if (topLevelType === 'topClick') {
-    return getInstIfValueChanged(targetInst);
-  }
-}
-
-function getTargetInstForInputOrChangeEvent(topLevelType, targetInst) {
-  if (topLevelType === 'topInput' || topLevelType === 'topChange') {
-    return getInstIfValueChanged(targetInst);
+    return targetInst;
   }
 }
 
@@ -10586,8 +11508,6 @@ var ChangeEventPlugin = {
 
   eventTypes: eventTypes,
 
-  _isInputEventSupported: isInputEventSupported,
-
   extractEvents: function (topLevelType, targetInst, nativeEvent, nativeEventTarget) {
     var targetNode = targetInst ? ReactDOMComponentTree.getNodeFromInstance(targetInst) : window;
 
@@ -10600,10 +11520,10 @@ var ChangeEventPlugin = {
       }
     } else if (isTextInputElement(targetNode)) {
       if (isInputEventSupported) {
-        getTargetInstFunc = getTargetInstForInputOrChangeEvent;
+        getTargetInstFunc = getTargetInstForInputEvent;
       } else {
-        getTargetInstFunc = getTargetInstForInputEventPolyfill;
-        handleEventFunc = handleEventsForInputEventPolyfill;
+        getTargetInstFunc = getTargetInstForInputEventIE;
+        handleEventFunc = handleEventsForInputEventIE;
       }
     } else if (shouldUseClickEvent(targetNode)) {
       getTargetInstFunc = getTargetInstForClickEvent;
@@ -10612,7 +11532,9 @@ var ChangeEventPlugin = {
     if (getTargetInstFunc) {
       var inst = getTargetInstFunc(topLevelType, targetInst);
       if (inst) {
-        var event = createAndAccumulateChangeEvent(inst, nativeEvent, nativeEventTarget);
+        var event = SyntheticEvent.getPooled(eventTypes.change, inst, nativeEvent, nativeEventTarget);
+        event.type = 'change';
+        EventPropagators.accumulateTwoPhaseDispatches(event);
         return event;
       }
     }
@@ -10627,38 +11549,7 @@ var ChangeEventPlugin = {
 module.exports = ChangeEventPlugin;
 
 /***/ }),
-/* 97 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-/**
- * Module that is injectable into `EventPluginHub`, that specifies a
- * deterministic ordering of `EventPlugin`s. A convenient way to reason about
- * plugins, without having to package every one of them. This is better than
- * having plugins be ordered in the same order that they are injected because
- * that ordering would be influenced by the packaging order.
- * `ResponderEventPlugin` must occur before `SimpleEventPlugin` so that
- * preventing default on events is convenient in `SimpleEventPlugin` handlers.
- */
-
-var DOMEventPluginOrder = ['ResponderEventPlugin', 'SimpleEventPlugin', 'TapEventPlugin', 'EnterLeaveEventPlugin', 'ChangeEventPlugin', 'SelectEventPlugin', 'BeforeInputEventPlugin'];
-
-module.exports = DOMEventPluginOrder;
-
-/***/ }),
-/* 98 */
+/* 103 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -10674,13 +11565,13 @@ module.exports = DOMEventPluginOrder;
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
-var DOMLazyTree = __webpack_require__(18);
+var DOMLazyTree = __webpack_require__(17);
 var ExecutionEnvironment = __webpack_require__(6);
 
-var createNodesFromMarkup = __webpack_require__(168);
-var emptyFunction = __webpack_require__(13);
+var createNodesFromMarkup = __webpack_require__(88);
+var emptyFunction = __webpack_require__(9);
 var invariant = __webpack_require__(1);
 
 var Danger = {
@@ -10712,7 +11603,7 @@ module.exports = Danger;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 99 */
+/* 104 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -10728,9 +11619,40 @@ module.exports = Danger;
 
 
 
-var EventPropagators = __webpack_require__(22);
-var ReactDOMComponentTree = __webpack_require__(4);
-var SyntheticMouseEvent = __webpack_require__(32);
+/**
+ * Module that is injectable into `EventPluginHub`, that specifies a
+ * deterministic ordering of `EventPlugin`s. A convenient way to reason about
+ * plugins, without having to package every one of them. This is better than
+ * having plugins be ordered in the same order that they are injected because
+ * that ordering would be influenced by the packaging order.
+ * `ResponderEventPlugin` must occur before `SimpleEventPlugin` so that
+ * preventing default on events is convenient in `SimpleEventPlugin` handlers.
+ */
+
+var DefaultEventPluginOrder = ['ResponderEventPlugin', 'SimpleEventPlugin', 'TapEventPlugin', 'EnterLeaveEventPlugin', 'ChangeEventPlugin', 'SelectEventPlugin', 'BeforeInputEventPlugin'];
+
+module.exports = DefaultEventPluginOrder;
+
+/***/ }),
+/* 105 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * Copyright 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+
+
+var EventPropagators = __webpack_require__(23);
+var ReactDOMComponentTree = __webpack_require__(5);
+var SyntheticMouseEvent = __webpack_require__(28);
 
 var eventTypes = {
   mouseEnter: {
@@ -10817,7 +11739,7 @@ var EnterLeaveEventPlugin = {
 module.exports = EnterLeaveEventPlugin;
 
 /***/ }),
-/* 100 */
+/* 106 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -10833,11 +11755,11 @@ module.exports = EnterLeaveEventPlugin;
 
 
 
-var _assign = __webpack_require__(5);
+var _assign = __webpack_require__(4);
 
-var PooledClass = __webpack_require__(16);
+var PooledClass = __webpack_require__(14);
 
-var getTextContentAccessor = __webpack_require__(76);
+var getTextContentAccessor = __webpack_require__(72);
 
 /**
  * This helper class stores information about text content of a target node,
@@ -10917,7 +11839,7 @@ PooledClass.addPoolingTo(FallbackCompositionState);
 module.exports = FallbackCompositionState;
 
 /***/ }),
-/* 101 */
+/* 107 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -10933,7 +11855,7 @@ module.exports = FallbackCompositionState;
 
 
 
-var DOMProperty = __webpack_require__(12);
+var DOMProperty = __webpack_require__(13);
 
 var MUST_USE_PROPERTY = DOMProperty.injection.MUST_USE_PROPERTY;
 var HAS_BOOLEAN_VALUE = DOMProperty.injection.HAS_BOOLEAN_VALUE;
@@ -11002,6 +11924,7 @@ var HTMLDOMPropertyConfig = {
     hrefLang: 0,
     htmlFor: 0,
     httpEquiv: 0,
+    icon: 0,
     id: 0,
     inputMode: 0,
     integrity: 0,
@@ -11057,8 +11980,6 @@ var HTMLDOMPropertyConfig = {
     shape: 0,
     size: HAS_POSITIVE_NUMERIC_VALUE,
     sizes: 0,
-    // support for projecting regular DOM Elements via V1 named slots ( shadow dom )
-    slot: 0,
     span: HAS_POSITIVE_NUMERIC_VALUE,
     spellCheck: 0,
     src: 0,
@@ -11135,7 +12056,7 @@ var HTMLDOMPropertyConfig = {
 module.exports = HTMLDOMPropertyConfig;
 
 /***/ }),
-/* 102 */
+/* 108 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -11151,14 +12072,13 @@ module.exports = HTMLDOMPropertyConfig;
 
 
 
-var KeyEscapeUtils = __webpack_require__(41);
-var ReactFeatureFlags = __webpack_require__(28);
-var ReactReconciler = __webpack_require__(20);
+var ReactReconciler = __webpack_require__(18);
 
-var instantiateReactComponent = __webpack_require__(78);
-var shouldUpdateReactComponent = __webpack_require__(51);
-var traverseAllChildren = __webpack_require__(81);
-var warning = __webpack_require__(3);
+var instantiateReactComponent = __webpack_require__(73);
+var KeyEscapeUtils = __webpack_require__(36);
+var shouldUpdateReactComponent = __webpack_require__(46);
+var traverseAllChildren = __webpack_require__(76);
+var warning = __webpack_require__(2);
 
 var ReactComponentTreeHook;
 
@@ -11251,11 +12171,9 @@ var ReactChildReconciler = {
         ReactReconciler.receiveComponent(prevChild, nextElement, transaction, context);
         nextChildren[name] = prevChild;
       } else {
-        if (!ReactFeatureFlags.prepareNewChildrenBeforeUnmountInStack && prevChild) {
+        if (prevChild) {
           removedNodes[name] = ReactReconciler.getHostNode(prevChild);
-          ReactReconciler.unmountComponent(prevChild, false, /* safely */
-          false /* skipLifecycle */
-          );
+          ReactReconciler.unmountComponent(prevChild, false);
         }
         // The child must be instantiated before it's mounted.
         var nextChildInstance = instantiateReactComponent(nextElement, true);
@@ -11264,12 +12182,6 @@ var ReactChildReconciler = {
         // (see https://github.com/facebook/react/pull/7101 for explanation).
         var nextChildMountImage = ReactReconciler.mountComponent(nextChildInstance, transaction, hostParent, hostContainerInfo, context, selfDebugID);
         mountImages.push(nextChildMountImage);
-        if (ReactFeatureFlags.prepareNewChildrenBeforeUnmountInStack && prevChild) {
-          removedNodes[name] = ReactReconciler.getHostNode(prevChild);
-          ReactReconciler.unmountComponent(prevChild, false, /* safely */
-          false /* skipLifecycle */
-          );
-        }
       }
     }
     // Unmount children that are no longer present.
@@ -11277,9 +12189,7 @@ var ReactChildReconciler = {
       if (prevChildren.hasOwnProperty(name) && !(nextChildren && nextChildren.hasOwnProperty(name))) {
         prevChild = prevChildren[name];
         removedNodes[name] = ReactReconciler.getHostNode(prevChild);
-        ReactReconciler.unmountComponent(prevChild, false, /* safely */
-        false /* skipLifecycle */
-        );
+        ReactReconciler.unmountComponent(prevChild, false);
       }
     }
   },
@@ -11291,11 +12201,11 @@ var ReactChildReconciler = {
    * @param {?object} renderedChildren Previously initialized set of children.
    * @internal
    */
-  unmountChildren: function (renderedChildren, safely, skipLifecycle) {
+  unmountChildren: function (renderedChildren, safely) {
     for (var name in renderedChildren) {
       if (renderedChildren.hasOwnProperty(name)) {
         var renderedChild = renderedChildren[name];
-        ReactReconciler.unmountComponent(renderedChild, safely, skipLifecycle);
+        ReactReconciler.unmountComponent(renderedChild, safely);
       }
     }
   }
@@ -11306,7 +12216,7 @@ module.exports = ReactChildReconciler;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 103 */
+/* 109 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -11322,8 +12232,8 @@ module.exports = ReactChildReconciler;
 
 
 
-var DOMChildrenOperations = __webpack_require__(38);
-var ReactDOMIDOperations = __webpack_require__(110);
+var DOMChildrenOperations = __webpack_require__(33);
+var ReactDOMIDOperations = __webpack_require__(116);
 
 /**
  * Abstracts away all functionality of the reconciler that requires knowledge of
@@ -11341,7 +12251,7 @@ var ReactComponentBrowserEnvironment = {
 module.exports = ReactComponentBrowserEnvironment;
 
 /***/ }),
-/* 104 */
+/* 110 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -11357,37 +12267,48 @@ module.exports = ReactComponentBrowserEnvironment;
 
 
 
-var _prodInvariant = __webpack_require__(2),
-    _assign = __webpack_require__(5);
+var _prodInvariant = __webpack_require__(3),
+    _assign = __webpack_require__(4);
 
-var React = __webpack_require__(21);
-var ReactComponentEnvironment = __webpack_require__(42);
-var ReactCompositeComponentTypes = __webpack_require__(63);
-var ReactCurrentOwner = __webpack_require__(9);
-var ReactErrorUtils = __webpack_require__(44);
-var ReactFeatureFlags = __webpack_require__(28);
-var ReactInstanceMap = __webpack_require__(19);
+var React = __webpack_require__(19);
+var ReactComponentEnvironment = __webpack_require__(38);
+var ReactCurrentOwner = __webpack_require__(11);
+var ReactErrorUtils = __webpack_require__(39);
+var ReactInstanceMap = __webpack_require__(24);
 var ReactInstrumentation = __webpack_require__(8);
-var ReactNodeTypes = __webpack_require__(70);
-var ReactReconciler = __webpack_require__(20);
+var ReactNodeTypes = __webpack_require__(66);
+var ReactReconciler = __webpack_require__(18);
 
 if (process.env.NODE_ENV !== 'production') {
-  var checkReactTypeSpec = __webpack_require__(153);
-  var warningAboutMissingGetChildContext = {};
+  var checkReactTypeSpec = __webpack_require__(158);
 }
 
-var emptyObject = __webpack_require__(53);
+var emptyObject = __webpack_require__(21);
 var invariant = __webpack_require__(1);
-var shallowEqual = __webpack_require__(85);
-var shouldUpdateReactComponent = __webpack_require__(51);
-var warning = __webpack_require__(3);
+var shallowEqual = __webpack_require__(32);
+var shouldUpdateReactComponent = __webpack_require__(46);
+var warning = __webpack_require__(2);
+
+var CompositeTypes = {
+  ImpureClass: 0,
+  PureClass: 1,
+  StatelessFunctional: 2
+};
 
 function StatelessComponent(Component) {}
 StatelessComponent.prototype.render = function () {
   var Component = ReactInstanceMap.get(this)._currentElement.type;
   var element = Component(this.props, this.context, this.updater);
+  warnIfInvalidElement(Component, element);
   return element;
 };
+
+function warnIfInvalidElement(Component, element) {
+  if (process.env.NODE_ENV !== 'production') {
+    process.env.NODE_ENV !== 'production' ? warning(element === null || element === false || React.isValidElement(element), '%s(...): A valid React element (or null) must be returned. You may have ' + 'returned undefined, an array or some other invalid object.', Component.displayName || Component.name || 'Component') : void 0;
+    process.env.NODE_ENV !== 'production' ? warning(!Component.childContextTypes, '%s(...): childContextTypes cannot be defined on a functional component.', Component.displayName || Component.name || 'Component') : void 0;
+  }
+}
 
 function shouldConstruct(Component) {
   return !!(Component.prototype && Component.prototype.isReactComponent);
@@ -11527,17 +12448,15 @@ var ReactCompositeComponent = {
     // Support functional components
     if (!doConstruct && (inst == null || inst.render == null)) {
       renderedElement = inst;
-      if (process.env.NODE_ENV !== 'production') {
-        process.env.NODE_ENV !== 'production' ? warning(!Component.childContextTypes, '%s(...): childContextTypes cannot be defined on a functional component.', Component.displayName || Component.name || 'Component') : void 0;
-      }
+      warnIfInvalidElement(Component, renderedElement);
       !(inst === null || inst === false || React.isValidElement(inst)) ? process.env.NODE_ENV !== 'production' ? invariant(false, '%s(...): A valid React element (or null) must be returned. You may have returned undefined, an array or some other invalid object.', Component.displayName || Component.name || 'Component') : _prodInvariant('105', Component.displayName || Component.name || 'Component') : void 0;
       inst = new StatelessComponent(Component);
-      this._compositeType = ReactCompositeComponentTypes.StatelessFunctional;
+      this._compositeType = CompositeTypes.StatelessFunctional;
     } else {
       if (isPureComponent(Component)) {
-        this._compositeType = ReactCompositeComponentTypes.PureClass;
+        this._compositeType = CompositeTypes.PureClass;
       } else {
-        this._compositeType = ReactCompositeComponentTypes.ImpureClass;
+        this._compositeType = CompositeTypes.ImpureClass;
       }
     }
 
@@ -11589,21 +12508,6 @@ var ReactCompositeComponent = {
     this._pendingReplaceState = false;
     this._pendingForceUpdate = false;
 
-    if (inst.componentWillMount) {
-      if (process.env.NODE_ENV !== 'production') {
-        measureLifeCyclePerf(function () {
-          return inst.componentWillMount();
-        }, this._debugID, 'componentWillMount');
-      } else {
-        inst.componentWillMount();
-      }
-      // When mounting, calls to `setState` by `componentWillMount` will set
-      // `this._pendingStateQueue` without triggering a re-render.
-      if (this._pendingStateQueue) {
-        inst.state = this._processPendingState(inst.props, inst.context);
-      }
-    }
-
     var markup;
     if (inst.unstable_handleError) {
       markup = this.performInitialMountWithErrorHandling(renderedElement, hostParent, hostContainerInfo, transaction, context);
@@ -11620,15 +12524,6 @@ var ReactCompositeComponent = {
         });
       } else {
         transaction.getReactMountReady().enqueue(inst.componentDidMount, inst);
-      }
-    }
-
-    // setState callbacks during willMount should end up here
-    var callbacks = this._pendingCallbacks;
-    if (callbacks) {
-      this._pendingCallbacks = null;
-      for (var i = 0; i < callbacks.length; i++) {
-        transaction.getReactMountReady().enqueue(callbacks[i], inst);
       }
     }
 
@@ -11685,10 +12580,8 @@ var ReactCompositeComponent = {
         this._instance.state = this._processPendingState(this._instance.props, this._instance.context);
       }
       checkpoint = transaction.checkpoint();
-      this._renderedComponent.unmountComponent(true, /* safely */
-      // Don't call componentWillUnmount() because they never fully mounted:
-      true /* skipLifecyle */
-      );
+
+      this._renderedComponent.unmountComponent(true);
       transaction.rollback(checkpoint);
 
       // Try again - we've informed the component about the error, so they can render an error message this time.
@@ -11699,6 +12592,28 @@ var ReactCompositeComponent = {
   },
 
   performInitialMount: function (renderedElement, hostParent, hostContainerInfo, transaction, context) {
+    var inst = this._instance;
+
+    var debugID = 0;
+    if (process.env.NODE_ENV !== 'production') {
+      debugID = this._debugID;
+    }
+
+    if (inst.componentWillMount) {
+      if (process.env.NODE_ENV !== 'production') {
+        measureLifeCyclePerf(function () {
+          return inst.componentWillMount();
+        }, debugID, 'componentWillMount');
+      } else {
+        inst.componentWillMount();
+      }
+      // When mounting, calls to `setState` by `componentWillMount` will set
+      // `this._pendingStateQueue` without triggering a re-render.
+      if (this._pendingStateQueue) {
+        inst.state = this._processPendingState(inst.props, inst.context);
+      }
+    }
+
     // If not a stateless component, we now render
     if (renderedElement === undefined) {
       renderedElement = this._renderValidatedComponent();
@@ -11709,11 +12624,6 @@ var ReactCompositeComponent = {
     var child = this._instantiateReactComponent(renderedElement, nodeType !== ReactNodeTypes.EMPTY /* shouldHaveDebugID */
     );
     this._renderedComponent = child;
-
-    var debugID = 0;
-    if (process.env.NODE_ENV !== 'production') {
-      debugID = this._debugID;
-    }
 
     var markup = ReactReconciler.mountComponent(child, transaction, hostParent, hostContainerInfo, this._processChildContext(context), debugID);
 
@@ -11737,7 +12647,7 @@ var ReactCompositeComponent = {
    * @final
    * @internal
    */
-  unmountComponent: function (safely, skipLifecycle) {
+  unmountComponent: function (safely) {
     if (!this._renderedComponent) {
       return;
     }
@@ -11748,10 +12658,8 @@ var ReactCompositeComponent = {
       inst._calledComponentWillUnmount = true;
 
       if (safely) {
-        if (!skipLifecycle) {
-          var name = this.getName() + '.componentWillUnmount()';
-          ReactErrorUtils.invokeGuardedCallback(name, inst.componentWillUnmount.bind(inst));
-        }
+        var name = this.getName() + '.componentWillUnmount()';
+        ReactErrorUtils.invokeGuardedCallback(name, inst.componentWillUnmount.bind(inst));
       } else {
         if (process.env.NODE_ENV !== 'production') {
           measureLifeCyclePerf(function () {
@@ -11764,7 +12672,7 @@ var ReactCompositeComponent = {
     }
 
     if (this._renderedComponent) {
-      ReactReconciler.unmountComponent(this._renderedComponent, safely, skipLifecycle);
+      ReactReconciler.unmountComponent(this._renderedComponent, safely);
       this._renderedNodeType = null;
       this._renderedComponent = null;
       this._instance = null;
@@ -11847,7 +12755,7 @@ var ReactCompositeComponent = {
     var inst = this._instance;
     var childContext;
 
-    if (typeof inst.getChildContext === 'function') {
+    if (inst.getChildContext) {
       if (process.env.NODE_ENV !== 'production') {
         ReactInstrumentation.debugTool.onBeginProcessingChildContext();
         try {
@@ -11858,7 +12766,9 @@ var ReactCompositeComponent = {
       } else {
         childContext = inst.getChildContext();
       }
+    }
 
+    if (childContext) {
       !(typeof Component.childContextTypes === 'object') ? process.env.NODE_ENV !== 'production' ? invariant(false, '%s.getChildContext(): childContextTypes must be defined in order to use getChildContext().', this.getName() || 'ReactCompositeComponent') : _prodInvariant('107', this.getName() || 'ReactCompositeComponent') : void 0;
       if (process.env.NODE_ENV !== 'production') {
         this._checkContextTypes(Component.childContextTypes, childContext, 'childContext');
@@ -11867,15 +12777,6 @@ var ReactCompositeComponent = {
         !(name in Component.childContextTypes) ? process.env.NODE_ENV !== 'production' ? invariant(false, '%s.getChildContext(): key "%s" is not defined in childContextTypes.', this.getName() || 'ReactCompositeComponent', name) : _prodInvariant('108', this.getName() || 'ReactCompositeComponent', name) : void 0;
       }
       return _assign({}, currentContext, childContext);
-    } else {
-      if (process.env.NODE_ENV !== 'production') {
-        var componentName = this.getName();
-
-        if (!warningAboutMissingGetChildContext[componentName]) {
-          warningAboutMissingGetChildContext[componentName] = true;
-          process.env.NODE_ENV !== 'production' ? warning(!Component.childContextTypes, '%s.childContextTypes is specified but there is no getChildContext() method ' + 'on the instance. You can either define getChildContext() on %s or remove ' + 'childContextTypes from it.', componentName, componentName) : void 0;
-        }
-      }
     }
     return currentContext;
   },
@@ -11916,13 +12817,6 @@ var ReactCompositeComponent = {
     } else if (this._pendingStateQueue !== null || this._pendingForceUpdate) {
       this.updateComponent(transaction, this._currentElement, this._currentElement, this._context, this._context);
     } else {
-      var callbacks = this._pendingCallbacks;
-      this._pendingCallbacks = null;
-      if (callbacks) {
-        for (var j = 0; j < callbacks.length; j++) {
-          transaction.getReactMountReady().enqueue(callbacks[j], this.getPublicInstance());
-        }
-      }
       this._updateBatchNumber = null;
     }
   },
@@ -11978,16 +12872,10 @@ var ReactCompositeComponent = {
       }
     }
 
-    // If updating happens to enqueue any new updates, we shouldn't execute new
-    // callbacks until the next render happens, so stash the callbacks first.
-    var callbacks = this._pendingCallbacks;
-    this._pendingCallbacks = null;
-
     var nextState = this._processPendingState(nextProps, nextContext);
     var shouldUpdate = true;
+
     if (!this._pendingForceUpdate) {
-      var prevState = inst.state;
-      shouldUpdate = willReceive || nextState !== prevState;
       if (inst.shouldComponentUpdate) {
         if (process.env.NODE_ENV !== 'production') {
           shouldUpdate = measureLifeCyclePerf(function () {
@@ -11997,7 +12885,7 @@ var ReactCompositeComponent = {
           shouldUpdate = inst.shouldComponentUpdate(nextProps, nextState, nextContext);
         }
       } else {
-        if (this._compositeType === ReactCompositeComponentTypes.PureClass) {
+        if (this._compositeType === CompositeTypes.PureClass) {
           shouldUpdate = !shallowEqual(prevProps, nextProps) || !shallowEqual(inst.state, nextState);
         }
       }
@@ -12021,12 +12909,6 @@ var ReactCompositeComponent = {
       inst.state = nextState;
       inst.context = nextContext;
     }
-
-    if (callbacks) {
-      for (var j = 0; j < callbacks.length; j++) {
-        transaction.getReactMountReady().enqueue(callbacks[j], this.getPublicInstance());
-      }
-    }
   },
 
   _processPendingState: function (props, context) {
@@ -12044,19 +12926,10 @@ var ReactCompositeComponent = {
       return queue[0];
     }
 
-    var nextState = replace ? queue[0] : inst.state;
-    var dontMutate = true;
+    var nextState = _assign({}, replace ? queue[0] : inst.state);
     for (var i = replace ? 1 : 0; i < queue.length; i++) {
       var partial = queue[i];
-      var partialState = typeof partial === 'function' ? partial.call(inst, nextState, props, context) : partial;
-      if (partialState) {
-        if (dontMutate) {
-          dontMutate = false;
-          nextState = _assign({}, nextState, partialState);
-        } else {
-          _assign(nextState, partialState);
-        }
-      }
+      _assign(nextState, typeof partial === 'function' ? partial.call(inst, nextState, props, context) : partial);
     }
 
     return nextState;
@@ -12105,11 +12978,7 @@ var ReactCompositeComponent = {
     inst.state = nextState;
     inst.context = nextContext;
 
-    if (inst.unstable_handleError) {
-      this._updateRenderedComponentWithErrorHandling(transaction, unmaskedContext);
-    } else {
-      this._updateRenderedComponent(transaction, unmaskedContext);
-    }
+    this._updateRenderedComponent(transaction, unmaskedContext);
 
     if (hasComponentDidUpdate) {
       if (process.env.NODE_ENV !== 'production') {
@@ -12128,51 +12997,10 @@ var ReactCompositeComponent = {
    * @param {ReactReconcileTransaction} transaction
    * @internal
    */
-  _updateRenderedComponentWithErrorHandling: function (transaction, context) {
-    var checkpoint = transaction.checkpoint();
-    try {
-      this._updateRenderedComponent(transaction, context);
-    } catch (e) {
-      // Roll back to checkpoint, handle error (which may add items to the transaction),
-      // and take a new checkpoint
-      transaction.rollback(checkpoint);
-      this._instance.unstable_handleError(e);
-      if (this._pendingStateQueue) {
-        this._instance.state = this._processPendingState(this._instance.props, this._instance.context);
-      }
-      checkpoint = transaction.checkpoint();
-
-      // Gracefully update to a clean state
-      this._updateRenderedComponentWithNextElement(transaction, context, null, true /* safely */
-      );
-
-      // Try again - we've informed the component about the error, so they can render an error message this time.
-      // If this throws again, the error will bubble up (and can be caught by a higher error boundary).
-      this._updateRenderedComponent(transaction, context);
-    }
-  },
-
-  /**
-   * Call the component's `render` method and update the DOM accordingly.
-   *
-   * @param {ReactReconcileTransaction} transaction
-   * @internal
-   */
   _updateRenderedComponent: function (transaction, context) {
-    var nextRenderedElement = this._renderValidatedComponent();
-    this._updateRenderedComponentWithNextElement(transaction, context, nextRenderedElement, false /* safely */
-    );
-  },
-
-  /**
-   * Call the component's `render` method and update the DOM accordingly.
-   *
-   * @param {ReactReconcileTransaction} transaction
-   * @internal
-   */
-  _updateRenderedComponentWithNextElement: function (transaction, context, nextRenderedElement, safely) {
     var prevComponentInstance = this._renderedComponent;
     var prevRenderedElement = prevComponentInstance._currentElement;
+    var nextRenderedElement = this._renderValidatedComponent();
 
     var debugID = 0;
     if (process.env.NODE_ENV !== 'production') {
@@ -12183,11 +13011,7 @@ var ReactCompositeComponent = {
       ReactReconciler.receiveComponent(prevComponentInstance, nextRenderedElement, transaction, this._processChildContext(context));
     } else {
       var oldHostNode = ReactReconciler.getHostNode(prevComponentInstance);
-
-      if (!ReactFeatureFlags.prepareNewChildrenBeforeUnmountInStack) {
-        ReactReconciler.unmountComponent(prevComponentInstance, safely, false /* skipLifecycle */
-        );
-      }
+      ReactReconciler.unmountComponent(prevComponentInstance, false);
 
       var nodeType = ReactNodeTypes.getType(nextRenderedElement);
       this._renderedNodeType = nodeType;
@@ -12196,11 +13020,6 @@ var ReactCompositeComponent = {
       this._renderedComponent = child;
 
       var nextMarkup = ReactReconciler.mountComponent(child, transaction, this._hostParent, this._hostContainerInfo, this._processChildContext(context), debugID);
-
-      if (ReactFeatureFlags.prepareNewChildrenBeforeUnmountInStack) {
-        ReactReconciler.unmountComponent(prevComponentInstance, safely, false /* skipLifecycle */
-        );
-      }
 
       if (process.env.NODE_ENV !== 'production') {
         if (debugID !== 0) {
@@ -12254,7 +13073,7 @@ var ReactCompositeComponent = {
    */
   _renderValidatedComponent: function () {
     var renderedElement;
-    if (process.env.NODE_ENV !== 'production' || this._compositeType !== ReactCompositeComponentTypes.StatelessFunctional) {
+    if (process.env.NODE_ENV !== 'production' || this._compositeType !== CompositeTypes.StatelessFunctional) {
       ReactCurrentOwner.current = this;
       try {
         renderedElement = this._renderValidatedComponentWithoutOwnerOrContext();
@@ -12283,6 +13102,10 @@ var ReactCompositeComponent = {
     var inst = this.getPublicInstance();
     !(inst != null) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Stateless function components cannot have refs.') : _prodInvariant('110') : void 0;
     var publicComponentInstance = component.getPublicInstance();
+    if (process.env.NODE_ENV !== 'production') {
+      var componentName = component && component.getName ? component.getName() : 'a component';
+      process.env.NODE_ENV !== 'production' ? warning(publicComponentInstance != null || component._compositeType !== CompositeTypes.StatelessFunctional, 'Stateless function components cannot be given refs ' + '(See ref "%s" in %s created by %s). ' + 'Attempts to access this ref will fail.', ref, componentName, this.getName()) : void 0;
+    }
     var refs = inst.refs === emptyObject ? inst.refs = {} : inst.refs;
     refs[ref] = publicComponentInstance;
   },
@@ -12321,7 +13144,7 @@ var ReactCompositeComponent = {
    */
   getPublicInstance: function () {
     var inst = this._instance;
-    if (this._compositeType === ReactCompositeComponentTypes.StatelessFunctional) {
+    if (this._compositeType === CompositeTypes.StatelessFunctional) {
       return null;
     }
     return inst;
@@ -12336,7 +13159,7 @@ module.exports = ReactCompositeComponent;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 105 */
+/* 111 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -12354,20 +13177,19 @@ module.exports = ReactCompositeComponent;
 
 
 
-var ReactDOMComponentTree = __webpack_require__(4);
-var ReactDOMInjection = __webpack_require__(111);
-var ReactDOMStackInjection = __webpack_require__(117);
-var ReactGenericBatching = __webpack_require__(29);
-var ReactMount = __webpack_require__(129);
-var ReactReconciler = __webpack_require__(20);
-var ReactVersion = __webpack_require__(138);
+var ReactDOMComponentTree = __webpack_require__(5);
+var ReactDefaultInjection = __webpack_require__(128);
+var ReactMount = __webpack_require__(65);
+var ReactReconciler = __webpack_require__(18);
+var ReactUpdates = __webpack_require__(10);
+var ReactVersion = __webpack_require__(143);
 
-var findDOMNode = __webpack_require__(73);
-var getHostComponentFromComposite = __webpack_require__(75);
-var warning = __webpack_require__(3);
+var findDOMNode = __webpack_require__(160);
+var getHostComponentFromComposite = __webpack_require__(71);
+var renderSubtreeIntoContainer = __webpack_require__(168);
+var warning = __webpack_require__(2);
 
-ReactDOMInjection.inject();
-ReactDOMStackInjection.inject();
+ReactDefaultInjection.inject();
 
 var ReactDOM = {
   findDOMNode: findDOMNode,
@@ -12376,8 +13198,8 @@ var ReactDOM = {
   version: ReactVersion,
 
   /* eslint-disable camelcase */
-  unstable_batchedUpdates: ReactGenericBatching.batchedUpdates,
-  unstable_renderSubtreeIntoContainer: ReactMount.renderSubtreeIntoContainer
+  unstable_batchedUpdates: ReactUpdates.batchedUpdates,
+  unstable_renderSubtreeIntoContainer: renderSubtreeIntoContainer
 };
 
 // Inject the runtime into a devtools global hook regardless of browser.
@@ -12441,9 +13263,9 @@ if (process.env.NODE_ENV !== 'production') {
 
 if (process.env.NODE_ENV !== 'production') {
   var ReactInstrumentation = __webpack_require__(8);
-  var ReactDOMUnknownPropertyHook = __webpack_require__(120);
-  var ReactDOMNullInputValuePropHook = __webpack_require__(114);
-  var ReactDOMInvalidARIAHook = __webpack_require__(113);
+  var ReactDOMUnknownPropertyHook = __webpack_require__(125);
+  var ReactDOMNullInputValuePropHook = __webpack_require__(119);
+  var ReactDOMInvalidARIAHook = __webpack_require__(118);
 
   ReactInstrumentation.debugTool.addHook(ReactDOMUnknownPropertyHook);
   ReactInstrumentation.debugTool.addHook(ReactDOMNullInputValuePropHook);
@@ -12454,7 +13276,7 @@ module.exports = ReactDOM;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 106 */
+/* 112 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -12472,37 +13294,38 @@ module.exports = ReactDOM;
 
 
 
-var _prodInvariant = __webpack_require__(2),
-    _assign = __webpack_require__(5);
+var _prodInvariant = __webpack_require__(3),
+    _assign = __webpack_require__(4);
 
-var AutoFocusUtils = __webpack_require__(92);
-var CSSPropertyOperations = __webpack_require__(94);
-var DOMLazyTree = __webpack_require__(18);
-var DOMNamespaces = __webpack_require__(39);
-var DOMProperty = __webpack_require__(12);
-var DOMPropertyOperations = __webpack_require__(62);
-var EventPluginRegistry = __webpack_require__(27);
-var ReactBrowserEventEmitter = __webpack_require__(23);
-var ReactDOMComponentFlags = __webpack_require__(65);
-var ReactDOMComponentTree = __webpack_require__(4);
-var ReactDOMInput = __webpack_require__(112);
-var ReactDOMOption = __webpack_require__(115);
-var ReactDOMSelect = __webpack_require__(66);
-var ReactDOMTextarea = __webpack_require__(119);
+var AutoFocusUtils = __webpack_require__(99);
+var CSSPropertyOperations = __webpack_require__(101);
+var DOMLazyTree = __webpack_require__(17);
+var DOMNamespaces = __webpack_require__(34);
+var DOMProperty = __webpack_require__(13);
+var DOMPropertyOperations = __webpack_require__(58);
+var EventPluginHub = __webpack_require__(22);
+var EventPluginRegistry = __webpack_require__(26);
+var ReactBrowserEventEmitter = __webpack_require__(27);
+var ReactDOMComponentFlags = __webpack_require__(59);
+var ReactDOMComponentTree = __webpack_require__(5);
+var ReactDOMInput = __webpack_require__(117);
+var ReactDOMOption = __webpack_require__(120);
+var ReactDOMSelect = __webpack_require__(60);
+var ReactDOMTextarea = __webpack_require__(123);
 var ReactInstrumentation = __webpack_require__(8);
-var ReactMultiChild = __webpack_require__(130);
-var ReactServerRenderingTransaction = __webpack_require__(135);
+var ReactMultiChild = __webpack_require__(136);
+var ReactServerRenderingTransaction = __webpack_require__(141);
 
-var emptyFunction = __webpack_require__(13);
-var escapeTextContentForBrowser = __webpack_require__(34);
+var emptyFunction = __webpack_require__(9);
+var escapeTextContentForBrowser = __webpack_require__(30);
 var invariant = __webpack_require__(1);
-var isEventSupported = __webpack_require__(50);
-var inputValueTracking = __webpack_require__(77);
-var validateDOMNesting = __webpack_require__(52);
-var warning = __webpack_require__(3);
-var didWarnShadyDOM = false;
+var isEventSupported = __webpack_require__(45);
+var shallowEqual = __webpack_require__(32);
+var validateDOMNesting = __webpack_require__(47);
+var warning = __webpack_require__(2);
 
 var Flags = ReactDOMComponentFlags;
+var deleteListener = EventPluginHub.deleteListener;
 var getNode = ReactDOMComponentTree.getNodeFromInstance;
 var listenTo = ReactBrowserEventEmitter.listenTo;
 var registrationNameModules = EventPluginRegistry.registrationNameModules;
@@ -12527,11 +13350,63 @@ function getDeclarationErrorAddendum(internalInstance) {
     if (owner) {
       var name = owner.getName();
       if (name) {
-        return '\n\nThis DOM node was rendered by `' + name + '`.';
+        return ' This DOM node was rendered by `' + name + '`.';
       }
     }
   }
   return '';
+}
+
+function friendlyStringify(obj) {
+  if (typeof obj === 'object') {
+    if (Array.isArray(obj)) {
+      return '[' + obj.map(friendlyStringify).join(', ') + ']';
+    } else {
+      var pairs = [];
+      for (var key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          var keyEscaped = /^[a-z$_][\w$_]*$/i.test(key) ? key : JSON.stringify(key);
+          pairs.push(keyEscaped + ': ' + friendlyStringify(obj[key]));
+        }
+      }
+      return '{' + pairs.join(', ') + '}';
+    }
+  } else if (typeof obj === 'string') {
+    return JSON.stringify(obj);
+  } else if (typeof obj === 'function') {
+    return '[function object]';
+  }
+  // Differs from JSON.stringify in that undefined because undefined and that
+  // inf and nan don't become null
+  return String(obj);
+}
+
+var styleMutationWarning = {};
+
+function checkAndWarnForMutatedStyle(style1, style2, component) {
+  if (style1 == null || style2 == null) {
+    return;
+  }
+  if (shallowEqual(style1, style2)) {
+    return;
+  }
+
+  var componentName = component._tag;
+  var owner = component._currentElement._owner;
+  var ownerName;
+  if (owner) {
+    ownerName = owner.getName();
+  }
+
+  var hash = ownerName + '|' + componentName;
+
+  if (styleMutationWarning.hasOwnProperty(hash)) {
+    return;
+  }
+
+  styleMutationWarning[hash] = true;
+
+  process.env.NODE_ENV !== 'production' ? warning(false, '`%s` was passed a style object that has previously been mutated. ' + 'Mutating `style` is deprecated. Consider cloning it beforehand. Check ' + 'the `render` %s. Previous style: %s. Mutated style: %s.', componentName, owner ? 'of `' + ownerName + '`' : 'using <' + componentName + '>', friendlyStringify(style1), friendlyStringify(style2)) : void 0;
 }
 
 /**
@@ -12544,7 +13419,7 @@ function assertValidProps(component, props) {
   }
   // Note the use of `==` which checks for null or undefined.
   if (voidElementTags[component._tag]) {
-    !(props.children == null && props.dangerouslySetInnerHTML == null) ? process.env.NODE_ENV !== 'production' ? invariant(false, '%s is a void element tag and must neither have `children` nor use `dangerouslySetInnerHTML`.%s', component._tag, getDeclarationErrorAddendum(component)) : _prodInvariant('137', component._tag, getDeclarationErrorAddendum(component)) : void 0;
+    !(props.children == null && props.dangerouslySetInnerHTML == null) ? process.env.NODE_ENV !== 'production' ? invariant(false, '%s is a void element tag and must neither have `children` nor use `dangerouslySetInnerHTML`.%s', component._tag, component._currentElement._owner ? ' Check the render method of ' + component._currentElement._owner.getName() + '.' : '') : _prodInvariant('137', component._tag, component._currentElement._owner ? ' Check the render method of ' + component._currentElement._owner.getName() + '.' : '') : void 0;
   }
   if (props.dangerouslySetInnerHTML != null) {
     !(props.children == null) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Can only set one of `children` or `props.dangerouslySetInnerHTML`.') : _prodInvariant('60') : void 0;
@@ -12558,7 +13433,7 @@ function assertValidProps(component, props) {
   !(props.style == null || typeof props.style === 'object') ? process.env.NODE_ENV !== 'production' ? invariant(false, 'The `style` prop expects a mapping from style properties to values, not a string. For example, style={{marginRight: spacing + \'em\'}} when using JSX.%s', getDeclarationErrorAddendum(component)) : _prodInvariant('62', getDeclarationErrorAddendum(component)) : void 0;
 }
 
-function ensureListeningTo(inst, registrationName, transaction) {
+function enqueuePutListener(inst, registrationName, listener, transaction) {
   if (transaction instanceof ReactServerRenderingTransaction) {
     return;
   }
@@ -12571,6 +13446,16 @@ function ensureListeningTo(inst, registrationName, transaction) {
   var isDocumentFragment = containerInfo._node && containerInfo._node.nodeType === DOC_FRAGMENT_TYPE;
   var doc = isDocumentFragment ? containerInfo._node : containerInfo._ownerDocument;
   listenTo(registrationName, doc);
+  transaction.getReactMountReady().enqueue(putListener, {
+    inst: inst,
+    registrationName: registrationName,
+    listener: listener
+  });
+}
+
+function putListener() {
+  var listenerToPut = this;
+  EventPluginHub.putListener(listenerToPut.inst, listenerToPut.registrationName, listenerToPut.listener);
 }
 
 function inputPostMount() {
@@ -12644,24 +13529,6 @@ var mediaEvents = {
   topVolumeChange: 'volumechange',
   topWaiting: 'waiting'
 };
-
-function trackInputValue() {
-  inputValueTracking.track(this);
-}
-
-function trapClickOnNonInteractiveElement() {
-  // Mobile Safari does not fire properly bubble click events on
-  // non-interactive elements, which means delegated click listeners do not
-  // fire. The workaround for this bug involves attaching an empty click
-  // listener on the target node.
-  // http://www.quirksmode.org/blog/archives/2010/09/click_event_del.html
-  // Just set it using the onclick property so that we don't have to manage any
-  // bookkeeping for it. Not sure if we need to clear it when the listener is
-  // removed.
-  // TODO: Only do this for the relevant Safaris maybe?
-  var node = getNode(this);
-  node.onclick = emptyFunction;
-}
 
 function trapBubbledEventsLocal() {
   var inst = this;
@@ -12779,10 +13646,13 @@ var globalIdCounter = 1;
  */
 function ReactDOMComponent(element) {
   var tag = element.type;
+  validateDangerousTag(tag);
   this._currentElement = element;
   this._tag = tag.toLowerCase();
   this._namespaceURI = null;
   this._renderedChildren = null;
+  this._previousStyle = null;
+  this._previousStyleCopy = null;
   this._hostNode = null;
   this._hostParent = null;
   this._rootNodeID = 0;
@@ -12837,11 +13707,7 @@ ReactDOMComponent.Mixin = {
       case 'input':
         ReactDOMInput.mountWrapper(this, props, hostParent);
         props = ReactDOMInput.getHostProps(this, props);
-        transaction.getReactMountReady().enqueue(trackInputValue, this);
         transaction.getReactMountReady().enqueue(trapBubbledEventsLocal, this);
-        // For controlled components we always need to ensure we're listening
-        // to onChange. Even if there is no listener.
-        ensureListeningTo(this, 'onChange', transaction);
         break;
       case 'option':
         ReactDOMOption.mountWrapper(this, props, hostParent);
@@ -12851,18 +13717,11 @@ ReactDOMComponent.Mixin = {
         ReactDOMSelect.mountWrapper(this, props, hostParent);
         props = ReactDOMSelect.getHostProps(this, props);
         transaction.getReactMountReady().enqueue(trapBubbledEventsLocal, this);
-        // For controlled components we always need to ensure we're listening
-        // to onChange. Even if there is no listener.
-        ensureListeningTo(this, 'onChange', transaction);
         break;
       case 'textarea':
         ReactDOMTextarea.mountWrapper(this, props, hostParent);
         props = ReactDOMTextarea.getHostProps(this, props);
-        transaction.getReactMountReady().enqueue(trackInputValue, this);
         transaction.getReactMountReady().enqueue(trapBubbledEventsLocal, this);
-        // For controlled components we always need to ensure we're listening
-        // to onChange. Even if there is no listener.
-        ensureListeningTo(this, 'onChange', transaction);
         break;
     }
 
@@ -12883,9 +13742,6 @@ ReactDOMComponent.Mixin = {
       namespaceURI = DOMNamespaces.html;
     }
     if (namespaceURI === DOMNamespaces.html) {
-      if (process.env.NODE_ENV !== 'production') {
-        process.env.NODE_ENV !== 'production' ? warning(isCustomComponent(this._tag, props) || this._tag === this._currentElement.type, '<%s /> is using uppercase HTML. Always use lowercase HTML tags ' + 'in React.', this._currentElement.type) : void 0;
-      }
       if (this._tag === 'svg') {
         namespaceURI = DOMNamespaces.svg;
       } else if (this._tag === 'math') {
@@ -12910,7 +13766,6 @@ ReactDOMComponent.Mixin = {
     }
 
     var mountImage;
-    var type = this._currentElement.type;
     if (transaction.useCreateElement) {
       var ownerDocument = hostContainerInfo._ownerDocument;
       var el;
@@ -12919,43 +13774,36 @@ ReactDOMComponent.Mixin = {
           // Create the script via .innerHTML so its "parser-inserted" flag is
           // set to true and it does not execute
           var div = ownerDocument.createElement('div');
+          var type = this._currentElement.type;
           div.innerHTML = '<' + type + '></' + type + '>';
           el = div.removeChild(div.firstChild);
         } else if (props.is) {
-          el = ownerDocument.createElement(type, props.is);
+          el = ownerDocument.createElement(this._currentElement.type, props.is);
         } else {
           // Separate else branch instead of using `props.is || undefined` above becuase of a Firefox bug.
           // See discussion in https://github.com/facebook/react/pull/6896
           // and discussion in https://bugzilla.mozilla.org/show_bug.cgi?id=1276240
-          el = ownerDocument.createElement(type);
+          el = ownerDocument.createElement(this._currentElement.type);
         }
       } else {
-        el = ownerDocument.createElementNS(namespaceURI, type);
-      }
-      var isCustomComponentTag = isCustomComponent(this._tag, props);
-      if (process.env.NODE_ENV !== 'production' && isCustomComponentTag && !didWarnShadyDOM && el.shadyRoot) {
-        var owner = this._currentElement._owner;
-        var name = owner && owner.getName() || 'A component';
-        process.env.NODE_ENV !== 'production' ? warning(false, '%s is using shady DOM. Using shady DOM with React can ' + 'cause things to break subtly.', name) : void 0;
-        didWarnShadyDOM = true;
+        el = ownerDocument.createElementNS(namespaceURI, this._currentElement.type);
       }
       ReactDOMComponentTree.precacheNode(this, el);
       this._flags |= Flags.hasCachedChildNodes;
       if (!this._hostParent) {
         DOMPropertyOperations.setAttributeForRoot(el);
       }
-      this._updateDOMProperties(null, props, transaction, isCustomComponentTag);
+      this._updateDOMProperties(null, props, transaction);
       var lazyTree = DOMLazyTree(el);
       this._createInitialChildren(transaction, props, context, lazyTree);
       mountImage = lazyTree;
     } else {
-      validateDangerousTag(this._tag);
       var tagOpen = this._createOpenTagMarkupAndPutListeners(transaction, props);
       var tagContent = this._createContentMarkup(transaction, props, context);
       if (!tagContent && omittedCloseTags[this._tag]) {
         mountImage = tagOpen + '/>';
       } else {
-        mountImage = tagOpen + '>' + tagContent + '</' + type + '>';
+        mountImage = tagOpen + '>' + tagContent + '</' + this._currentElement.type + '>';
       }
     }
 
@@ -12984,11 +13832,6 @@ ReactDOMComponent.Mixin = {
         break;
       case 'option':
         transaction.getReactMountReady().enqueue(optionPostMount, this);
-        break;
-      default:
-        if (typeof props.onClick === 'function') {
-          transaction.getReactMountReady().enqueue(trapClickOnNonInteractiveElement, this);
-        }
         break;
     }
 
@@ -13021,14 +13864,16 @@ ReactDOMComponent.Mixin = {
       }
       if (registrationNameModules.hasOwnProperty(propKey)) {
         if (propValue) {
-          ensureListeningTo(this, propKey, transaction);
+          enqueuePutListener(this, propKey, propValue, transaction);
         }
       } else {
         if (propKey === STYLE) {
           if (propValue) {
             if (process.env.NODE_ENV !== 'production') {
-              Object.freeze(propValue);
+              // See `_updateDOMProperties`. style block
+              this._previousStyle = propValue;
             }
+            propValue = this._previousStyleCopy = _assign({}, props.style);
           }
           propValue = CSSPropertyOperations.createMarkupForStyles(propValue, this);
         }
@@ -13112,9 +13957,8 @@ ReactDOMComponent.Mixin = {
     // Intentional use of != to avoid catching zero/false.
     var innerHTML = props.dangerouslySetInnerHTML;
     if (innerHTML != null) {
-      var innerHTMLContent = innerHTML.__html;
-      if (innerHTMLContent != null && innerHTMLContent !== '') {
-        DOMLazyTree.queueHTML(lazyTree, innerHTMLContent);
+      if (innerHTML.__html != null) {
+        DOMLazyTree.queueHTML(lazyTree, innerHTML.__html);
       }
     } else {
       var contentToUse = CONTENT_TYPES[typeof props.children] ? props.children : null;
@@ -13185,16 +14029,10 @@ ReactDOMComponent.Mixin = {
         lastProps = ReactDOMTextarea.getHostProps(this, lastProps);
         nextProps = ReactDOMTextarea.getHostProps(this, nextProps);
         break;
-      default:
-        if (typeof lastProps.onClick !== 'function' && typeof nextProps.onClick === 'function') {
-          transaction.getReactMountReady().enqueue(trapClickOnNonInteractiveElement, this);
-        }
-        break;
     }
 
     assertValidProps(this, nextProps);
-    var isCustomComponentTag = isCustomComponent(this._tag, nextProps);
-    this._updateDOMProperties(lastProps, nextProps, transaction, isCustomComponentTag);
+    this._updateDOMProperties(lastProps, nextProps, transaction);
     this._updateDOMChildren(lastProps, nextProps, transaction, context);
 
     switch (this._tag) {
@@ -13231,7 +14069,7 @@ ReactDOMComponent.Mixin = {
    * @param {object} nextProps
    * @param {?DOMElement} node
    */
-  _updateDOMProperties: function (lastProps, nextProps, transaction, isCustomComponentTag) {
+  _updateDOMProperties: function (lastProps, nextProps, transaction) {
     var propKey;
     var styleName;
     var styleUpdates;
@@ -13240,15 +14078,21 @@ ReactDOMComponent.Mixin = {
         continue;
       }
       if (propKey === STYLE) {
-        var lastStyle = lastProps[STYLE];
+        var lastStyle = this._previousStyleCopy;
         for (styleName in lastStyle) {
           if (lastStyle.hasOwnProperty(styleName)) {
             styleUpdates = styleUpdates || {};
             styleUpdates[styleName] = '';
           }
         }
+        this._previousStyleCopy = null;
       } else if (registrationNameModules.hasOwnProperty(propKey)) {
-        // Do nothing for event names.
+        if (lastProps[propKey]) {
+          // Only call deleteListener if there was a listener previously or
+          // else willDeleteListener gets called when there wasn't actually a
+          // listener (e.g., onClick={null})
+          deleteListener(this, propKey);
+        }
       } else if (isCustomComponent(this._tag, lastProps)) {
         if (!RESERVED_PROPS.hasOwnProperty(propKey)) {
           DOMPropertyOperations.deleteValueForAttribute(getNode(this), propKey);
@@ -13259,15 +14103,19 @@ ReactDOMComponent.Mixin = {
     }
     for (propKey in nextProps) {
       var nextProp = nextProps[propKey];
-      var lastProp = lastProps != null ? lastProps[propKey] : undefined;
+      var lastProp = propKey === STYLE ? this._previousStyleCopy : lastProps != null ? lastProps[propKey] : undefined;
       if (!nextProps.hasOwnProperty(propKey) || nextProp === lastProp || nextProp == null && lastProp == null) {
         continue;
       }
       if (propKey === STYLE) {
         if (nextProp) {
           if (process.env.NODE_ENV !== 'production') {
-            Object.freeze(nextProp);
+            checkAndWarnForMutatedStyle(this._previousStyleCopy, this._previousStyle, this);
+            this._previousStyle = nextProp;
           }
+          nextProp = this._previousStyleCopy = _assign({}, nextProp);
+        } else {
+          this._previousStyleCopy = null;
         }
         if (lastProp) {
           // Unset styles on `lastProp` but not on `nextProp`.
@@ -13290,9 +14138,11 @@ ReactDOMComponent.Mixin = {
         }
       } else if (registrationNameModules.hasOwnProperty(propKey)) {
         if (nextProp) {
-          ensureListeningTo(this, propKey, transaction);
+          enqueuePutListener(this, propKey, nextProp, transaction);
+        } else if (lastProp) {
+          deleteListener(this, propKey);
         }
-      } else if (isCustomComponentTag) {
+      } else if (isCustomComponent(this._tag, nextProps)) {
         if (!RESERVED_PROPS.hasOwnProperty(propKey)) {
           DOMPropertyOperations.setValueForAttribute(getNode(this), propKey, nextProp);
         }
@@ -13309,13 +14159,6 @@ ReactDOMComponent.Mixin = {
       }
     }
     if (styleUpdates) {
-      if (process.env.NODE_ENV !== 'production') {
-        ReactInstrumentation.debugTool.onHostOperation({
-          instanceID: this._debugID,
-          type: 'update styles',
-          payload: styleUpdates
-        });
-      }
       CSSPropertyOperations.setValueForStyles(getNode(this), styleUpdates, this);
     }
   },
@@ -13386,7 +14229,7 @@ ReactDOMComponent.Mixin = {
    *
    * @internal
    */
-  unmountComponent: function (safely, skipLifecycle) {
+  unmountComponent: function (safely) {
     switch (this._tag) {
       case 'audio':
       case 'form':
@@ -13403,10 +14246,6 @@ ReactDOMComponent.Mixin = {
           }
         }
         break;
-      case 'input':
-      case 'textarea':
-        inputValueTracking.stopTracking(this);
-        break;
       case 'html':
       case 'head':
       case 'body':
@@ -13420,8 +14259,9 @@ ReactDOMComponent.Mixin = {
         break;
     }
 
-    this.unmountChildren(safely, skipLifecycle);
+    this.unmountChildren(safely);
     ReactDOMComponentTree.uncacheNode(this);
+    EventPluginHub.deleteAllListeners(this);
     this._rootNodeID = 0;
     this._domID = 0;
     this._wrapperState = null;
@@ -13431,33 +14271,19 @@ ReactDOMComponent.Mixin = {
     }
   },
 
-  restoreControlledState: function () {
-    switch (this._tag) {
-      case 'input':
-        ReactDOMInput.restoreControlledState(this);
-        return;
-      case 'textarea':
-        ReactDOMTextarea.restoreControlledState(this);
-        return;
-      case 'select':
-        ReactDOMSelect.restoreControlledState(this);
-        return;
-    }
-  },
-
   getPublicInstance: function () {
     return getNode(this);
   }
 
 };
 
-_assign(ReactDOMComponent.prototype, ReactDOMComponent.Mixin, ReactMultiChild);
+_assign(ReactDOMComponent.prototype, ReactDOMComponent.Mixin, ReactMultiChild.Mixin);
 
 module.exports = ReactDOMComponent;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 107 */
+/* 113 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -13473,7 +14299,7 @@ module.exports = ReactDOMComponent;
 
 
 
-var validateDOMNesting = __webpack_require__(52);
+var validateDOMNesting = __webpack_require__(47);
 
 var DOC_NODE_TYPE = 9;
 
@@ -13496,7 +14322,7 @@ module.exports = ReactDOMContainerInfo;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 108 */
+/* 114 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -13512,10 +14338,10 @@ module.exports = ReactDOMContainerInfo;
 
 
 
-var _assign = __webpack_require__(5);
+var _assign = __webpack_require__(4);
 
-var DOMLazyTree = __webpack_require__(18);
-var ReactDOMComponentTree = __webpack_require__(4);
+var DOMLazyTree = __webpack_require__(17);
+var ReactDOMComponentTree = __webpack_require__(5);
 
 var ReactDOMEmptyComponent = function (instantiate) {
   // ReactCompositeComponent uses this:
@@ -13561,7 +14387,7 @@ _assign(ReactDOMEmptyComponent.prototype, {
 module.exports = ReactDOMEmptyComponent;
 
 /***/ }),
-/* 109 */
+/* 115 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -13585,7 +14411,7 @@ var ReactDOMFeatureFlags = {
 module.exports = ReactDOMFeatureFlags;
 
 /***/ }),
-/* 110 */
+/* 116 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -13601,8 +14427,8 @@ module.exports = ReactDOMFeatureFlags;
 
 
 
-var DOMChildrenOperations = __webpack_require__(38);
-var ReactDOMComponentTree = __webpack_require__(4);
+var DOMChildrenOperations = __webpack_require__(33);
+var ReactDOMComponentTree = __webpack_require__(5);
 
 /**
  * Operations used to process updates to DOM nodes.
@@ -13624,80 +14450,7 @@ var ReactDOMIDOperations = {
 module.exports = ReactDOMIDOperations;
 
 /***/ }),
-/* 111 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-var ARIADOMPropertyConfig = __webpack_require__(91);
-var BeforeInputEventPlugin = __webpack_require__(93);
-var DOMProperty = __webpack_require__(12);
-var ChangeEventPlugin = __webpack_require__(96);
-var DOMEventPluginOrder = __webpack_require__(97);
-var EnterLeaveEventPlugin = __webpack_require__(99);
-var EventPluginHub = __webpack_require__(26);
-var EventPluginUtils = __webpack_require__(40);
-var HTMLDOMPropertyConfig = __webpack_require__(101);
-var ReactBrowserEventEmitter = __webpack_require__(23);
-var ReactDOMComponentTree = __webpack_require__(4);
-var ReactEventListener = __webpack_require__(125);
-var SVGDOMPropertyConfig = __webpack_require__(139);
-var SelectEventPlugin = __webpack_require__(140);
-var SimpleEventPlugin = __webpack_require__(141);
-
-var alreadyInjected = false;
-
-function inject() {
-  if (alreadyInjected) {
-    // TODO: This is currently true because these injections are shared between
-    // the client and the server package. They should be built independently
-    // and not share any injection state. Then this problem will be solved.
-    return;
-  }
-  alreadyInjected = true;
-
-  ReactBrowserEventEmitter.injection.injectReactEventListener(ReactEventListener);
-
-  /**
-   * Inject modules for resolving DOM hierarchy and plugin ordering.
-   */
-  EventPluginHub.injection.injectEventPluginOrder(DOMEventPluginOrder);
-  EventPluginUtils.injection.injectComponentTree(ReactDOMComponentTree);
-
-  /**
-   * Some important event plugins included by default (without having to require
-   * them).
-   */
-  EventPluginHub.injection.injectEventPluginsByName({
-    SimpleEventPlugin: SimpleEventPlugin,
-    EnterLeaveEventPlugin: EnterLeaveEventPlugin,
-    ChangeEventPlugin: ChangeEventPlugin,
-    SelectEventPlugin: SelectEventPlugin,
-    BeforeInputEventPlugin: BeforeInputEventPlugin
-  });
-
-  DOMProperty.injection.injectDOMPropertyConfig(ARIADOMPropertyConfig);
-  DOMProperty.injection.injectDOMPropertyConfig(HTMLDOMPropertyConfig);
-  DOMProperty.injection.injectDOMPropertyConfig(SVGDOMPropertyConfig);
-}
-
-module.exports = {
-  inject: inject
-};
-
-/***/ }),
-/* 112 */
+/* 117 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -13713,20 +14466,30 @@ module.exports = {
 
 
 
-var _prodInvariant = __webpack_require__(2),
-    _assign = __webpack_require__(5);
+var _prodInvariant = __webpack_require__(3),
+    _assign = __webpack_require__(4);
 
-var DOMPropertyOperations = __webpack_require__(62);
-var ReactControlledValuePropTypes = __webpack_require__(43);
-var ReactDOMComponentTree = __webpack_require__(4);
+var DOMPropertyOperations = __webpack_require__(58);
+var LinkedValueUtils = __webpack_require__(37);
+var ReactDOMComponentTree = __webpack_require__(5);
+var ReactUpdates = __webpack_require__(10);
 
 var invariant = __webpack_require__(1);
-var warning = __webpack_require__(3);
+var warning = __webpack_require__(2);
 
+var didWarnValueLink = false;
+var didWarnCheckedLink = false;
 var didWarnValueDefaultValue = false;
 var didWarnCheckedDefaultChecked = false;
 var didWarnControlledToUncontrolled = false;
 var didWarnUncontrolledToControlled = false;
+
+function forceUpdateIfMounted() {
+  if (this._rootNodeID) {
+    // DOM component is still mounted; update
+    ReactDOMInput.updateWrapper(this);
+  }
+}
 
 function isControlled(props) {
   var usesChecked = props.type === 'checkbox' || props.type === 'radio';
@@ -13751,8 +14514,8 @@ function isControlled(props) {
  */
 var ReactDOMInput = {
   getHostProps: function (inst, props) {
-    var value = props.value;
-    var checked = props.checked;
+    var value = LinkedValueUtils.getValue(props);
+    var checked = LinkedValueUtils.getChecked(props);
 
     var hostProps = _assign({
       // Make sure we set .type before any other properties (setting .value
@@ -13769,7 +14532,8 @@ var ReactDOMInput = {
       defaultChecked: undefined,
       defaultValue: undefined,
       value: value != null ? value : inst._wrapperState.initialValue,
-      checked: checked != null ? checked : inst._wrapperState.initialChecked
+      checked: checked != null ? checked : inst._wrapperState.initialChecked,
+      onChange: inst._wrapperState.onChange
     });
 
     return hostProps;
@@ -13777,9 +14541,18 @@ var ReactDOMInput = {
 
   mountWrapper: function (inst, props) {
     if (process.env.NODE_ENV !== 'production') {
-      var owner = inst._currentElement._owner;
-      ReactControlledValuePropTypes.checkPropTypes('input', props, owner ? owner.getName() : null);
+      LinkedValueUtils.checkPropTypes('input', props, inst._currentElement._owner);
 
+      var owner = inst._currentElement._owner;
+
+      if (props.valueLink !== undefined && !didWarnValueLink) {
+        process.env.NODE_ENV !== 'production' ? warning(false, '`valueLink` prop on `input` is deprecated; set `value` and `onChange` instead.') : void 0;
+        didWarnValueLink = true;
+      }
+      if (props.checkedLink !== undefined && !didWarnCheckedLink) {
+        process.env.NODE_ENV !== 'production' ? warning(false, '`checkedLink` prop on `input` is deprecated; set `value` and `onChange` instead.') : void 0;
+        didWarnCheckedLink = true;
+      }
       if (props.checked !== undefined && props.defaultChecked !== undefined && !didWarnCheckedDefaultChecked) {
         process.env.NODE_ENV !== 'production' ? warning(false, '%s contains an input of type %s with both checked and defaultChecked props. ' + 'Input elements must be either controlled or uncontrolled ' + '(specify either the checked prop, or the defaultChecked prop, but not ' + 'both). Decide between using a controlled or uncontrolled input ' + 'element and remove one of these props. More info: ' + 'https://fb.me/react-controlled-components', owner && owner.getName() || 'A component', props.type) : void 0;
         didWarnCheckedDefaultChecked = true;
@@ -13794,7 +14567,8 @@ var ReactDOMInput = {
     inst._wrapperState = {
       initialChecked: props.checked != null ? props.checked : props.defaultChecked,
       initialValue: props.value != null ? props.value : defaultValue,
-      listeners: null
+      listeners: null,
+      onChange: _handleChange.bind(inst)
     };
 
     if (process.env.NODE_ENV !== 'production') {
@@ -13819,13 +14593,14 @@ var ReactDOMInput = {
       }
     }
 
+    // TODO: Shouldn't this be getChecked(props)?
     var checked = props.checked;
     if (checked != null) {
       DOMPropertyOperations.setValueForProperty(ReactDOMComponentTree.getNodeFromInstance(inst), 'checked', checked || false);
     }
 
     var node = ReactDOMComponentTree.getNodeFromInstance(inst);
-    var value = props.value;
+    var value = LinkedValueUtils.getValue(props);
     if (value != null) {
 
       // Cast `value` to a string to ensure the value is set correctly. While
@@ -13904,22 +14679,22 @@ var ReactDOMInput = {
     if (name !== '') {
       node.name = name;
     }
-  },
-
-  restoreControlledState: function (inst) {
-    if (inst._rootNodeID) {
-      // DOM component is still mounted; update
-      ReactDOMInput.updateWrapper(inst);
-    }
-    var props = inst._currentElement.props;
-    updateNamedCousins(inst, props);
   }
 };
 
-function updateNamedCousins(thisInstance, props) {
+function _handleChange(event) {
+  var props = this._currentElement.props;
+
+  var returnValue = LinkedValueUtils.executeOnChange(props, event);
+
+  // Here we use asap to wait until all updates have propagated, which
+  // is important when using controlled components within layers:
+  // https://github.com/facebook/react/issues/1698
+  ReactUpdates.asap(forceUpdateIfMounted, this);
+
   var name = props.name;
   if (props.type === 'radio' && name != null) {
-    var rootNode = ReactDOMComponentTree.getNodeFromInstance(thisInstance);
+    var rootNode = ReactDOMComponentTree.getNodeFromInstance(this);
     var queryRoot = rootNode;
 
     while (queryRoot.parentNode) {
@@ -13930,9 +14705,8 @@ function updateNamedCousins(thisInstance, props) {
     // but that sometimes behaves strangely in IE8. We could also try using
     // `form.getElementsByName`, but that will only return direct children
     // and won't include inputs that use the HTML5 `form=` attribute. Since
-    // the input might not even be in a form. It might not even be in the
-    // document. Let's just use the local `querySelectorAll` to ensure we don't
-    // miss anything.
+    // the input might not even be in a form, let's just use the global
+    // `querySelectorAll` to ensure we don't miss anything.
     var group = queryRoot.querySelectorAll('input[name=' + JSON.stringify('' + name) + '][type="radio"]');
 
     for (var i = 0; i < group.length; i++) {
@@ -13949,18 +14723,18 @@ function updateNamedCousins(thisInstance, props) {
       // If this is a controlled radio button group, forcing the input that
       // was previously checked to update will cause it to be come re-checked
       // as appropriate.
-      if (otherInstance._rootNodeID) {
-        ReactDOMInput.updateWrapper(otherInstance);
-      }
+      ReactUpdates.asap(forceUpdateIfMounted, otherInstance);
     }
   }
+
+  return returnValue;
 }
 
 module.exports = ReactDOMInput;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 113 */
+/* 118 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -13976,24 +14750,13 @@ module.exports = ReactDOMInput;
 
 
 
-var DOMProperty = __webpack_require__(12);
+var DOMProperty = __webpack_require__(13);
 var ReactComponentTreeHook = __webpack_require__(7);
-var ReactDebugCurrentFiber = __webpack_require__(24);
 
-var warning = __webpack_require__(3);
+var warning = __webpack_require__(2);
 
 var warnedProperties = {};
 var rARIA = new RegExp('^(aria)-[' + DOMProperty.ATTRIBUTE_NAME_CHAR + ']*$');
-
-function getStackAddendum(debugID) {
-  if (debugID != null) {
-    // This can only happen on Stack
-    return ReactComponentTreeHook.getStackAddendumByID(debugID);
-  } else {
-    // This can only happen on Fiber
-    return ReactDebugCurrentFiber.getCurrentFiberStackAddendum();
-  }
-}
 
 function validateProperty(tagName, name, debugID) {
   if (warnedProperties.hasOwnProperty(name) && warnedProperties[name]) {
@@ -14012,7 +14775,7 @@ function validateProperty(tagName, name, debugID) {
     }
     // aria-* attributes should be lowercase; suggest the lowercase version.
     if (name !== standardName) {
-      process.env.NODE_ENV !== 'production' ? warning(false, 'Unknown ARIA attribute %s. Did you mean %s?%s', name, standardName, getStackAddendum(debugID)) : void 0;
+      process.env.NODE_ENV !== 'production' ? warning(false, 'Unknown ARIA attribute %s. Did you mean %s?%s', name, standardName, ReactComponentTreeHook.getStackAddendumByID(debugID)) : void 0;
       warnedProperties[name] = true;
       return true;
     }
@@ -14021,11 +14784,11 @@ function validateProperty(tagName, name, debugID) {
   return true;
 }
 
-function warnInvalidARIAProps(type, props, debugID) {
+function warnInvalidARIAProps(debugID, element) {
   var invalidProps = [];
 
-  for (var key in props) {
-    var isValid = validateProperty(type, key, debugID);
+  for (var key in element.props) {
+    var isValid = validateProperty(element.type, key, debugID);
     if (!isValid) {
       invalidProps.push(key);
     }
@@ -14036,31 +14799,32 @@ function warnInvalidARIAProps(type, props, debugID) {
   }).join(', ');
 
   if (invalidProps.length === 1) {
-    process.env.NODE_ENV !== 'production' ? warning(false, 'Invalid aria prop %s on <%s> tag. ' + 'For details, see https://fb.me/invalid-aria-prop%s', unknownPropString, type, getStackAddendum(debugID)) : void 0;
+    process.env.NODE_ENV !== 'production' ? warning(false, 'Invalid aria prop %s on <%s> tag. ' + 'For details, see https://fb.me/invalid-aria-prop%s', unknownPropString, element.type, ReactComponentTreeHook.getStackAddendumByID(debugID)) : void 0;
   } else if (invalidProps.length > 1) {
-    process.env.NODE_ENV !== 'production' ? warning(false, 'Invalid aria props %s on <%s> tag. ' + 'For details, see https://fb.me/invalid-aria-prop%s', unknownPropString, type, getStackAddendum(debugID)) : void 0;
+    process.env.NODE_ENV !== 'production' ? warning(false, 'Invalid aria props %s on <%s> tag. ' + 'For details, see https://fb.me/invalid-aria-prop%s', unknownPropString, element.type, ReactComponentTreeHook.getStackAddendumByID(debugID)) : void 0;
   }
 }
 
-function validateProperties(type, props, debugID /* Stack only */) {
-  if (type.indexOf('-') >= 0 || props.is) {
+function handleElement(debugID, element) {
+  if (element == null || typeof element.type !== 'string') {
     return;
   }
-  warnInvalidARIAProps(type, props, debugID);
+  if (element.type.indexOf('-') >= 0 || element.props.is) {
+    return;
+  }
+
+  warnInvalidARIAProps(debugID, element);
 }
 
 var ReactDOMInvalidARIAHook = {
-  // Fiber
-  validateProperties: validateProperties,
-  // Stack
   onBeforeMountComponent: function (debugID, element) {
-    if (process.env.NODE_ENV !== 'production' && element != null && typeof element.type === 'string') {
-      validateProperties(element.type, element.props, debugID);
+    if (process.env.NODE_ENV !== 'production') {
+      handleElement(debugID, element);
     }
   },
   onBeforeUpdateComponent: function (debugID, element) {
-    if (process.env.NODE_ENV !== 'production' && element != null && typeof element.type === 'string') {
-      validateProperties(element.type, element.props, debugID);
+    if (process.env.NODE_ENV !== 'production') {
+      handleElement(debugID, element);
     }
   }
 };
@@ -14069,7 +14833,7 @@ module.exports = ReactDOMInvalidARIAHook;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 114 */
+/* 119 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -14086,46 +14850,31 @@ module.exports = ReactDOMInvalidARIAHook;
 
 
 var ReactComponentTreeHook = __webpack_require__(7);
-var ReactDebugCurrentFiber = __webpack_require__(24);
 
-var warning = __webpack_require__(3);
+var warning = __webpack_require__(2);
 
 var didWarnValueNull = false;
 
-function getStackAddendum(debugID) {
-  if (debugID != null) {
-    // This can only happen on Stack
-    return ReactComponentTreeHook.getStackAddendumByID(debugID);
-  } else {
-    // This can only happen on Fiber
-    return ReactDebugCurrentFiber.getCurrentFiberStackAddendum();
-  }
-}
-
-function validateProperties(type, props, debugID /* Stack only */) {
-  if (type !== 'input' && type !== 'textarea' && type !== 'select') {
+function handleElement(debugID, element) {
+  if (element == null) {
     return;
   }
-  if (props != null && props.value === null && !didWarnValueNull) {
-    process.env.NODE_ENV !== 'production' ? warning(false, '`value` prop on `%s` should not be null. ' + 'Consider using the empty string to clear the component or `undefined` ' + 'for uncontrolled components.%s', type, getStackAddendum(debugID)) : void 0;
+  if (element.type !== 'input' && element.type !== 'textarea' && element.type !== 'select') {
+    return;
+  }
+  if (element.props != null && element.props.value === null && !didWarnValueNull) {
+    process.env.NODE_ENV !== 'production' ? warning(false, '`value` prop on `%s` should not be null. ' + 'Consider using the empty string to clear the component or `undefined` ' + 'for uncontrolled components.%s', element.type, ReactComponentTreeHook.getStackAddendumByID(debugID)) : void 0;
 
     didWarnValueNull = true;
   }
 }
 
 var ReactDOMNullInputValuePropHook = {
-  // Fiber
-  validateProperties: validateProperties,
-  // Stack
   onBeforeMountComponent: function (debugID, element) {
-    if (process.env.NODE_ENV !== 'production' && element != null && typeof element.type === 'string') {
-      validateProperties(element.type, element.props, debugID);
-    }
+    handleElement(debugID, element);
   },
   onBeforeUpdateComponent: function (debugID, element) {
-    if (process.env.NODE_ENV !== 'production' && element != null && typeof element.type === 'string') {
-      validateProperties(element.type, element.props, debugID);
-    }
+    handleElement(debugID, element);
   }
 };
 
@@ -14133,7 +14882,7 @@ module.exports = ReactDOMNullInputValuePropHook;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 115 */
+/* 120 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -14149,13 +14898,13 @@ module.exports = ReactDOMNullInputValuePropHook;
 
 
 
-var _assign = __webpack_require__(5);
+var _assign = __webpack_require__(4);
 
-var React = __webpack_require__(21);
-var ReactDOMComponentTree = __webpack_require__(4);
-var ReactDOMSelect = __webpack_require__(66);
+var React = __webpack_require__(19);
+var ReactDOMComponentTree = __webpack_require__(5);
+var ReactDOMSelect = __webpack_require__(60);
 
-var warning = __webpack_require__(3);
+var warning = __webpack_require__(2);
 var didWarnInvalidOptionChildren = false;
 
 function flattenChildren(children) {
@@ -14262,7 +15011,7 @@ module.exports = ReactDOMOption;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 116 */
+/* 121 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -14280,8 +15029,8 @@ module.exports = ReactDOMOption;
 
 var ExecutionEnvironment = __webpack_require__(6);
 
-var getNodeForCharacterOffset = __webpack_require__(160);
-var getTextContentAccessor = __webpack_require__(76);
+var getNodeForCharacterOffset = __webpack_require__(165);
+var getTextContentAccessor = __webpack_require__(72);
 
 /**
  * While `isCollapsed` is available on the Selection object and `collapsed`
@@ -14479,76 +15228,7 @@ var ReactDOMSelection = {
 module.exports = ReactDOMSelection;
 
 /***/ }),
-/* 117 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-var ReactComponentEnvironment = __webpack_require__(42);
-var ReactComponentBrowserEnvironment = __webpack_require__(103);
-var ReactDOMComponent = __webpack_require__(106);
-var ReactDOMComponentTree = __webpack_require__(4);
-var ReactDOMEmptyComponent = __webpack_require__(108);
-var ReactDOMTextComponent = __webpack_require__(118);
-var ReactDefaultBatchingStrategy = __webpack_require__(122);
-var ReactEmptyComponent = __webpack_require__(67);
-var ReactGenericBatching = __webpack_require__(29);
-var ReactHostComponent = __webpack_require__(68);
-var ReactReconcileTransaction = __webpack_require__(133);
-var ReactUpdates = __webpack_require__(31);
-
-var findDOMNode = __webpack_require__(73);
-var getHostComponentFromComposite = __webpack_require__(75);
-
-var alreadyInjected = false;
-
-function inject() {
-  if (alreadyInjected) {
-    // TODO: This is currently true because these injections are shared between
-    // the client and the server package. They should be built independently
-    // and not share any injection state. Then this problem will be solved.
-    return;
-  }
-  alreadyInjected = true;
-
-  ReactGenericBatching.injection.injectStackBatchedUpdates(ReactUpdates.batchedUpdates);
-
-  ReactHostComponent.injection.injectGenericComponentClass(ReactDOMComponent);
-
-  ReactHostComponent.injection.injectTextComponentClass(ReactDOMTextComponent);
-
-  ReactEmptyComponent.injection.injectEmptyComponentFactory(function (instantiate) {
-    return new ReactDOMEmptyComponent(instantiate);
-  });
-
-  ReactUpdates.injection.injectReconcileTransaction(ReactReconcileTransaction);
-  ReactUpdates.injection.injectBatchingStrategy(ReactDefaultBatchingStrategy);
-
-  ReactComponentEnvironment.injection.injectEnvironment(ReactComponentBrowserEnvironment);
-
-  findDOMNode._injectStack(function (inst) {
-    inst = getHostComponentFromComposite(inst);
-    return inst ? ReactDOMComponentTree.getNodeFromInstance(inst) : null;
-  });
-}
-
-module.exports = {
-  inject: inject
-};
-
-/***/ }),
-/* 118 */
+/* 122 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -14564,16 +15244,16 @@ module.exports = {
 
 
 
-var _prodInvariant = __webpack_require__(2),
-    _assign = __webpack_require__(5);
+var _prodInvariant = __webpack_require__(3),
+    _assign = __webpack_require__(4);
 
-var DOMChildrenOperations = __webpack_require__(38);
-var DOMLazyTree = __webpack_require__(18);
-var ReactDOMComponentTree = __webpack_require__(4);
+var DOMChildrenOperations = __webpack_require__(33);
+var DOMLazyTree = __webpack_require__(17);
+var ReactDOMComponentTree = __webpack_require__(5);
 
-var escapeTextContentForBrowser = __webpack_require__(34);
+var escapeTextContentForBrowser = __webpack_require__(30);
 var invariant = __webpack_require__(1);
-var validateDOMNesting = __webpack_require__(52);
+var validateDOMNesting = __webpack_require__(47);
 
 /**
  * Text nodes violate a couple assumptions that React makes about components:
@@ -14718,7 +15398,7 @@ module.exports = ReactDOMTextComponent;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 119 */
+/* 123 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -14734,16 +15414,25 @@ module.exports = ReactDOMTextComponent;
 
 
 
-var _prodInvariant = __webpack_require__(2),
-    _assign = __webpack_require__(5);
+var _prodInvariant = __webpack_require__(3),
+    _assign = __webpack_require__(4);
 
-var ReactControlledValuePropTypes = __webpack_require__(43);
-var ReactDOMComponentTree = __webpack_require__(4);
+var LinkedValueUtils = __webpack_require__(37);
+var ReactDOMComponentTree = __webpack_require__(5);
+var ReactUpdates = __webpack_require__(10);
 
 var invariant = __webpack_require__(1);
-var warning = __webpack_require__(3);
+var warning = __webpack_require__(2);
 
+var didWarnValueLink = false;
 var didWarnValDefaultVal = false;
+
+function forceUpdateIfMounted() {
+  if (this._rootNodeID) {
+    // DOM component is still mounted; update
+    ReactDOMTextarea.updateWrapper(this);
+  }
+}
 
 /**
  * Implements a <textarea> host component that allows setting `value`, and
@@ -14772,7 +15461,8 @@ var ReactDOMTextarea = {
     var hostProps = _assign({}, props, {
       value: undefined,
       defaultValue: undefined,
-      children: '' + inst._wrapperState.initialValue
+      children: '' + inst._wrapperState.initialValue,
+      onChange: inst._wrapperState.onChange
     });
 
     return hostProps;
@@ -14780,15 +15470,18 @@ var ReactDOMTextarea = {
 
   mountWrapper: function (inst, props) {
     if (process.env.NODE_ENV !== 'production') {
-      var owner = inst._currentElement._owner;
-      ReactControlledValuePropTypes.checkPropTypes('textarea', props, owner ? owner.getName() : null);
+      LinkedValueUtils.checkPropTypes('textarea', props, inst._currentElement._owner);
+      if (props.valueLink !== undefined && !didWarnValueLink) {
+        process.env.NODE_ENV !== 'production' ? warning(false, '`valueLink` prop on `textarea` is deprecated; set `value` and `onChange` instead.') : void 0;
+        didWarnValueLink = true;
+      }
       if (props.value !== undefined && props.defaultValue !== undefined && !didWarnValDefaultVal) {
         process.env.NODE_ENV !== 'production' ? warning(false, 'Textarea elements must be either controlled or uncontrolled ' + '(specify either the value prop, or the defaultValue prop, but not ' + 'both). Decide between using a controlled or uncontrolled textarea ' + 'and remove one of these props. More info: ' + 'https://fb.me/react-controlled-components') : void 0;
         didWarnValDefaultVal = true;
       }
     }
 
-    var value = props.value;
+    var value = LinkedValueUtils.getValue(props);
     var initialValue = value;
 
     // Only bother fetching default value if we're going to use it
@@ -14816,7 +15509,8 @@ var ReactDOMTextarea = {
 
     inst._wrapperState = {
       initialValue: '' + initialValue,
-      listeners: null
+      listeners: null,
+      onChange: _handleChange.bind(inst)
     };
   },
 
@@ -14824,7 +15518,7 @@ var ReactDOMTextarea = {
     var props = inst._currentElement.props;
 
     var node = ReactDOMComponentTree.getNodeFromInstance(inst);
-    var value = props.value;
+    var value = LinkedValueUtils.getValue(props);
     if (value != null) {
       // Cast `value` to a string to ensure the value is set correctly. While
       // browsers typically do this as necessary, jsdom doesn't.
@@ -14856,22 +15550,163 @@ var ReactDOMTextarea = {
     if (textContent === inst._wrapperState.initialValue) {
       node.value = textContent;
     }
-  },
-
-  restoreControlledState: function (inst) {
-    if (inst._rootNodeID) {
-      // DOM component is still mounted; update
-      ReactDOMTextarea.updateWrapper(inst);
-    }
   }
-
 };
+
+function _handleChange(event) {
+  var props = this._currentElement.props;
+  var returnValue = LinkedValueUtils.executeOnChange(props, event);
+  ReactUpdates.asap(forceUpdateIfMounted, this);
+  return returnValue;
+}
 
 module.exports = ReactDOMTextarea;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 120 */
+/* 124 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(process) {/**
+ * Copyright 2015-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+
+
+var _prodInvariant = __webpack_require__(3);
+
+var invariant = __webpack_require__(1);
+
+/**
+ * Return the lowest common ancestor of A and B, or null if they are in
+ * different trees.
+ */
+function getLowestCommonAncestor(instA, instB) {
+  !('_hostNode' in instA) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'getNodeFromInstance: Invalid argument.') : _prodInvariant('33') : void 0;
+  !('_hostNode' in instB) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'getNodeFromInstance: Invalid argument.') : _prodInvariant('33') : void 0;
+
+  var depthA = 0;
+  for (var tempA = instA; tempA; tempA = tempA._hostParent) {
+    depthA++;
+  }
+  var depthB = 0;
+  for (var tempB = instB; tempB; tempB = tempB._hostParent) {
+    depthB++;
+  }
+
+  // If A is deeper, crawl up.
+  while (depthA - depthB > 0) {
+    instA = instA._hostParent;
+    depthA--;
+  }
+
+  // If B is deeper, crawl up.
+  while (depthB - depthA > 0) {
+    instB = instB._hostParent;
+    depthB--;
+  }
+
+  // Walk in lockstep until we find a match.
+  var depth = depthA;
+  while (depth--) {
+    if (instA === instB) {
+      return instA;
+    }
+    instA = instA._hostParent;
+    instB = instB._hostParent;
+  }
+  return null;
+}
+
+/**
+ * Return if A is an ancestor of B.
+ */
+function isAncestor(instA, instB) {
+  !('_hostNode' in instA) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'isAncestor: Invalid argument.') : _prodInvariant('35') : void 0;
+  !('_hostNode' in instB) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'isAncestor: Invalid argument.') : _prodInvariant('35') : void 0;
+
+  while (instB) {
+    if (instB === instA) {
+      return true;
+    }
+    instB = instB._hostParent;
+  }
+  return false;
+}
+
+/**
+ * Return the parent instance of the passed-in instance.
+ */
+function getParentInstance(inst) {
+  !('_hostNode' in inst) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'getParentInstance: Invalid argument.') : _prodInvariant('36') : void 0;
+
+  return inst._hostParent;
+}
+
+/**
+ * Simulates the traversal of a two-phase, capture/bubble event dispatch.
+ */
+function traverseTwoPhase(inst, fn, arg) {
+  var path = [];
+  while (inst) {
+    path.push(inst);
+    inst = inst._hostParent;
+  }
+  var i;
+  for (i = path.length; i-- > 0;) {
+    fn(path[i], 'captured', arg);
+  }
+  for (i = 0; i < path.length; i++) {
+    fn(path[i], 'bubbled', arg);
+  }
+}
+
+/**
+ * Traverses the ID hierarchy and invokes the supplied `cb` on any IDs that
+ * should would receive a `mouseEnter` or `mouseLeave` event.
+ *
+ * Does not invoke the callback on the nearest common ancestor because nothing
+ * "entered" or "left" that element.
+ */
+function traverseEnterLeave(from, to, fn, argFrom, argTo) {
+  var common = from && to ? getLowestCommonAncestor(from, to) : null;
+  var pathFrom = [];
+  while (from && from !== common) {
+    pathFrom.push(from);
+    from = from._hostParent;
+  }
+  var pathTo = [];
+  while (to && to !== common) {
+    pathTo.push(to);
+    to = to._hostParent;
+  }
+  var i;
+  for (i = 0; i < pathFrom.length; i++) {
+    fn(pathFrom[i], 'bubbled', argFrom);
+  }
+  for (i = pathTo.length; i-- > 0;) {
+    fn(pathTo[i], 'captured', argTo);
+  }
+}
+
+module.exports = {
+  isAncestor: isAncestor,
+  getLowestCommonAncestor: getLowestCommonAncestor,
+  getParentInstance: getParentInstance,
+  traverseTwoPhase: traverseTwoPhase,
+  traverseEnterLeave: traverseEnterLeave
+};
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 125 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -14887,22 +15722,11 @@ module.exports = ReactDOMTextarea;
 
 
 
-var DOMProperty = __webpack_require__(12);
-var EventPluginRegistry = __webpack_require__(27);
+var DOMProperty = __webpack_require__(13);
+var EventPluginRegistry = __webpack_require__(26);
 var ReactComponentTreeHook = __webpack_require__(7);
-var ReactDebugCurrentFiber = __webpack_require__(24);
 
-var warning = __webpack_require__(3);
-
-function getStackAddendum(debugID) {
-  if (debugID != null) {
-    // This can only happen on Stack
-    return ReactComponentTreeHook.getStackAddendumByID(debugID);
-  } else {
-    // This can only happen on Fiber
-    return ReactDebugCurrentFiber.getCurrentFiberStackAddendum();
-  }
-}
+var warning = __webpack_require__(2);
 
 if (process.env.NODE_ENV !== 'production') {
   var reactProps = {
@@ -14913,7 +15737,9 @@ if (process.env.NODE_ENV !== 'production') {
 
     autoFocus: true,
     defaultValue: true,
+    valueLink: true,
     defaultChecked: true,
+    checkedLink: true,
     innerHTML: true,
     suppressContentEditableWarning: true,
     onFocusIn: true,
@@ -14940,10 +15766,10 @@ if (process.env.NODE_ENV !== 'production') {
     var registrationName = EventPluginRegistry.possibleRegistrationNames.hasOwnProperty(lowerCasedName) ? EventPluginRegistry.possibleRegistrationNames[lowerCasedName] : null;
 
     if (standardName != null) {
-      process.env.NODE_ENV !== 'production' ? warning(false, 'Unknown DOM property %s. Did you mean %s?%s', name, standardName, getStackAddendum(debugID)) : void 0;
+      process.env.NODE_ENV !== 'production' ? warning(false, 'Unknown DOM property %s. Did you mean %s?%s', name, standardName, ReactComponentTreeHook.getStackAddendumByID(debugID)) : void 0;
       return true;
     } else if (registrationName != null) {
-      process.env.NODE_ENV !== 'production' ? warning(false, 'Unknown event handler property %s. Did you mean `%s`?%s', name, registrationName, getStackAddendum(debugID)) : void 0;
+      process.env.NODE_ENV !== 'production' ? warning(false, 'Unknown event handler property %s. Did you mean `%s`?%s', name, registrationName, ReactComponentTreeHook.getStackAddendumByID(debugID)) : void 0;
       return true;
     } else {
       // We were unable to guess which prop the user intended.
@@ -14955,10 +15781,10 @@ if (process.env.NODE_ENV !== 'production') {
   };
 }
 
-var warnUnknownProperties = function (type, props, debugID) {
+var warnUnknownProperties = function (debugID, element) {
   var unknownProps = [];
-  for (var key in props) {
-    var isValid = validateProperty(type, key, debugID);
+  for (var key in element.props) {
+    var isValid = validateProperty(element.type, key, debugID);
     if (!isValid) {
       unknownProps.push(key);
     }
@@ -14969,32 +15795,28 @@ var warnUnknownProperties = function (type, props, debugID) {
   }).join(', ');
 
   if (unknownProps.length === 1) {
-    process.env.NODE_ENV !== 'production' ? warning(false, 'Unknown prop %s on <%s> tag. Remove this prop from the element. ' + 'For details, see https://fb.me/react-unknown-prop%s', unknownPropString, type, getStackAddendum(debugID)) : void 0;
+    process.env.NODE_ENV !== 'production' ? warning(false, 'Unknown prop %s on <%s> tag. Remove this prop from the element. ' + 'For details, see https://fb.me/react-unknown-prop%s', unknownPropString, element.type, ReactComponentTreeHook.getStackAddendumByID(debugID)) : void 0;
   } else if (unknownProps.length > 1) {
-    process.env.NODE_ENV !== 'production' ? warning(false, 'Unknown props %s on <%s> tag. Remove these props from the element. ' + 'For details, see https://fb.me/react-unknown-prop%s', unknownPropString, type, getStackAddendum(debugID)) : void 0;
+    process.env.NODE_ENV !== 'production' ? warning(false, 'Unknown props %s on <%s> tag. Remove these props from the element. ' + 'For details, see https://fb.me/react-unknown-prop%s', unknownPropString, element.type, ReactComponentTreeHook.getStackAddendumByID(debugID)) : void 0;
   }
 };
 
-function validateProperties(type, props, debugID /* Stack only */) {
-  if (type.indexOf('-') >= 0 || props.is) {
+function handleElement(debugID, element) {
+  if (element == null || typeof element.type !== 'string') {
     return;
   }
-  warnUnknownProperties(type, props, debugID);
+  if (element.type.indexOf('-') >= 0 || element.props.is) {
+    return;
+  }
+  warnUnknownProperties(debugID, element);
 }
 
 var ReactDOMUnknownPropertyHook = {
-  // Fiber
-  validateProperties: validateProperties,
-  // Stack
   onBeforeMountComponent: function (debugID, element) {
-    if (process.env.NODE_ENV !== 'production' && element != null && typeof element.type === 'string') {
-      validateProperties(element.type, element.props, debugID);
-    }
+    handleElement(debugID, element);
   },
   onBeforeUpdateComponent: function (debugID, element) {
-    if (process.env.NODE_ENV !== 'production' && element != null && typeof element.type === 'string') {
-      validateProperties(element.type, element.props, debugID);
-    }
+    handleElement(debugID, element);
   }
 };
 
@@ -15002,7 +15824,7 @@ module.exports = ReactDOMUnknownPropertyHook;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 121 */
+/* 126 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15019,378 +15841,357 @@ module.exports = ReactDOMUnknownPropertyHook;
 
 
 
-var ReactInvalidSetStateWarningHook = __webpack_require__(127);
-var ReactHostOperationHistoryHook = __webpack_require__(126);
+var ReactInvalidSetStateWarningHook = __webpack_require__(134);
+var ReactHostOperationHistoryHook = __webpack_require__(132);
 var ReactComponentTreeHook = __webpack_require__(7);
 var ExecutionEnvironment = __webpack_require__(6);
 
-var performanceNow = __webpack_require__(177);
-var warning = __webpack_require__(3);
+var performanceNow = __webpack_require__(97);
+var warning = __webpack_require__(2);
 
-// Trust the developer to only use this with a __DEV__ check
-var ReactDebugTool = null;
+var hooks = [];
+var didHookThrowForEvent = {};
 
-if (process.env.NODE_ENV !== 'production') {
-  var hooks;
-  var didHookThrowForEvent;
-  var isProfiling;
-  var flushHistory;
-  var lifeCycleTimerStack;
-  var currentFlushNesting;
-  var currentFlushMeasurements;
-  var currentFlushStartTime;
-  var currentTimerDebugID;
-  var currentTimerStartTime;
-  var currentTimerNestedFlushDuration;
-  var currentTimerType;
-  var lifeCycleTimerHasWarned;
-  var lastMarkTimeStamp;
-  var canUsePerformanceMeasure;
-  var url;
+function callHook(event, fn, context, arg1, arg2, arg3, arg4, arg5) {
+  try {
+    fn.call(context, arg1, arg2, arg3, arg4, arg5);
+  } catch (e) {
+    process.env.NODE_ENV !== 'production' ? warning(didHookThrowForEvent[event], 'Exception thrown by hook while handling %s: %s', event, e + '\n' + e.stack) : void 0;
+    didHookThrowForEvent[event] = true;
+  }
+}
 
-  (function () {
-    hooks = [];
-    didHookThrowForEvent = {};
+function emitEvent(event, arg1, arg2, arg3, arg4, arg5) {
+  for (var i = 0; i < hooks.length; i++) {
+    var hook = hooks[i];
+    var fn = hook[event];
+    if (fn) {
+      callHook(event, fn, hook, arg1, arg2, arg3, arg4, arg5);
+    }
+  }
+}
 
+var isProfiling = false;
+var flushHistory = [];
+var lifeCycleTimerStack = [];
+var currentFlushNesting = 0;
+var currentFlushMeasurements = [];
+var currentFlushStartTime = 0;
+var currentTimerDebugID = null;
+var currentTimerStartTime = 0;
+var currentTimerNestedFlushDuration = 0;
+var currentTimerType = null;
 
-    var callHook = function (event, fn, context, arg1, arg2, arg3, arg4, arg5) {
-      try {
-        fn.call(context, arg1, arg2, arg3, arg4, arg5);
-      } catch (e) {
-        process.env.NODE_ENV !== 'production' ? warning(didHookThrowForEvent[event], 'Exception thrown by hook while handling %s: %s', event, e + '\n' + e.stack) : void 0;
-        didHookThrowForEvent[event] = true;
-      }
+var lifeCycleTimerHasWarned = false;
+
+function clearHistory() {
+  ReactComponentTreeHook.purgeUnmountedComponents();
+  ReactHostOperationHistoryHook.clearHistory();
+}
+
+function getTreeSnapshot(registeredIDs) {
+  return registeredIDs.reduce(function (tree, id) {
+    var ownerID = ReactComponentTreeHook.getOwnerID(id);
+    var parentID = ReactComponentTreeHook.getParentID(id);
+    tree[id] = {
+      displayName: ReactComponentTreeHook.getDisplayName(id),
+      text: ReactComponentTreeHook.getText(id),
+      updateCount: ReactComponentTreeHook.getUpdateCount(id),
+      childIDs: ReactComponentTreeHook.getChildIDs(id),
+      // Text nodes don't have owners but this is close enough.
+      ownerID: ownerID || parentID && ReactComponentTreeHook.getOwnerID(parentID) || 0,
+      parentID: parentID
     };
+    return tree;
+  }, {});
+}
 
-    var emitEvent = function (event, arg1, arg2, arg3, arg4, arg5) {
-      for (var i = 0; i < hooks.length; i++) {
-        var hook = hooks[i];
-        var fn = hook[event];
-        if (fn) {
-          callHook(event, fn, hook, arg1, arg2, arg3, arg4, arg5);
-        }
+function resetMeasurements() {
+  var previousStartTime = currentFlushStartTime;
+  var previousMeasurements = currentFlushMeasurements;
+  var previousOperations = ReactHostOperationHistoryHook.getHistory();
+
+  if (currentFlushNesting === 0) {
+    currentFlushStartTime = 0;
+    currentFlushMeasurements = [];
+    clearHistory();
+    return;
+  }
+
+  if (previousMeasurements.length || previousOperations.length) {
+    var registeredIDs = ReactComponentTreeHook.getRegisteredIDs();
+    flushHistory.push({
+      duration: performanceNow() - previousStartTime,
+      measurements: previousMeasurements || [],
+      operations: previousOperations || [],
+      treeSnapshot: getTreeSnapshot(registeredIDs)
+    });
+  }
+
+  clearHistory();
+  currentFlushStartTime = performanceNow();
+  currentFlushMeasurements = [];
+}
+
+function checkDebugID(debugID) {
+  var allowRoot = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+
+  if (allowRoot && debugID === 0) {
+    return;
+  }
+  if (!debugID) {
+    process.env.NODE_ENV !== 'production' ? warning(false, 'ReactDebugTool: debugID may not be empty.') : void 0;
+  }
+}
+
+function beginLifeCycleTimer(debugID, timerType) {
+  if (currentFlushNesting === 0) {
+    return;
+  }
+  if (currentTimerType && !lifeCycleTimerHasWarned) {
+    process.env.NODE_ENV !== 'production' ? warning(false, 'There is an internal error in the React performance measurement code. ' + 'Did not expect %s timer to start while %s timer is still in ' + 'progress for %s instance.', timerType, currentTimerType || 'no', debugID === currentTimerDebugID ? 'the same' : 'another') : void 0;
+    lifeCycleTimerHasWarned = true;
+  }
+  currentTimerStartTime = performanceNow();
+  currentTimerNestedFlushDuration = 0;
+  currentTimerDebugID = debugID;
+  currentTimerType = timerType;
+}
+
+function endLifeCycleTimer(debugID, timerType) {
+  if (currentFlushNesting === 0) {
+    return;
+  }
+  if (currentTimerType !== timerType && !lifeCycleTimerHasWarned) {
+    process.env.NODE_ENV !== 'production' ? warning(false, 'There is an internal error in the React performance measurement code. ' + 'We did not expect %s timer to stop while %s timer is still in ' + 'progress for %s instance. Please report this as a bug in React.', timerType, currentTimerType || 'no', debugID === currentTimerDebugID ? 'the same' : 'another') : void 0;
+    lifeCycleTimerHasWarned = true;
+  }
+  if (isProfiling) {
+    currentFlushMeasurements.push({
+      timerType: timerType,
+      instanceID: debugID,
+      duration: performanceNow() - currentTimerStartTime - currentTimerNestedFlushDuration
+    });
+  }
+  currentTimerStartTime = 0;
+  currentTimerNestedFlushDuration = 0;
+  currentTimerDebugID = null;
+  currentTimerType = null;
+}
+
+function pauseCurrentLifeCycleTimer() {
+  var currentTimer = {
+    startTime: currentTimerStartTime,
+    nestedFlushStartTime: performanceNow(),
+    debugID: currentTimerDebugID,
+    timerType: currentTimerType
+  };
+  lifeCycleTimerStack.push(currentTimer);
+  currentTimerStartTime = 0;
+  currentTimerNestedFlushDuration = 0;
+  currentTimerDebugID = null;
+  currentTimerType = null;
+}
+
+function resumeCurrentLifeCycleTimer() {
+  var _lifeCycleTimerStack$ = lifeCycleTimerStack.pop(),
+      startTime = _lifeCycleTimerStack$.startTime,
+      nestedFlushStartTime = _lifeCycleTimerStack$.nestedFlushStartTime,
+      debugID = _lifeCycleTimerStack$.debugID,
+      timerType = _lifeCycleTimerStack$.timerType;
+
+  var nestedFlushDuration = performanceNow() - nestedFlushStartTime;
+  currentTimerStartTime = startTime;
+  currentTimerNestedFlushDuration += nestedFlushDuration;
+  currentTimerDebugID = debugID;
+  currentTimerType = timerType;
+}
+
+var lastMarkTimeStamp = 0;
+var canUsePerformanceMeasure =
+// $FlowFixMe https://github.com/facebook/flow/issues/2345
+typeof performance !== 'undefined' && typeof performance.mark === 'function' && typeof performance.clearMarks === 'function' && typeof performance.measure === 'function' && typeof performance.clearMeasures === 'function';
+
+function shouldMark(debugID) {
+  if (!isProfiling || !canUsePerformanceMeasure) {
+    return false;
+  }
+  var element = ReactComponentTreeHook.getElement(debugID);
+  if (element == null || typeof element !== 'object') {
+    return false;
+  }
+  var isHostElement = typeof element.type === 'string';
+  if (isHostElement) {
+    return false;
+  }
+  return true;
+}
+
+function markBegin(debugID, markType) {
+  if (!shouldMark(debugID)) {
+    return;
+  }
+
+  var markName = debugID + '::' + markType;
+  lastMarkTimeStamp = performanceNow();
+  performance.mark(markName);
+}
+
+function markEnd(debugID, markType) {
+  if (!shouldMark(debugID)) {
+    return;
+  }
+
+  var markName = debugID + '::' + markType;
+  var displayName = ReactComponentTreeHook.getDisplayName(debugID) || 'Unknown';
+
+  // Chrome has an issue of dropping markers recorded too fast:
+  // https://bugs.chromium.org/p/chromium/issues/detail?id=640652
+  // To work around this, we will not report very small measurements.
+  // I determined the magic number by tweaking it back and forth.
+  // 0.05ms was enough to prevent the issue, but I set it to 0.1ms to be safe.
+  // When the bug is fixed, we can `measure()` unconditionally if we want to.
+  var timeStamp = performanceNow();
+  if (timeStamp - lastMarkTimeStamp > 0.1) {
+    var measurementName = displayName + ' [' + markType + ']';
+    performance.measure(measurementName, markName);
+  }
+
+  performance.clearMarks(markName);
+  performance.clearMeasures(measurementName);
+}
+
+var ReactDebugTool = {
+  addHook: function (hook) {
+    hooks.push(hook);
+  },
+  removeHook: function (hook) {
+    for (var i = 0; i < hooks.length; i++) {
+      if (hooks[i] === hook) {
+        hooks.splice(i, 1);
+        i--;
       }
-    };
+    }
+  },
+  isProfiling: function () {
+    return isProfiling;
+  },
+  beginProfiling: function () {
+    if (isProfiling) {
+      return;
+    }
+
+    isProfiling = true;
+    flushHistory.length = 0;
+    resetMeasurements();
+    ReactDebugTool.addHook(ReactHostOperationHistoryHook);
+  },
+  endProfiling: function () {
+    if (!isProfiling) {
+      return;
+    }
 
     isProfiling = false;
-    flushHistory = [];
-    lifeCycleTimerStack = [];
-    currentFlushNesting = 0;
-    currentFlushMeasurements = [];
-    currentFlushStartTime = 0;
-    currentTimerDebugID = null;
-    currentTimerStartTime = 0;
-    currentTimerNestedFlushDuration = 0;
-    currentTimerType = null;
-    lifeCycleTimerHasWarned = false;
+    resetMeasurements();
+    ReactDebugTool.removeHook(ReactHostOperationHistoryHook);
+  },
+  getFlushHistory: function () {
+    return flushHistory;
+  },
+  onBeginFlush: function () {
+    currentFlushNesting++;
+    resetMeasurements();
+    pauseCurrentLifeCycleTimer();
+    emitEvent('onBeginFlush');
+  },
+  onEndFlush: function () {
+    resetMeasurements();
+    currentFlushNesting--;
+    resumeCurrentLifeCycleTimer();
+    emitEvent('onEndFlush');
+  },
+  onBeginLifeCycleTimer: function (debugID, timerType) {
+    checkDebugID(debugID);
+    emitEvent('onBeginLifeCycleTimer', debugID, timerType);
+    markBegin(debugID, timerType);
+    beginLifeCycleTimer(debugID, timerType);
+  },
+  onEndLifeCycleTimer: function (debugID, timerType) {
+    checkDebugID(debugID);
+    endLifeCycleTimer(debugID, timerType);
+    markEnd(debugID, timerType);
+    emitEvent('onEndLifeCycleTimer', debugID, timerType);
+  },
+  onBeginProcessingChildContext: function () {
+    emitEvent('onBeginProcessingChildContext');
+  },
+  onEndProcessingChildContext: function () {
+    emitEvent('onEndProcessingChildContext');
+  },
+  onHostOperation: function (operation) {
+    checkDebugID(operation.instanceID);
+    emitEvent('onHostOperation', operation);
+  },
+  onSetState: function () {
+    emitEvent('onSetState');
+  },
+  onSetChildren: function (debugID, childDebugIDs) {
+    checkDebugID(debugID);
+    childDebugIDs.forEach(checkDebugID);
+    emitEvent('onSetChildren', debugID, childDebugIDs);
+  },
+  onBeforeMountComponent: function (debugID, element, parentDebugID) {
+    checkDebugID(debugID);
+    checkDebugID(parentDebugID, true);
+    emitEvent('onBeforeMountComponent', debugID, element, parentDebugID);
+    markBegin(debugID, 'mount');
+  },
+  onMountComponent: function (debugID) {
+    checkDebugID(debugID);
+    markEnd(debugID, 'mount');
+    emitEvent('onMountComponent', debugID);
+  },
+  onBeforeUpdateComponent: function (debugID, element) {
+    checkDebugID(debugID);
+    emitEvent('onBeforeUpdateComponent', debugID, element);
+    markBegin(debugID, 'update');
+  },
+  onUpdateComponent: function (debugID) {
+    checkDebugID(debugID);
+    markEnd(debugID, 'update');
+    emitEvent('onUpdateComponent', debugID);
+  },
+  onBeforeUnmountComponent: function (debugID) {
+    checkDebugID(debugID);
+    emitEvent('onBeforeUnmountComponent', debugID);
+    markBegin(debugID, 'unmount');
+  },
+  onUnmountComponent: function (debugID) {
+    checkDebugID(debugID);
+    markEnd(debugID, 'unmount');
+    emitEvent('onUnmountComponent', debugID);
+  },
+  onTestEvent: function () {
+    emitEvent('onTestEvent');
+  }
+};
 
+// TODO remove these when RN/www gets updated
+ReactDebugTool.addDevtool = ReactDebugTool.addHook;
+ReactDebugTool.removeDevtool = ReactDebugTool.removeHook;
 
-    var clearHistory = function () {
-      ReactComponentTreeHook.purgeUnmountedComponents();
-      ReactHostOperationHistoryHook.clearHistory();
-    };
-
-    var getTreeSnapshot = function (registeredIDs) {
-      return registeredIDs.reduce(function (tree, id) {
-        var ownerID = ReactComponentTreeHook.getOwnerID(id);
-        var parentID = ReactComponentTreeHook.getParentID(id);
-        tree[id] = {
-          displayName: ReactComponentTreeHook.getDisplayName(id),
-          text: ReactComponentTreeHook.getText(id),
-          updateCount: ReactComponentTreeHook.getUpdateCount(id),
-          childIDs: ReactComponentTreeHook.getChildIDs(id),
-          // Text nodes don't have owners but this is close enough.
-          ownerID: ownerID || parentID && ReactComponentTreeHook.getOwnerID(parentID) || 0,
-          parentID: parentID
-        };
-        return tree;
-      }, {});
-    };
-
-    var resetMeasurements = function () {
-      var previousStartTime = currentFlushStartTime;
-      var previousMeasurements = currentFlushMeasurements;
-      var previousOperations = ReactHostOperationHistoryHook.getHistory();
-
-      if (currentFlushNesting === 0) {
-        currentFlushStartTime = 0;
-        currentFlushMeasurements = [];
-        clearHistory();
-        return;
-      }
-
-      if (previousMeasurements.length || previousOperations.length) {
-        var registeredIDs = ReactComponentTreeHook.getRegisteredIDs();
-        flushHistory.push({
-          duration: performanceNow() - previousStartTime,
-          measurements: previousMeasurements || [],
-          operations: previousOperations || [],
-          treeSnapshot: getTreeSnapshot(registeredIDs)
-        });
-      }
-
-      clearHistory();
-      currentFlushStartTime = performanceNow();
-      currentFlushMeasurements = [];
-    };
-
-    var checkDebugID = function (debugID) {
-      var allowRoot = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-
-      if (allowRoot && debugID === 0) {
-        return;
-      }
-      if (!debugID) {
-        process.env.NODE_ENV !== 'production' ? warning(false, 'ReactDebugTool: debugID may not be empty.') : void 0;
-      }
-    };
-
-    var beginLifeCycleTimer = function (debugID, timerType) {
-      if (currentFlushNesting === 0) {
-        return;
-      }
-      if (currentTimerType && !lifeCycleTimerHasWarned) {
-        process.env.NODE_ENV !== 'production' ? warning(false, 'There is an internal error in the React performance measurement code.' + '\n\nDid not expect %s timer to start while %s timer is still in ' + 'progress for %s instance.', timerType, currentTimerType || 'no', debugID === currentTimerDebugID ? 'the same' : 'another') : void 0;
-        lifeCycleTimerHasWarned = true;
-      }
-      currentTimerStartTime = performanceNow();
-      currentTimerNestedFlushDuration = 0;
-      currentTimerDebugID = debugID;
-      currentTimerType = timerType;
-    };
-
-    var endLifeCycleTimer = function (debugID, timerType) {
-      if (currentFlushNesting === 0) {
-        return;
-      }
-      if (currentTimerType !== timerType && !lifeCycleTimerHasWarned) {
-        process.env.NODE_ENV !== 'production' ? warning(false, 'There is an internal error in the React performance measurement code. ' + 'We did not expect %s timer to stop while %s timer is still in ' + 'progress for %s instance. Please report this as a bug in React.', timerType, currentTimerType || 'no', debugID === currentTimerDebugID ? 'the same' : 'another') : void 0;
-        lifeCycleTimerHasWarned = true;
-      }
-      if (isProfiling) {
-        currentFlushMeasurements.push({
-          timerType: timerType,
-          instanceID: debugID,
-          duration: performanceNow() - currentTimerStartTime - currentTimerNestedFlushDuration
-        });
-      }
-      currentTimerStartTime = 0;
-      currentTimerNestedFlushDuration = 0;
-      currentTimerDebugID = null;
-      currentTimerType = null;
-    };
-
-    var pauseCurrentLifeCycleTimer = function () {
-      var currentTimer = {
-        startTime: currentTimerStartTime,
-        nestedFlushStartTime: performanceNow(),
-        debugID: currentTimerDebugID,
-        timerType: currentTimerType
-      };
-      lifeCycleTimerStack.push(currentTimer);
-      currentTimerStartTime = 0;
-      currentTimerNestedFlushDuration = 0;
-      currentTimerDebugID = null;
-      currentTimerType = null;
-    };
-
-    var resumeCurrentLifeCycleTimer = function () {
-      var _lifeCycleTimerStack$ = lifeCycleTimerStack.pop(),
-          startTime = _lifeCycleTimerStack$.startTime,
-          nestedFlushStartTime = _lifeCycleTimerStack$.nestedFlushStartTime,
-          debugID = _lifeCycleTimerStack$.debugID,
-          timerType = _lifeCycleTimerStack$.timerType;
-
-      var nestedFlushDuration = performanceNow() - nestedFlushStartTime;
-      currentTimerStartTime = startTime;
-      currentTimerNestedFlushDuration += nestedFlushDuration;
-      currentTimerDebugID = debugID;
-      currentTimerType = timerType;
-    };
-
-    lastMarkTimeStamp = 0;
-    canUsePerformanceMeasure = typeof performance !== 'undefined' && typeof performance.mark === 'function' && typeof performance.clearMarks === 'function' && typeof performance.measure === 'function' && typeof performance.clearMeasures === 'function';
-
-
-    var shouldMark = function (debugID) {
-      if (!isProfiling || !canUsePerformanceMeasure) {
-        return false;
-      }
-      var element = ReactComponentTreeHook.getElement(debugID);
-      if (element == null || typeof element !== 'object') {
-        return false;
-      }
-      var isHostElement = typeof element.type === 'string';
-      if (isHostElement) {
-        return false;
-      }
-      return true;
-    };
-
-    var markBegin = function (debugID, markType) {
-      if (!shouldMark(debugID)) {
-        return;
-      }
-
-      var markName = debugID + '::' + markType;
-      lastMarkTimeStamp = performanceNow();
-      performance.mark(markName);
-    };
-
-    var markEnd = function (debugID, markType) {
-      if (!shouldMark(debugID)) {
-        return;
-      }
-
-      var markName = debugID + '::' + markType;
-      var displayName = ReactComponentTreeHook.getDisplayName(debugID) || 'Unknown';
-
-      // Chrome has an issue of dropping markers recorded too fast:
-      // https://bugs.chromium.org/p/chromium/issues/detail?id=640652
-      // To work around this, we will not report very small measurements.
-      // I determined the magic number by tweaking it back and forth.
-      // 0.05ms was enough to prevent the issue, but I set it to 0.1ms to be safe.
-      // When the bug is fixed, we can `measure()` unconditionally if we want to.
-      var timeStamp = performanceNow();
-      if (timeStamp - lastMarkTimeStamp > 0.1) {
-        var measurementName = displayName + ' [' + markType + ']';
-        performance.measure(measurementName, markName);
-      }
-
-      performance.clearMarks(markName);
-      performance.clearMeasures(measurementName);
-    };
-
-    ReactDebugTool = {
-      addHook: function (hook) {
-        hooks.push(hook);
-      },
-      removeHook: function (hook) {
-        for (var i = 0; i < hooks.length; i++) {
-          if (hooks[i] === hook) {
-            hooks.splice(i, 1);
-            i--;
-          }
-        }
-      },
-      isProfiling: function () {
-        return isProfiling;
-      },
-      beginProfiling: function () {
-        if (isProfiling) {
-          return;
-        }
-
-        isProfiling = true;
-        flushHistory.length = 0;
-        resetMeasurements();
-        ReactDebugTool.addHook(ReactHostOperationHistoryHook);
-      },
-      endProfiling: function () {
-        if (!isProfiling) {
-          return;
-        }
-
-        isProfiling = false;
-        resetMeasurements();
-        ReactDebugTool.removeHook(ReactHostOperationHistoryHook);
-      },
-      getFlushHistory: function () {
-        return flushHistory;
-      },
-      onBeginFlush: function () {
-        currentFlushNesting++;
-        resetMeasurements();
-        pauseCurrentLifeCycleTimer();
-        emitEvent('onBeginFlush');
-      },
-      onEndFlush: function () {
-        resetMeasurements();
-        currentFlushNesting--;
-        resumeCurrentLifeCycleTimer();
-        emitEvent('onEndFlush');
-      },
-      onBeginLifeCycleTimer: function (debugID, timerType) {
-        checkDebugID(debugID);
-        emitEvent('onBeginLifeCycleTimer', debugID, timerType);
-        markBegin(debugID, timerType);
-        beginLifeCycleTimer(debugID, timerType);
-      },
-      onEndLifeCycleTimer: function (debugID, timerType) {
-        checkDebugID(debugID);
-        endLifeCycleTimer(debugID, timerType);
-        markEnd(debugID, timerType);
-        emitEvent('onEndLifeCycleTimer', debugID, timerType);
-      },
-      onBeginProcessingChildContext: function () {
-        emitEvent('onBeginProcessingChildContext');
-      },
-      onEndProcessingChildContext: function () {
-        emitEvent('onEndProcessingChildContext');
-      },
-      onHostOperation: function (operation) {
-        checkDebugID(operation.instanceID);
-        emitEvent('onHostOperation', operation);
-      },
-      onSetState: function () {
-        emitEvent('onSetState');
-      },
-      onSetChildren: function (debugID, childDebugIDs) {
-        checkDebugID(debugID);
-        childDebugIDs.forEach(checkDebugID);
-        emitEvent('onSetChildren', debugID, childDebugIDs);
-      },
-      onBeforeMountComponent: function (debugID, element, parentDebugID) {
-        checkDebugID(debugID);
-        checkDebugID(parentDebugID, true);
-        emitEvent('onBeforeMountComponent', debugID, element, parentDebugID);
-        markBegin(debugID, 'mount');
-      },
-      onMountComponent: function (debugID) {
-        checkDebugID(debugID);
-        markEnd(debugID, 'mount');
-        emitEvent('onMountComponent', debugID);
-      },
-      onBeforeUpdateComponent: function (debugID, element) {
-        checkDebugID(debugID);
-        emitEvent('onBeforeUpdateComponent', debugID, element);
-        markBegin(debugID, 'update');
-      },
-      onUpdateComponent: function (debugID) {
-        checkDebugID(debugID);
-        markEnd(debugID, 'update');
-        emitEvent('onUpdateComponent', debugID);
-      },
-      onBeforeUnmountComponent: function (debugID) {
-        checkDebugID(debugID);
-        emitEvent('onBeforeUnmountComponent', debugID);
-        markBegin(debugID, 'unmount');
-      },
-      onUnmountComponent: function (debugID) {
-        checkDebugID(debugID);
-        markEnd(debugID, 'unmount');
-        emitEvent('onUnmountComponent', debugID);
-      },
-      onTestEvent: function () {
-        emitEvent('onTestEvent');
-      }
-    };
-
-    ReactDebugTool.addHook(ReactInvalidSetStateWarningHook);
-    ReactDebugTool.addHook(ReactComponentTreeHook);
-    url = ExecutionEnvironment.canUseDOM && window.location.href || '';
-
-    if (/[?&]react_perf\b/.test(url)) {
-      ReactDebugTool.beginProfiling();
-    }
-  })();
+ReactDebugTool.addHook(ReactInvalidSetStateWarningHook);
+ReactDebugTool.addHook(ReactComponentTreeHook);
+var url = ExecutionEnvironment.canUseDOM && window.location.href || '';
+if (/[?&]react_perf\b/.test(url)) {
+  ReactDebugTool.beginProfiling();
 }
 
 module.exports = ReactDebugTool;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 122 */
+/* 127 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15406,12 +16207,12 @@ module.exports = ReactDebugTool;
 
 
 
-var _assign = __webpack_require__(5);
+var _assign = __webpack_require__(4);
 
-var ReactUpdates = __webpack_require__(31);
-var Transaction = __webpack_require__(33);
+var ReactUpdates = __webpack_require__(10);
+var Transaction = __webpack_require__(29);
 
-var emptyFunction = __webpack_require__(13);
+var emptyFunction = __webpack_require__(9);
 
 var RESET_BATCHED_UPDATES = {
   initialize: emptyFunction,
@@ -15463,7 +16264,98 @@ var ReactDefaultBatchingStrategy = {
 module.exports = ReactDefaultBatchingStrategy;
 
 /***/ }),
-/* 123 */
+/* 128 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * Copyright 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+
+
+var ARIADOMPropertyConfig = __webpack_require__(98);
+var BeforeInputEventPlugin = __webpack_require__(100);
+var ChangeEventPlugin = __webpack_require__(102);
+var DefaultEventPluginOrder = __webpack_require__(104);
+var EnterLeaveEventPlugin = __webpack_require__(105);
+var HTMLDOMPropertyConfig = __webpack_require__(107);
+var ReactComponentBrowserEnvironment = __webpack_require__(109);
+var ReactDOMComponent = __webpack_require__(112);
+var ReactDOMComponentTree = __webpack_require__(5);
+var ReactDOMEmptyComponent = __webpack_require__(114);
+var ReactDOMTreeTraversal = __webpack_require__(124);
+var ReactDOMTextComponent = __webpack_require__(122);
+var ReactDefaultBatchingStrategy = __webpack_require__(127);
+var ReactEventListener = __webpack_require__(131);
+var ReactInjection = __webpack_require__(133);
+var ReactReconcileTransaction = __webpack_require__(139);
+var SVGDOMPropertyConfig = __webpack_require__(144);
+var SelectEventPlugin = __webpack_require__(145);
+var SimpleEventPlugin = __webpack_require__(146);
+
+var alreadyInjected = false;
+
+function inject() {
+  if (alreadyInjected) {
+    // TODO: This is currently true because these injections are shared between
+    // the client and the server package. They should be built independently
+    // and not share any injection state. Then this problem will be solved.
+    return;
+  }
+  alreadyInjected = true;
+
+  ReactInjection.EventEmitter.injectReactEventListener(ReactEventListener);
+
+  /**
+   * Inject modules for resolving DOM hierarchy and plugin ordering.
+   */
+  ReactInjection.EventPluginHub.injectEventPluginOrder(DefaultEventPluginOrder);
+  ReactInjection.EventPluginUtils.injectComponentTree(ReactDOMComponentTree);
+  ReactInjection.EventPluginUtils.injectTreeTraversal(ReactDOMTreeTraversal);
+
+  /**
+   * Some important event plugins included by default (without having to require
+   * them).
+   */
+  ReactInjection.EventPluginHub.injectEventPluginsByName({
+    SimpleEventPlugin: SimpleEventPlugin,
+    EnterLeaveEventPlugin: EnterLeaveEventPlugin,
+    ChangeEventPlugin: ChangeEventPlugin,
+    SelectEventPlugin: SelectEventPlugin,
+    BeforeInputEventPlugin: BeforeInputEventPlugin
+  });
+
+  ReactInjection.HostComponent.injectGenericComponentClass(ReactDOMComponent);
+
+  ReactInjection.HostComponent.injectTextComponentClass(ReactDOMTextComponent);
+
+  ReactInjection.DOMProperty.injectDOMPropertyConfig(ARIADOMPropertyConfig);
+  ReactInjection.DOMProperty.injectDOMPropertyConfig(HTMLDOMPropertyConfig);
+  ReactInjection.DOMProperty.injectDOMPropertyConfig(SVGDOMPropertyConfig);
+
+  ReactInjection.EmptyComponent.injectEmptyComponentFactory(function (instantiate) {
+    return new ReactDOMEmptyComponent(instantiate);
+  });
+
+  ReactInjection.Updates.injectReconcileTransaction(ReactReconcileTransaction);
+  ReactInjection.Updates.injectBatchingStrategy(ReactDefaultBatchingStrategy);
+
+  ReactInjection.Component.injectEnvironment(ReactComponentBrowserEnvironment);
+}
+
+module.exports = {
+  inject: inject
+};
+
+/***/ }),
+/* 129 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15488,7 +16380,7 @@ var REACT_ELEMENT_TYPE = typeof Symbol === 'function' && Symbol['for'] && Symbol
 module.exports = REACT_ELEMENT_TYPE;
 
 /***/ }),
-/* 124 */
+/* 130 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15504,7 +16396,7 @@ module.exports = REACT_ELEMENT_TYPE;
 
 
 
-var EventPluginHub = __webpack_require__(26);
+var EventPluginHub = __webpack_require__(22);
 
 function runEventQueueInBatch(events) {
   EventPluginHub.enqueueEvents(events);
@@ -15526,7 +16418,7 @@ var ReactEventEmitterMixin = {
 module.exports = ReactEventEmitterMixin;
 
 /***/ }),
-/* 125 */
+/* 131 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15542,67 +16434,52 @@ module.exports = ReactEventEmitterMixin;
 
 
 
-var _assign = __webpack_require__(5);
+var _assign = __webpack_require__(4);
 
-var EventListener = __webpack_require__(163);
+var EventListener = __webpack_require__(53);
 var ExecutionEnvironment = __webpack_require__(6);
-var PooledClass = __webpack_require__(16);
-var ReactDOMComponentTree = __webpack_require__(4);
-var ReactGenericBatching = __webpack_require__(29);
-var ReactTypeOfWork = __webpack_require__(30);
+var PooledClass = __webpack_require__(14);
+var ReactDOMComponentTree = __webpack_require__(5);
+var ReactUpdates = __webpack_require__(10);
 
-var getEventTarget = __webpack_require__(49);
-var getUnboundedScrollPosition = __webpack_require__(170);
-
-var HostRoot = ReactTypeOfWork.HostRoot;
+var getEventTarget = __webpack_require__(44);
+var getUnboundedScrollPosition = __webpack_require__(90);
 
 /**
  * Find the deepest React component completely containing the root of the
  * passed-in instance (for use when entire React trees are nested within each
  * other). If React trees are not nested, returns null.
  */
-
-function findRootContainerNode(inst) {
+function findParent(inst) {
   // TODO: It may be a good idea to cache this to prevent unnecessary DOM
   // traversal, but caching is difficult to do correctly without using a
   // mutation observer to listen for all DOM changes.
-  if (typeof inst.tag === 'number') {
-    while (inst['return']) {
-      inst = inst['return'];
-    }
-    if (inst.tag !== HostRoot) {
-      // This can happen if we're in a detached tree.
-      return null;
-    }
-    return inst.stateNode.containerInfo;
-  } else {
-    while (inst._hostParent) {
-      inst = inst._hostParent;
-    }
-    var rootNode = ReactDOMComponentTree.getNodeFromInstance(inst);
-    return rootNode.parentNode;
+  while (inst._hostParent) {
+    inst = inst._hostParent;
   }
+  var rootNode = ReactDOMComponentTree.getNodeFromInstance(inst);
+  var container = rootNode.parentNode;
+  return ReactDOMComponentTree.getClosestInstanceFromNode(container);
 }
 
 // Used to store ancestor hierarchy in top level callback
-function TopLevelCallbackBookKeeping(topLevelType, nativeEvent, targetInst) {
+function TopLevelCallbackBookKeeping(topLevelType, nativeEvent) {
   this.topLevelType = topLevelType;
   this.nativeEvent = nativeEvent;
-  this.targetInst = targetInst;
   this.ancestors = [];
 }
 _assign(TopLevelCallbackBookKeeping.prototype, {
   destructor: function () {
     this.topLevelType = null;
     this.nativeEvent = null;
-    this.targetInst = null;
     this.ancestors.length = 0;
   }
 });
-PooledClass.addPoolingTo(TopLevelCallbackBookKeeping, PooledClass.threeArgumentPooler);
+PooledClass.addPoolingTo(TopLevelCallbackBookKeeping, PooledClass.twoArgumentPooler);
 
 function handleTopLevelImpl(bookKeeping) {
-  var targetInst = bookKeeping.targetInst;
+  var nativeEventTarget = getEventTarget(bookKeeping.nativeEvent);
+  var targetInst = ReactDOMComponentTree.getClosestInstanceFromNode(nativeEventTarget);
 
   // Loop through the hierarchy, in case there's any nested components.
   // It's important that we build the array of ancestors before calling any
@@ -15610,16 +16487,8 @@ function handleTopLevelImpl(bookKeeping) {
   // inconsistencies with ReactMount's node cache. See #1105.
   var ancestor = targetInst;
   do {
-    if (!ancestor) {
-      bookKeeping.ancestors.push(ancestor);
-      break;
-    }
-    var root = findRootContainerNode(ancestor);
-    if (!root) {
-      break;
-    }
     bookKeeping.ancestors.push(ancestor);
-    ancestor = ReactDOMComponentTree.getClosestInstanceFromNode(root);
+    ancestor = ancestor && findParent(ancestor);
   } while (ancestor);
 
   for (var i = 0; i < bookKeeping.ancestors.length; i++) {
@@ -15695,15 +16564,11 @@ var ReactEventListener = {
       return;
     }
 
-    var nativeEventTarget = getEventTarget(nativeEvent);
-    var targetInst = ReactDOMComponentTree.getClosestInstanceFromNode(nativeEventTarget);
-
-    var bookKeeping = TopLevelCallbackBookKeeping.getPooled(topLevelType, nativeEvent, targetInst);
-
+    var bookKeeping = TopLevelCallbackBookKeeping.getPooled(topLevelType, nativeEvent);
     try {
       // Event queue being processed in the same cycle allows
       // `preventDefault`.
-      ReactGenericBatching.batchedUpdates(handleTopLevelImpl, bookKeeping);
+      ReactUpdates.batchedUpdates(handleTopLevelImpl, bookKeeping);
     } finally {
       TopLevelCallbackBookKeeping.release(bookKeeping);
     }
@@ -15713,11 +16578,11 @@ var ReactEventListener = {
 module.exports = ReactEventListener;
 
 /***/ }),
-/* 126 */
+/* 132 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
+/**
  * Copyright 2016-present, Facebook, Inc.
  * All rights reserved.
  *
@@ -15730,80 +16595,29 @@ module.exports = ReactEventListener;
 
 
 
-// Trust the developer to only use this with a __DEV__ check
-var ReactHostOperationHistoryHook = null;
+var history = [];
 
-if (process.env.NODE_ENV !== 'production') {
-  var history = [];
-
-  ReactHostOperationHistoryHook = {
-    onHostOperation: function (operation) {
-      history.push(operation);
-    },
-    clearHistory: function () {
-      if (ReactHostOperationHistoryHook._preventClearing) {
-        // Should only be used for tests.
-        return;
-      }
-
-      history = [];
-    },
-    getHistory: function () {
-      return history;
+var ReactHostOperationHistoryHook = {
+  onHostOperation: function (operation) {
+    history.push(operation);
+  },
+  clearHistory: function () {
+    if (ReactHostOperationHistoryHook._preventClearing) {
+      // Should only be used for tests.
+      return;
     }
-  };
-}
+
+    history = [];
+  },
+  getHistory: function () {
+    return history;
+  }
+};
 
 module.exports = ReactHostOperationHistoryHook;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 127 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
- * Copyright 2016-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-
-
-var warning = __webpack_require__(3);
-
-var ReactInvalidSetStateWarningHook = {};
-
-if (process.env.NODE_ENV !== 'production') {
-  var processingChildContext = false;
-
-  var warnInvalidSetState = function () {
-    process.env.NODE_ENV !== 'production' ? warning(!processingChildContext, 'setState(...): Cannot call setState() inside getChildContext()') : void 0;
-  };
-
-  ReactInvalidSetStateWarningHook = {
-    onBeginProcessingChildContext: function () {
-      processingChildContext = true;
-    },
-    onEndProcessingChildContext: function () {
-      processingChildContext = false;
-    },
-    onSetState: function () {
-      warnInvalidSetState();
-    }
-  };
-}
-
-module.exports = ReactInvalidSetStateWarningHook;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 128 */
+/* 133 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15819,7 +16633,89 @@ module.exports = ReactInvalidSetStateWarningHook;
 
 
 
-var adler32 = __webpack_require__(152);
+var DOMProperty = __webpack_require__(13);
+var EventPluginHub = __webpack_require__(22);
+var EventPluginUtils = __webpack_require__(35);
+var ReactComponentEnvironment = __webpack_require__(38);
+var ReactEmptyComponent = __webpack_require__(61);
+var ReactBrowserEventEmitter = __webpack_require__(27);
+var ReactHostComponent = __webpack_require__(63);
+var ReactUpdates = __webpack_require__(10);
+
+var ReactInjection = {
+  Component: ReactComponentEnvironment.injection,
+  DOMProperty: DOMProperty.injection,
+  EmptyComponent: ReactEmptyComponent.injection,
+  EventPluginHub: EventPluginHub.injection,
+  EventPluginUtils: EventPluginUtils.injection,
+  EventEmitter: ReactBrowserEventEmitter.injection,
+  HostComponent: ReactHostComponent.injection,
+  Updates: ReactUpdates.injection
+};
+
+module.exports = ReactInjection;
+
+/***/ }),
+/* 134 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(process) {/**
+ * Copyright 2016-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * 
+ */
+
+
+
+var warning = __webpack_require__(2);
+
+if (process.env.NODE_ENV !== 'production') {
+  var processingChildContext = false;
+
+  var warnInvalidSetState = function () {
+    process.env.NODE_ENV !== 'production' ? warning(!processingChildContext, 'setState(...): Cannot call setState() inside getChildContext()') : void 0;
+  };
+}
+
+var ReactInvalidSetStateWarningHook = {
+  onBeginProcessingChildContext: function () {
+    processingChildContext = true;
+  },
+  onEndProcessingChildContext: function () {
+    processingChildContext = false;
+  },
+  onSetState: function () {
+    warnInvalidSetState();
+  }
+};
+
+module.exports = ReactInvalidSetStateWarningHook;
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 135 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * Copyright 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+
+
+var adler32 = __webpack_require__(157);
 
 var TAG_END = /\/?>/;
 var COMMENT_START = /^<\!\-\-/;
@@ -15858,7 +16754,7 @@ var ReactMarkupChecksum = {
 module.exports = ReactMarkupChecksum;
 
 /***/ }),
-/* 129 */
+/* 136 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15874,561 +16770,18 @@ module.exports = ReactMarkupChecksum;
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
-var DOMLazyTree = __webpack_require__(18);
-var DOMProperty = __webpack_require__(12);
-var React = __webpack_require__(21);
-var ReactBrowserEventEmitter = __webpack_require__(23);
-var ReactCurrentOwner = __webpack_require__(9);
-var ReactDOMComponentTree = __webpack_require__(4);
-var ReactDOMContainerInfo = __webpack_require__(107);
-var ReactDOMFeatureFlags = __webpack_require__(109);
-var ReactFeatureFlags = __webpack_require__(28);
-var ReactInstanceMap = __webpack_require__(19);
-var ReactInstrumentation = __webpack_require__(8);
-var ReactMarkupChecksum = __webpack_require__(128);
-var ReactReconciler = __webpack_require__(20);
-var ReactUpdateQueue = __webpack_require__(45);
-var ReactUpdates = __webpack_require__(31);
-
-var getContextForSubtree = __webpack_require__(156);
-var instantiateReactComponent = __webpack_require__(78);
-var invariant = __webpack_require__(1);
-var setInnerHTML = __webpack_require__(36);
-var shouldUpdateReactComponent = __webpack_require__(51);
-var warning = __webpack_require__(3);
-var validateCallback = __webpack_require__(82);
-
-var ATTR_NAME = DOMProperty.ID_ATTRIBUTE_NAME;
-var ROOT_ATTR_NAME = DOMProperty.ROOT_ATTRIBUTE_NAME;
-
-var ELEMENT_NODE_TYPE = 1;
-var DOC_NODE_TYPE = 9;
-var DOCUMENT_FRAGMENT_NODE_TYPE = 11;
-
-var instancesByReactRootID = {};
-
-/**
- * Finds the index of the first character
- * that's not common between the two given strings.
- *
- * @return {number} the index of the character where the strings diverge
- */
-function firstDifferenceIndex(string1, string2) {
-  var minLen = Math.min(string1.length, string2.length);
-  for (var i = 0; i < minLen; i++) {
-    if (string1.charAt(i) !== string2.charAt(i)) {
-      return i;
-    }
-  }
-  return string1.length === string2.length ? -1 : minLen;
-}
-
-/**
- * @param {DOMElement|DOMDocument} container DOM element that may contain
- * a React component
- * @return {?*} DOM element that may have the reactRoot ID, or null.
- */
-function getReactRootElementInContainer(container) {
-  if (!container) {
-    return null;
-  }
-
-  if (container.nodeType === DOC_NODE_TYPE) {
-    return container.documentElement;
-  } else {
-    return container.firstChild;
-  }
-}
-
-function internalGetID(node) {
-  // If node is something like a window, document, or text node, none of
-  // which support attributes or a .getAttribute method, gracefully return
-  // the empty string, as if the attribute were missing.
-  return node.getAttribute && node.getAttribute(ATTR_NAME) || '';
-}
-
-/**
- * Mounts this component and inserts it into the DOM.
- *
- * @param {ReactComponent} componentInstance The instance to mount.
- * @param {DOMElement} container DOM element to mount into.
- * @param {ReactReconcileTransaction} transaction
- * @param {boolean} shouldReuseMarkup If true, do not insert markup
- */
-function mountComponentIntoNode(wrapperInstance, container, transaction, shouldReuseMarkup, context) {
-  var markerName;
-  if (ReactFeatureFlags.logTopLevelRenders) {
-    var wrappedElement = wrapperInstance._currentElement.props.child;
-    var type = wrappedElement.type;
-    markerName = 'React mount: ' + (typeof type === 'string' ? type : type.displayName || type.name);
-    console.time(markerName);
-  }
-
-  var markup = ReactReconciler.mountComponent(wrapperInstance, transaction, null, ReactDOMContainerInfo(wrapperInstance, container), context, 0 /* parentDebugID */
-  );
-
-  if (markerName) {
-    console.timeEnd(markerName);
-  }
-
-  wrapperInstance._renderedComponent._topLevelWrapper = wrapperInstance;
-  ReactMount._mountImageIntoNode(markup, container, wrapperInstance, shouldReuseMarkup, transaction);
-}
-
-/**
- * Batched mount.
- *
- * @param {ReactComponent} componentInstance The instance to mount.
- * @param {DOMElement} container DOM element to mount into.
- * @param {boolean} shouldReuseMarkup If true, do not insert markup
- */
-function batchedMountComponentIntoNode(componentInstance, container, shouldReuseMarkup, context) {
-  var transaction = ReactUpdates.ReactReconcileTransaction.getPooled(
-  /* useCreateElement */
-  !shouldReuseMarkup && ReactDOMFeatureFlags.useCreateElement);
-  transaction.perform(mountComponentIntoNode, null, componentInstance, container, transaction, shouldReuseMarkup, context);
-  ReactUpdates.ReactReconcileTransaction.release(transaction);
-}
-
-/**
- * Unmounts a component and removes it from the DOM.
- *
- * @param {ReactComponent} instance React component instance.
- * @param {DOMElement} container DOM element to unmount from.
- * @final
- * @internal
- * @see {ReactMount.unmountComponentAtNode}
- */
-function unmountComponentFromNode(instance, container) {
-  if (process.env.NODE_ENV !== 'production') {
-    ReactInstrumentation.debugTool.onBeginFlush();
-  }
-  ReactReconciler.unmountComponent(instance, false /* safely */
-  , false /* skipLifecycle */
-  );
-  if (process.env.NODE_ENV !== 'production') {
-    ReactInstrumentation.debugTool.onEndFlush();
-  }
-
-  if (container.nodeType === DOC_NODE_TYPE) {
-    container = container.documentElement;
-  }
-
-  // http://jsperf.com/emptying-a-node
-  while (container.lastChild) {
-    container.removeChild(container.lastChild);
-  }
-}
-
-/**
- * True if the supplied DOM node has a direct React-rendered child that is
- * not a React root element. Useful for warning in `render`,
- * `unmountComponentAtNode`, etc.
- *
- * @param {?DOMElement} node The candidate DOM node.
- * @return {boolean} True if the DOM element contains a direct child that was
- * rendered by React but is not a root element.
- * @internal
- */
-function hasNonRootReactChild(container) {
-  var rootEl = getReactRootElementInContainer(container);
-  if (rootEl) {
-    var inst = ReactDOMComponentTree.getInstanceFromNode(rootEl);
-    return !!(inst && inst._hostParent);
-  }
-}
-
-/**
- * True if the supplied DOM node is a React DOM element and
- * it has been rendered by another copy of React.
- *
- * @param {?DOMElement} node The candidate DOM node.
- * @return {boolean} True if the DOM has been rendered by another copy of React
- * @internal
- */
-function nodeIsRenderedByOtherInstance(container) {
-  var rootEl = getReactRootElementInContainer(container);
-  return !!(rootEl && isReactNode(rootEl) && !ReactDOMComponentTree.getInstanceFromNode(rootEl));
-}
-
-/**
- * True if the supplied DOM node is a valid node element.
- *
- * @param {?DOMElement} node The candidate DOM node.
- * @return {boolean} True if the DOM is a valid DOM node.
- * @internal
- */
-function isValidContainer(node) {
-  return !!(node && (node.nodeType === ELEMENT_NODE_TYPE || node.nodeType === DOC_NODE_TYPE || node.nodeType === DOCUMENT_FRAGMENT_NODE_TYPE));
-}
-
-/**
- * True if the supplied DOM node is a valid React node element.
- *
- * @param {?DOMElement} node The candidate DOM node.
- * @return {boolean} True if the DOM is a valid React DOM node.
- * @internal
- */
-function isReactNode(node) {
-  return isValidContainer(node) && (node.hasAttribute(ROOT_ATTR_NAME) || node.hasAttribute(ATTR_NAME));
-}
-
-function getHostRootInstanceInContainer(container) {
-  var rootEl = getReactRootElementInContainer(container);
-  var prevHostInstance = rootEl && ReactDOMComponentTree.getInstanceFromNode(rootEl);
-  return prevHostInstance && !prevHostInstance._hostParent ? prevHostInstance : null;
-}
-
-function getTopLevelWrapperInContainer(container) {
-  var root = getHostRootInstanceInContainer(container);
-  return root ? root._hostContainerInfo._topLevelWrapper : null;
-}
-
-/**
- * Temporary (?) hack so that we can store all top-level pending updates on
- * composites instead of having to worry about different types of components
- * here.
- */
-var topLevelRootCounter = 1;
-var TopLevelWrapper = function () {
-  this.rootID = topLevelRootCounter++;
-};
-TopLevelWrapper.prototype.isReactComponent = {};
-if (process.env.NODE_ENV !== 'production') {
-  TopLevelWrapper.displayName = 'TopLevelWrapper';
-}
-TopLevelWrapper.prototype.render = function () {
-  return this.props.child;
-};
-TopLevelWrapper.isReactTopLevelWrapper = true;
-
-/**
- * Mounting is the process of initializing a React component by creating its
- * representative DOM elements and inserting them into a supplied `container`.
- * Any prior content inside `container` is destroyed in the process.
- *
- *   ReactMount.render(
- *     component,
- *     document.getElementById('container')
- *   );
- *
- *   <div id="container">                   <-- Supplied `container`.
- *     <div data-reactid=".3">              <-- Rendered reactRoot of React
- *       // ...                                 component.
- *     </div>
- *   </div>
- *
- * Inside of `container`, the first element rendered is the "reactRoot".
- */
-var ReactMount = {
-
-  TopLevelWrapper: TopLevelWrapper,
-
-  /**
-   * Used by devtools. The keys are not important.
-   */
-  _instancesByReactRootID: instancesByReactRootID,
-
-  /**
-   * This is a hook provided to support rendering React components while
-   * ensuring that the apparent scroll position of its `container` does not
-   * change.
-   *
-   * @param {DOMElement} container The `container` being rendered into.
-   * @param {function} renderCallback This must be called once to do the render.
-   */
-  scrollMonitor: function (container, renderCallback) {
-    renderCallback();
-  },
-
-  /**
-   * Take a component that's already mounted into the DOM and replace its props
-   * @param {ReactComponent} prevComponent component instance already in the DOM
-   * @param {ReactElement} nextElement component instance to render
-   * @param {DOMElement} container container to render into
-   * @param {?function} callback function triggered on completion
-   */
-  _updateRootComponent: function (prevComponent, nextElement, nextContext, container, callback) {
-    ReactMount.scrollMonitor(container, function () {
-      ReactUpdateQueue.enqueueElementInternal(prevComponent, nextElement, nextContext);
-      if (callback) {
-        ReactUpdateQueue.enqueueCallbackInternal(prevComponent, callback);
-      }
-    });
-
-    return prevComponent;
-  },
-
-  /**
-   * Render a new component into the DOM. Hooked by hooks!
-   *
-   * @param {ReactElement} nextElement element to render
-   * @param {DOMElement} container container to render into
-   * @param {boolean} shouldReuseMarkup if we should skip the markup insertion
-   * @return {ReactComponent} nextComponent
-   */
-  _renderNewRootComponent: function (nextElement, container, shouldReuseMarkup, context, callback) {
-    // Various parts of our code (such as ReactCompositeComponent's
-    // _renderValidatedComponent) assume that calls to render aren't nested;
-    // verify that that's the case.
-    process.env.NODE_ENV !== 'production' ? warning(ReactCurrentOwner.current == null, '_renderNewRootComponent(): Render methods should be a pure function ' + 'of props and state; triggering nested component updates from ' + 'render is not allowed. If necessary, trigger nested updates in ' + 'componentDidUpdate.\n\nCheck the render method of %s.', ReactCurrentOwner.current && ReactCurrentOwner.current.getName() || 'ReactCompositeComponent') : void 0;
-
-    !isValidContainer(container) ? process.env.NODE_ENV !== 'production' ? invariant(false, '_registerComponent(...): Target container is not a DOM element.') : _prodInvariant('37') : void 0;
-
-    ReactBrowserEventEmitter.ensureScrollValueMonitoring();
-    var componentInstance = instantiateReactComponent(nextElement, false);
-
-    if (callback) {
-      componentInstance._pendingCallbacks = [function () {
-        callback.call(componentInstance._renderedComponent.getPublicInstance());
-      }];
-    }
-
-    // The initial render is synchronous but any updates that happen during
-    // rendering, in componentWillMount or componentDidMount, will be batched
-    // according to the current batching strategy.
-
-    ReactUpdates.batchedUpdates(batchedMountComponentIntoNode, componentInstance, container, shouldReuseMarkup, context);
-
-    var wrapperID = componentInstance._instance.rootID;
-    instancesByReactRootID[wrapperID] = componentInstance;
-
-    return componentInstance;
-  },
-
-  /**
-   * Renders a React component into the DOM in the supplied `container`.
-   *
-   * If the React component was previously rendered into `container`, this will
-   * perform an update on it and only mutate the DOM as necessary to reflect the
-   * latest React component.
-   *
-   * @param {ReactComponent} parentComponent The conceptual parent of this render tree.
-   * @param {ReactElement} nextElement Component element to render.
-   * @param {DOMElement} container DOM element to render into.
-   * @param {?function} callback function triggered on completion
-   * @return {ReactComponent} Component instance rendered in `container`.
-   */
-  renderSubtreeIntoContainer: function (parentComponent, nextElement, container, callback) {
-    !(parentComponent != null && ReactInstanceMap.has(parentComponent)) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'parentComponent must be a valid React Component') : _prodInvariant('38') : void 0;
-    return ReactMount._renderSubtreeIntoContainer(parentComponent, nextElement, container, callback);
-  },
-
-  _renderSubtreeIntoContainer: function (parentComponent, nextElement, container, callback) {
-    validateCallback(callback, 'ReactDOM.render');
-    !React.isValidElement(nextElement) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactDOM.render(): Invalid component element.%s', typeof nextElement === 'string' ? ' Instead of passing a string like \'div\', pass ' + 'React.createElement(\'div\') or <div />.' : typeof nextElement === 'function' ? ' Instead of passing a class like Foo, pass ' + 'React.createElement(Foo) or <Foo />.' :
-    // Check if it quacks like an element
-    nextElement != null && nextElement.props !== undefined ? ' This may be caused by unintentionally loading two independent ' + 'copies of React.' : '') : _prodInvariant('39', typeof nextElement === 'string' ? ' Instead of passing a string like \'div\', pass ' + 'React.createElement(\'div\') or <div />.' : typeof nextElement === 'function' ? ' Instead of passing a class like Foo, pass ' + 'React.createElement(Foo) or <Foo />.' : nextElement != null && nextElement.props !== undefined ? ' This may be caused by unintentionally loading two independent ' + 'copies of React.' : '') : void 0;
-
-    process.env.NODE_ENV !== 'production' ? warning(!container || !container.tagName || container.tagName.toUpperCase() !== 'BODY', 'render(): Rendering components directly into document.body is ' + 'discouraged, since its children are often manipulated by third-party ' + 'scripts and browser extensions. This may lead to subtle ' + 'reconciliation issues. Try rendering into a container element created ' + 'for your app.') : void 0;
-
-    var nextWrappedElement = React.createElement(TopLevelWrapper, { child: nextElement });
-
-    var nextContext = getContextForSubtree(parentComponent);
-    var prevComponent = getTopLevelWrapperInContainer(container);
-
-    if (prevComponent) {
-      var prevWrappedElement = prevComponent._currentElement;
-      var prevElement = prevWrappedElement.props.child;
-      if (shouldUpdateReactComponent(prevElement, nextElement)) {
-        var publicInst = prevComponent._renderedComponent.getPublicInstance();
-        var updatedCallback = callback && function () {
-          callback.call(publicInst);
-        };
-        ReactMount._updateRootComponent(prevComponent, nextWrappedElement, nextContext, container, updatedCallback);
-        return publicInst;
-      } else {
-        ReactMount.unmountComponentAtNode(container);
-      }
-    }
-
-    var reactRootElement = getReactRootElementInContainer(container);
-    var containerHasReactMarkup = reactRootElement && !!internalGetID(reactRootElement);
-    var containerHasNonRootReactChild = hasNonRootReactChild(container);
-
-    if (process.env.NODE_ENV !== 'production') {
-      process.env.NODE_ENV !== 'production' ? warning(!containerHasNonRootReactChild, 'render(...): Replacing React-rendered children with a new root ' + 'component. If you intended to update the children of this node, ' + 'you should instead have the existing children update their state ' + 'and render the new components instead of calling ReactDOM.render.') : void 0;
-
-      if (!containerHasReactMarkup || reactRootElement.nextSibling) {
-        var rootElementSibling = reactRootElement;
-        while (rootElementSibling) {
-          if (internalGetID(rootElementSibling)) {
-            process.env.NODE_ENV !== 'production' ? warning(false, 'render(): Target node has markup rendered by React, but there ' + 'are unrelated nodes as well. This is most commonly caused by ' + 'white-space inserted around server-rendered markup.') : void 0;
-            break;
-          }
-          rootElementSibling = rootElementSibling.nextSibling;
-        }
-      }
-    }
-
-    var shouldReuseMarkup = containerHasReactMarkup && !prevComponent && !containerHasNonRootReactChild;
-    var component = ReactMount._renderNewRootComponent(nextWrappedElement, container, shouldReuseMarkup, nextContext, callback)._renderedComponent.getPublicInstance();
-    return component;
-  },
-
-  /**
-   * Renders a React component into the DOM in the supplied `container`.
-   * See https://facebook.github.io/react/docs/react-dom.html#render
-   *
-   * If the React component was previously rendered into `container`, this will
-   * perform an update on it and only mutate the DOM as necessary to reflect the
-   * latest React component.
-   *
-   * @param {ReactElement} nextElement Component element to render.
-   * @param {DOMElement} container DOM element to render into.
-   * @param {?function} callback function triggered on completion
-   * @return {ReactComponent} Component instance rendered in `container`.
-   */
-  render: function (nextElement, container, callback) {
-    return ReactMount._renderSubtreeIntoContainer(null, nextElement, container, callback);
-  },
-
-  /**
-   * Unmounts and destroys the React component rendered in the `container`.
-   * See https://facebook.github.io/react/docs/react-dom.html#unmountcomponentatnode
-   *
-   * @param {DOMElement} container DOM element containing a React component.
-   * @return {boolean} True if a component was found in and unmounted from
-   *                   `container`
-   */
-  unmountComponentAtNode: function (container) {
-    // Various parts of our code (such as ReactCompositeComponent's
-    // _renderValidatedComponent) assume that calls to render aren't nested;
-    // verify that that's the case. (Strictly speaking, unmounting won't cause a
-    // render but we still don't expect to be in a render call here.)
-    process.env.NODE_ENV !== 'production' ? warning(ReactCurrentOwner.current == null, 'unmountComponentAtNode(): Render methods should be a pure function ' + 'of props and state; triggering nested component updates from render ' + 'is not allowed. If necessary, trigger nested updates in ' + 'componentDidUpdate.\n\nCheck the render method of %s.', ReactCurrentOwner.current && ReactCurrentOwner.current.getName() || 'ReactCompositeComponent') : void 0;
-
-    !isValidContainer(container) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'unmountComponentAtNode(...): Target container is not a DOM element.') : _prodInvariant('40') : void 0;
-
-    if (process.env.NODE_ENV !== 'production') {
-      process.env.NODE_ENV !== 'production' ? warning(!nodeIsRenderedByOtherInstance(container), 'unmountComponentAtNode(): The node you\'re attempting to unmount ' + 'was rendered by another copy of React.') : void 0;
-    }
-
-    var prevComponent = getTopLevelWrapperInContainer(container);
-    if (!prevComponent) {
-      // Check if the node being unmounted was rendered by React, but isn't a
-      // root node.
-      var containerHasNonRootReactChild = hasNonRootReactChild(container);
-
-      // Check if the container itself is a React root node.
-      var isContainerReactRoot = container.nodeType === 1 && container.hasAttribute(ROOT_ATTR_NAME);
-
-      if (process.env.NODE_ENV !== 'production') {
-        process.env.NODE_ENV !== 'production' ? warning(!containerHasNonRootReactChild, 'unmountComponentAtNode(): The node you\'re attempting to unmount ' + 'was rendered by React and is not a top-level container. %s', isContainerReactRoot ? 'You may have accidentally passed in a React root node instead ' + 'of its container.' : 'Instead, have the parent component update its state and ' + 'rerender in order to remove this component.') : void 0;
-      }
-
-      return false;
-    }
-    delete instancesByReactRootID[prevComponent._instance.rootID];
-    ReactUpdates.batchedUpdates(unmountComponentFromNode, prevComponent, container);
-    return true;
-  },
-
-  _mountImageIntoNode: function (markup, container, instance, shouldReuseMarkup, transaction) {
-    !isValidContainer(container) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'mountComponentIntoNode(...): Target container is not valid.') : _prodInvariant('41') : void 0;
-
-    if (shouldReuseMarkup) {
-      var rootElement = getReactRootElementInContainer(container);
-      if (ReactMarkupChecksum.canReuseMarkup(markup, rootElement)) {
-        ReactDOMComponentTree.precacheNode(instance, rootElement);
-        return;
-      } else {
-        var checksum = rootElement.getAttribute(ReactMarkupChecksum.CHECKSUM_ATTR_NAME);
-        rootElement.removeAttribute(ReactMarkupChecksum.CHECKSUM_ATTR_NAME);
-
-        var rootMarkup = rootElement.outerHTML;
-        rootElement.setAttribute(ReactMarkupChecksum.CHECKSUM_ATTR_NAME, checksum);
-
-        var normalizedMarkup = markup;
-        if (process.env.NODE_ENV !== 'production') {
-          // because rootMarkup is retrieved from the DOM, various normalizations
-          // will have occurred which will not be present in `markup`. Here,
-          // insert markup into a <div> or <iframe> depending on the container
-          // type to perform the same normalizations before comparing.
-          var normalizer;
-          if (container.nodeType === ELEMENT_NODE_TYPE) {
-            normalizer = document.createElement('div');
-            normalizer.innerHTML = markup;
-            normalizedMarkup = normalizer.innerHTML;
-          } else {
-            normalizer = document.createElement('iframe');
-            document.body.appendChild(normalizer);
-            normalizer.contentDocument.write(markup);
-            normalizedMarkup = normalizer.contentDocument.documentElement.outerHTML;
-            document.body.removeChild(normalizer);
-          }
-        }
-
-        var diffIndex = firstDifferenceIndex(normalizedMarkup, rootMarkup);
-        var difference = ' (client) ' + normalizedMarkup.substring(diffIndex - 20, diffIndex + 20) + '\n (server) ' + rootMarkup.substring(diffIndex - 20, diffIndex + 20);
-
-        !(container.nodeType !== DOC_NODE_TYPE) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'You\'re trying to render a component to the document using server rendering but the checksum was invalid. This usually means you rendered a different component type or props on the client from the one on the server, or your render() methods are impure. React cannot handle this case due to cross-browser quirks by rendering at the document root. You should look for environment dependent code in your components and ensure the props are the same client and server side:\n%s', difference) : _prodInvariant('42', difference) : void 0;
-
-        if (process.env.NODE_ENV !== 'production') {
-          process.env.NODE_ENV !== 'production' ? warning(false, 'React attempted to reuse markup in a container but the ' + 'checksum was invalid. This generally means that you are ' + 'using server rendering and the markup generated on the ' + 'server was not what the client was expecting. React injected ' + 'new markup to compensate which works but you have lost many ' + 'of the benefits of server rendering. Instead, figure out ' + 'why the markup being generated is different on the client ' + 'or server:\n%s', difference) : void 0;
-        }
-      }
-    }
-
-    !(container.nodeType !== DOC_NODE_TYPE) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'You\'re trying to render a component to the document but you didn\'t use server rendering. We can\'t do this without using server rendering due to cross-browser quirks. See ReactDOMServer.renderToString() for server rendering.') : _prodInvariant('43') : void 0;
-
-    if (transaction.useCreateElement) {
-      while (container.lastChild) {
-        container.removeChild(container.lastChild);
-      }
-      DOMLazyTree.insertTreeBefore(container, markup, null);
-    } else {
-      setInnerHTML(container, markup);
-      ReactDOMComponentTree.precacheNode(instance, container.firstChild);
-    }
-
-    if (process.env.NODE_ENV !== 'production') {
-      var hostNode = ReactDOMComponentTree.getInstanceFromNode(container.firstChild);
-      if (hostNode._debugID !== 0) {
-        ReactInstrumentation.debugTool.onHostOperation({
-          instanceID: hostNode._debugID,
-          type: 'mount',
-          payload: markup.toString()
-        });
-      }
-    }
-  }
-};
-
-module.exports = ReactMount;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 130 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-var _prodInvariant = __webpack_require__(2);
-
-var ReactComponentEnvironment = __webpack_require__(42);
-var ReactInstanceMap = __webpack_require__(19);
+var ReactComponentEnvironment = __webpack_require__(38);
+var ReactInstanceMap = __webpack_require__(24);
 var ReactInstrumentation = __webpack_require__(8);
 
-var ReactCurrentOwner = __webpack_require__(9);
-var ReactReconciler = __webpack_require__(20);
-var ReactChildReconciler = __webpack_require__(102);
+var ReactCurrentOwner = __webpack_require__(11);
+var ReactReconciler = __webpack_require__(18);
+var ReactChildReconciler = __webpack_require__(108);
 
-var emptyFunction = __webpack_require__(13);
-var flattenChildren = __webpack_require__(155);
+var emptyFunction = __webpack_require__(9);
+var flattenChildren = __webpack_require__(161);
 var invariant = __webpack_require__(1);
 
 /**
@@ -16569,285 +16922,295 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 /**
- * Provides common functionality for components that must reconcile multiple
- * children. This is used by `ReactDOMComponent` to mount, update, and
- * unmount child components.
+ * ReactMultiChild are capable of reconciling multiple children.
+ *
+ * @class ReactMultiChild
+ * @internal
  */
 var ReactMultiChild = {
-  _reconcilerInstantiateChildren: function (nestedChildren, transaction, context) {
-    if (process.env.NODE_ENV !== 'production') {
-      var selfDebugID = getDebugID(this);
-      if (this._currentElement) {
-        try {
-          ReactCurrentOwner.current = this._currentElement._owner;
-          return ReactChildReconciler.instantiateChildren(nestedChildren, transaction, context, selfDebugID);
-        } finally {
-          ReactCurrentOwner.current = null;
+
+  /**
+   * Provides common functionality for components that must reconcile multiple
+   * children. This is used by `ReactDOMComponent` to mount, update, and
+   * unmount child components.
+   *
+   * @lends {ReactMultiChild.prototype}
+   */
+  Mixin: {
+
+    _reconcilerInstantiateChildren: function (nestedChildren, transaction, context) {
+      if (process.env.NODE_ENV !== 'production') {
+        var selfDebugID = getDebugID(this);
+        if (this._currentElement) {
+          try {
+            ReactCurrentOwner.current = this._currentElement._owner;
+            return ReactChildReconciler.instantiateChildren(nestedChildren, transaction, context, selfDebugID);
+          } finally {
+            ReactCurrentOwner.current = null;
+          }
         }
       }
-    }
-    return ReactChildReconciler.instantiateChildren(nestedChildren, transaction, context);
-  },
+      return ReactChildReconciler.instantiateChildren(nestedChildren, transaction, context);
+    },
 
-  _reconcilerUpdateChildren: function (prevChildren, nextNestedChildrenElements, mountImages, removedNodes, transaction, context) {
-    var nextChildren;
-    var selfDebugID = 0;
-    if (process.env.NODE_ENV !== 'production') {
-      selfDebugID = getDebugID(this);
-      if (this._currentElement) {
-        try {
-          ReactCurrentOwner.current = this._currentElement._owner;
-          nextChildren = flattenChildren(nextNestedChildrenElements, selfDebugID);
-        } finally {
-          ReactCurrentOwner.current = null;
+    _reconcilerUpdateChildren: function (prevChildren, nextNestedChildrenElements, mountImages, removedNodes, transaction, context) {
+      var nextChildren;
+      var selfDebugID = 0;
+      if (process.env.NODE_ENV !== 'production') {
+        selfDebugID = getDebugID(this);
+        if (this._currentElement) {
+          try {
+            ReactCurrentOwner.current = this._currentElement._owner;
+            nextChildren = flattenChildren(nextNestedChildrenElements, selfDebugID);
+          } finally {
+            ReactCurrentOwner.current = null;
+          }
+          ReactChildReconciler.updateChildren(prevChildren, nextChildren, mountImages, removedNodes, transaction, this, this._hostContainerInfo, context, selfDebugID);
+          return nextChildren;
         }
-        ReactChildReconciler.updateChildren(prevChildren, nextChildren, mountImages, removedNodes, transaction, this, this._hostContainerInfo, context, selfDebugID);
-        return nextChildren;
       }
-    }
-    nextChildren = flattenChildren(nextNestedChildrenElements, selfDebugID);
-    ReactChildReconciler.updateChildren(prevChildren, nextChildren, mountImages, removedNodes, transaction, this, this._hostContainerInfo, context, selfDebugID);
-    return nextChildren;
-  },
+      nextChildren = flattenChildren(nextNestedChildrenElements, selfDebugID);
+      ReactChildReconciler.updateChildren(prevChildren, nextChildren, mountImages, removedNodes, transaction, this, this._hostContainerInfo, context, selfDebugID);
+      return nextChildren;
+    },
 
-  /**
-   * Generates a "mount image" for each of the supplied children. In the case
-   * of `ReactDOMComponent`, a mount image is a string of markup.
-   *
-   * @param {?object} nestedChildren Nested child maps.
-   * @return {array} An array of mounted representations.
-   * @internal
-   */
-  mountChildren: function (nestedChildren, transaction, context) {
-    var children = this._reconcilerInstantiateChildren(nestedChildren, transaction, context);
-    this._renderedChildren = children;
+    /**
+     * Generates a "mount image" for each of the supplied children. In the case
+     * of `ReactDOMComponent`, a mount image is a string of markup.
+     *
+     * @param {?object} nestedChildren Nested child maps.
+     * @return {array} An array of mounted representations.
+     * @internal
+     */
+    mountChildren: function (nestedChildren, transaction, context) {
+      var children = this._reconcilerInstantiateChildren(nestedChildren, transaction, context);
+      this._renderedChildren = children;
 
-    var mountImages = [];
-    var index = 0;
-    for (var name in children) {
-      if (children.hasOwnProperty(name)) {
-        var child = children[name];
-        var selfDebugID = 0;
-        if (process.env.NODE_ENV !== 'production') {
-          selfDebugID = getDebugID(this);
+      var mountImages = [];
+      var index = 0;
+      for (var name in children) {
+        if (children.hasOwnProperty(name)) {
+          var child = children[name];
+          var selfDebugID = 0;
+          if (process.env.NODE_ENV !== 'production') {
+            selfDebugID = getDebugID(this);
+          }
+          var mountImage = ReactReconciler.mountComponent(child, transaction, this, this._hostContainerInfo, context, selfDebugID);
+          child._mountIndex = index++;
+          mountImages.push(mountImage);
         }
-        var mountImage = ReactReconciler.mountComponent(child, transaction, this, this._hostContainerInfo, context, selfDebugID);
-        child._mountIndex = index++;
-        mountImages.push(mountImage);
       }
-    }
 
-    if (process.env.NODE_ENV !== 'production') {
-      setChildrenForInstrumentation.call(this, children);
-    }
-
-    return mountImages;
-  },
-
-  /**
-   * Replaces any rendered children with a text content string.
-   *
-   * @param {string} nextContent String of content.
-   * @internal
-   */
-  updateTextContent: function (nextContent) {
-    var prevChildren = this._renderedChildren;
-    // Remove any rendered children.
-    ReactChildReconciler.unmountChildren(prevChildren, false, /* safely */
-    false /* skipLifecycle */
-    );
-    for (var name in prevChildren) {
-      if (prevChildren.hasOwnProperty(name)) {
-         true ? process.env.NODE_ENV !== 'production' ? invariant(false, 'updateTextContent called on non-empty component.') : _prodInvariant('118') : void 0;
+      if (process.env.NODE_ENV !== 'production') {
+        setChildrenForInstrumentation.call(this, children);
       }
-    }
-    // Set new text content.
-    var updates = [makeTextContent(nextContent)];
-    processQueue(this, updates);
-  },
 
-  /**
-   * Replaces any rendered children with a markup string.
-   *
-   * @param {string} nextMarkup String of markup.
-   * @internal
-   */
-  updateMarkup: function (nextMarkup) {
-    var prevChildren = this._renderedChildren;
-    // Remove any rendered children.
-    ReactChildReconciler.unmountChildren(prevChildren, false, /* safely */
-    false /* skipLifecycle */
-    );
-    for (var name in prevChildren) {
-      if (prevChildren.hasOwnProperty(name)) {
-         true ? process.env.NODE_ENV !== 'production' ? invariant(false, 'updateTextContent called on non-empty component.') : _prodInvariant('118') : void 0;
-      }
-    }
-    var updates = [makeSetMarkup(nextMarkup)];
-    processQueue(this, updates);
-  },
+      return mountImages;
+    },
 
-  /**
-   * Updates the rendered children with new children.
-   *
-   * @param {?object} nextNestedChildrenElements Nested child element maps.
-   * @param {ReactReconcileTransaction} transaction
-   * @internal
-   */
-  updateChildren: function (nextNestedChildrenElements, transaction, context) {
-    // Hook used by React ART
-    this._updateChildren(nextNestedChildrenElements, transaction, context);
-  },
-
-  /**
-   * @param {?object} nextNestedChildrenElements Nested child element maps.
-   * @param {ReactReconcileTransaction} transaction
-   * @final
-   * @protected
-   */
-  _updateChildren: function (nextNestedChildrenElements, transaction, context) {
-    var prevChildren = this._renderedChildren;
-    var removedNodes = {};
-    var mountImages = [];
-    var nextChildren = this._reconcilerUpdateChildren(prevChildren, nextNestedChildrenElements, mountImages, removedNodes, transaction, context);
-    if (!nextChildren && !prevChildren) {
-      return;
-    }
-    var updates = null;
-    var name;
-    // `nextIndex` will increment for each child in `nextChildren`, but
-    // `lastIndex` will be the last index visited in `prevChildren`.
-    var nextIndex = 0;
-    var lastIndex = 0;
-    // `nextMountIndex` will increment for each newly mounted child.
-    var nextMountIndex = 0;
-    var lastPlacedNode = null;
-    for (name in nextChildren) {
-      if (!nextChildren.hasOwnProperty(name)) {
-        continue;
-      }
-      var prevChild = prevChildren && prevChildren[name];
-      var nextChild = nextChildren[name];
-      if (prevChild === nextChild) {
-        updates = enqueue(updates, this.moveChild(prevChild, lastPlacedNode, nextIndex, lastIndex));
-        lastIndex = Math.max(prevChild._mountIndex, lastIndex);
-        prevChild._mountIndex = nextIndex;
-      } else {
-        if (prevChild) {
-          // Update `lastIndex` before `_mountIndex` gets unset by unmounting.
-          lastIndex = Math.max(prevChild._mountIndex, lastIndex);
-          // The `removedNodes` loop below will actually remove the child.
+    /**
+     * Replaces any rendered children with a text content string.
+     *
+     * @param {string} nextContent String of content.
+     * @internal
+     */
+    updateTextContent: function (nextContent) {
+      var prevChildren = this._renderedChildren;
+      // Remove any rendered children.
+      ReactChildReconciler.unmountChildren(prevChildren, false);
+      for (var name in prevChildren) {
+        if (prevChildren.hasOwnProperty(name)) {
+           true ? process.env.NODE_ENV !== 'production' ? invariant(false, 'updateTextContent called on non-empty component.') : _prodInvariant('118') : void 0;
         }
-        // The child must be instantiated before it's mounted.
-        updates = enqueue(updates, this._mountChildAtIndex(nextChild, mountImages[nextMountIndex], lastPlacedNode, nextIndex, transaction, context));
-        nextMountIndex++;
       }
-      nextIndex++;
-      lastPlacedNode = ReactReconciler.getHostNode(nextChild);
-    }
-    // Remove children that are no longer present.
-    for (name in removedNodes) {
-      if (removedNodes.hasOwnProperty(name)) {
-        updates = enqueue(updates, this._unmountChild(prevChildren[name], removedNodes[name]));
-      }
-    }
-    if (updates) {
+      // Set new text content.
+      var updates = [makeTextContent(nextContent)];
       processQueue(this, updates);
+    },
+
+    /**
+     * Replaces any rendered children with a markup string.
+     *
+     * @param {string} nextMarkup String of markup.
+     * @internal
+     */
+    updateMarkup: function (nextMarkup) {
+      var prevChildren = this._renderedChildren;
+      // Remove any rendered children.
+      ReactChildReconciler.unmountChildren(prevChildren, false);
+      for (var name in prevChildren) {
+        if (prevChildren.hasOwnProperty(name)) {
+           true ? process.env.NODE_ENV !== 'production' ? invariant(false, 'updateTextContent called on non-empty component.') : _prodInvariant('118') : void 0;
+        }
+      }
+      var updates = [makeSetMarkup(nextMarkup)];
+      processQueue(this, updates);
+    },
+
+    /**
+     * Updates the rendered children with new children.
+     *
+     * @param {?object} nextNestedChildrenElements Nested child element maps.
+     * @param {ReactReconcileTransaction} transaction
+     * @internal
+     */
+    updateChildren: function (nextNestedChildrenElements, transaction, context) {
+      // Hook used by React ART
+      this._updateChildren(nextNestedChildrenElements, transaction, context);
+    },
+
+    /**
+     * @param {?object} nextNestedChildrenElements Nested child element maps.
+     * @param {ReactReconcileTransaction} transaction
+     * @final
+     * @protected
+     */
+    _updateChildren: function (nextNestedChildrenElements, transaction, context) {
+      var prevChildren = this._renderedChildren;
+      var removedNodes = {};
+      var mountImages = [];
+      var nextChildren = this._reconcilerUpdateChildren(prevChildren, nextNestedChildrenElements, mountImages, removedNodes, transaction, context);
+      if (!nextChildren && !prevChildren) {
+        return;
+      }
+      var updates = null;
+      var name;
+      // `nextIndex` will increment for each child in `nextChildren`, but
+      // `lastIndex` will be the last index visited in `prevChildren`.
+      var nextIndex = 0;
+      var lastIndex = 0;
+      // `nextMountIndex` will increment for each newly mounted child.
+      var nextMountIndex = 0;
+      var lastPlacedNode = null;
+      for (name in nextChildren) {
+        if (!nextChildren.hasOwnProperty(name)) {
+          continue;
+        }
+        var prevChild = prevChildren && prevChildren[name];
+        var nextChild = nextChildren[name];
+        if (prevChild === nextChild) {
+          updates = enqueue(updates, this.moveChild(prevChild, lastPlacedNode, nextIndex, lastIndex));
+          lastIndex = Math.max(prevChild._mountIndex, lastIndex);
+          prevChild._mountIndex = nextIndex;
+        } else {
+          if (prevChild) {
+            // Update `lastIndex` before `_mountIndex` gets unset by unmounting.
+            lastIndex = Math.max(prevChild._mountIndex, lastIndex);
+            // The `removedNodes` loop below will actually remove the child.
+          }
+          // The child must be instantiated before it's mounted.
+          updates = enqueue(updates, this._mountChildAtIndex(nextChild, mountImages[nextMountIndex], lastPlacedNode, nextIndex, transaction, context));
+          nextMountIndex++;
+        }
+        nextIndex++;
+        lastPlacedNode = ReactReconciler.getHostNode(nextChild);
+      }
+      // Remove children that are no longer present.
+      for (name in removedNodes) {
+        if (removedNodes.hasOwnProperty(name)) {
+          updates = enqueue(updates, this._unmountChild(prevChildren[name], removedNodes[name]));
+        }
+      }
+      if (updates) {
+        processQueue(this, updates);
+      }
+      this._renderedChildren = nextChildren;
+
+      if (process.env.NODE_ENV !== 'production') {
+        setChildrenForInstrumentation.call(this, nextChildren);
+      }
+    },
+
+    /**
+     * Unmounts all rendered children. This should be used to clean up children
+     * when this component is unmounted. It does not actually perform any
+     * backend operations.
+     *
+     * @internal
+     */
+    unmountChildren: function (safely) {
+      var renderedChildren = this._renderedChildren;
+      ReactChildReconciler.unmountChildren(renderedChildren, safely);
+      this._renderedChildren = null;
+    },
+
+    /**
+     * Moves a child component to the supplied index.
+     *
+     * @param {ReactComponent} child Component to move.
+     * @param {number} toIndex Destination index of the element.
+     * @param {number} lastIndex Last index visited of the siblings of `child`.
+     * @protected
+     */
+    moveChild: function (child, afterNode, toIndex, lastIndex) {
+      // If the index of `child` is less than `lastIndex`, then it needs to
+      // be moved. Otherwise, we do not need to move it because a child will be
+      // inserted or moved before `child`.
+      if (child._mountIndex < lastIndex) {
+        return makeMove(child, afterNode, toIndex);
+      }
+    },
+
+    /**
+     * Creates a child component.
+     *
+     * @param {ReactComponent} child Component to create.
+     * @param {string} mountImage Markup to insert.
+     * @protected
+     */
+    createChild: function (child, afterNode, mountImage) {
+      return makeInsertMarkup(mountImage, afterNode, child._mountIndex);
+    },
+
+    /**
+     * Removes a child component.
+     *
+     * @param {ReactComponent} child Child to remove.
+     * @protected
+     */
+    removeChild: function (child, node) {
+      return makeRemove(child, node);
+    },
+
+    /**
+     * Mounts a child with the supplied name.
+     *
+     * NOTE: This is part of `updateChildren` and is here for readability.
+     *
+     * @param {ReactComponent} child Component to mount.
+     * @param {string} name Name of the child.
+     * @param {number} index Index at which to insert the child.
+     * @param {ReactReconcileTransaction} transaction
+     * @private
+     */
+    _mountChildAtIndex: function (child, mountImage, afterNode, index, transaction, context) {
+      child._mountIndex = index;
+      return this.createChild(child, afterNode, mountImage);
+    },
+
+    /**
+     * Unmounts a rendered child.
+     *
+     * NOTE: This is part of `updateChildren` and is here for readability.
+     *
+     * @param {ReactComponent} child Component to unmount.
+     * @private
+     */
+    _unmountChild: function (child, node) {
+      var update = this.removeChild(child, node);
+      child._mountIndex = null;
+      return update;
     }
-    this._renderedChildren = nextChildren;
 
-    if (process.env.NODE_ENV !== 'production') {
-      setChildrenForInstrumentation.call(this, nextChildren);
-    }
-  },
-
-  /**
-   * Unmounts all rendered children. This should be used to clean up children
-   * when this component is unmounted. It does not actually perform any
-   * backend operations.
-   *
-   * @internal
-   */
-  unmountChildren: function (safely, skipLifecycle) {
-    var renderedChildren = this._renderedChildren;
-    ReactChildReconciler.unmountChildren(renderedChildren, safely, skipLifecycle);
-    this._renderedChildren = null;
-  },
-
-  /**
-   * Moves a child component to the supplied index.
-   *
-   * @param {ReactComponent} child Component to move.
-   * @param {number} toIndex Destination index of the element.
-   * @param {number} lastIndex Last index visited of the siblings of `child`.
-   * @protected
-   */
-  moveChild: function (child, afterNode, toIndex, lastIndex) {
-    // If the index of `child` is less than `lastIndex`, then it needs to
-    // be moved. Otherwise, we do not need to move it because a child will be
-    // inserted or moved before `child`.
-    if (child._mountIndex < lastIndex) {
-      return makeMove(child, afterNode, toIndex);
-    }
-  },
-
-  /**
-   * Creates a child component.
-   *
-   * @param {ReactComponent} child Component to create.
-   * @param {string} mountImage Markup to insert.
-   * @protected
-   */
-  createChild: function (child, afterNode, mountImage) {
-    return makeInsertMarkup(mountImage, afterNode, child._mountIndex);
-  },
-
-  /**
-   * Removes a child component.
-   *
-   * @param {ReactComponent} child Child to remove.
-   * @protected
-   */
-  removeChild: function (child, node) {
-    return makeRemove(child, node);
-  },
-
-  /**
-   * Mounts a child with the supplied name.
-   *
-   * NOTE: This is part of `updateChildren` and is here for readability.
-   *
-   * @param {ReactComponent} child Component to mount.
-   * @param {string} name Name of the child.
-   * @param {number} index Index at which to insert the child.
-   * @param {ReactReconcileTransaction} transaction
-   * @private
-   */
-  _mountChildAtIndex: function (child, mountImage, afterNode, index, transaction, context) {
-    child._mountIndex = index;
-    return this.createChild(child, afterNode, mountImage);
-  },
-
-  /**
-   * Unmounts a rendered child.
-   *
-   * NOTE: This is part of `updateChildren` and is here for readability.
-   *
-   * @param {ReactComponent} child Component to unmount.
-   * @private
-   */
-  _unmountChild: function (child, node) {
-    var update = this.removeChild(child, node);
-    child._mountIndex = null;
-    return update;
   }
+
 };
 
 module.exports = ReactMultiChild;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 131 */
+/* 137 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -16864,12 +17227,8 @@ module.exports = ReactMultiChild;
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
-var _require = __webpack_require__(30),
-    ClassComponent = _require.ClassComponent;
-
-var emptyObject = __webpack_require__(53);
 var invariant = __webpack_require__(1);
 
 /**
@@ -16922,14 +17281,8 @@ var ReactOwner = {
    * @internal
    */
   addComponentAsRefTo: function (component, ref, owner) {
-    if (owner && owner.tag === ClassComponent) {
-      var inst = owner.stateNode;
-      var refs = inst.refs === emptyObject ? inst.refs = {} : inst.refs;
-      refs[ref] = component.getPublicInstance();
-    } else {
-      !isValidOwner(owner) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'addComponentAsRefTo(...): Only a ReactOwner can have refs. You might be adding a ref to a component that was not created inside a component\'s `render` method, or you have multiple copies of React loaded (details: https://fb.me/react-refs-must-have-owner).') : _prodInvariant('119') : void 0;
-      owner.attachRef(ref, component);
-    }
+    !isValidOwner(owner) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'addComponentAsRefTo(...): Only a ReactOwner can have refs. You might be adding a ref to a component that was not created inside a component\'s `render` method, or you have multiple copies of React loaded (details: https://fb.me/react-refs-must-have-owner).') : _prodInvariant('119') : void 0;
+    owner.attachRef(ref, component);
   },
 
   /**
@@ -16942,19 +17295,12 @@ var ReactOwner = {
    * @internal
    */
   removeComponentAsRefFrom: function (component, ref, owner) {
-    if (owner && owner.tag === ClassComponent) {
-      var inst = owner.stateNode;
-      if (inst && inst.refs[ref] === component.getPublicInstance()) {
-        delete inst.refs[ref];
-      }
-    } else {
-      !isValidOwner(owner) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'removeComponentAsRefFrom(...): Only a ReactOwner can have refs. You might be removing a ref to a component that was not created inside a component\'s `render` method, or you have multiple copies of React loaded (details: https://fb.me/react-refs-must-have-owner).') : _prodInvariant('120') : void 0;
-      var ownerPublicInstance = owner.getPublicInstance();
-      // Check that `component`'s owner is still alive and that `component` is still the current ref
-      // because we do not want to detach the ref if another component stole it.
-      if (ownerPublicInstance && ownerPublicInstance.refs[ref] === component.getPublicInstance()) {
-        owner.detachRef(ref);
-      }
+    !isValidOwner(owner) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'removeComponentAsRefFrom(...): Only a ReactOwner can have refs. You might be removing a ref to a component that was not created inside a component\'s `render` method, or you have multiple copies of React loaded (details: https://fb.me/react-refs-must-have-owner).') : _prodInvariant('120') : void 0;
+    var ownerPublicInstance = owner.getPublicInstance();
+    // Check that `component`'s owner is still alive and that `component` is still the current ref
+    // because we do not want to detach the ref if another component stole it.
+    if (ownerPublicInstance && ownerPublicInstance.refs[ref] === component.getPublicInstance()) {
+      owner.detachRef(ref);
     }
   }
 
@@ -16964,7 +17310,7 @@ module.exports = ReactOwner;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 132 */
+/* 138 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -16995,7 +17341,7 @@ module.exports = ReactPropTypeLocationNames;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 133 */
+/* 139 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17011,15 +17357,15 @@ module.exports = ReactPropTypeLocationNames;
 
 
 
-var _assign = __webpack_require__(5);
+var _assign = __webpack_require__(4);
 
-var CallbackQueue = __webpack_require__(95);
-var PooledClass = __webpack_require__(16);
-var ReactBrowserEventEmitter = __webpack_require__(23);
-var ReactInputSelection = __webpack_require__(69);
+var CallbackQueue = __webpack_require__(57);
+var PooledClass = __webpack_require__(14);
+var ReactBrowserEventEmitter = __webpack_require__(27);
+var ReactInputSelection = __webpack_require__(64);
 var ReactInstrumentation = __webpack_require__(8);
-var Transaction = __webpack_require__(33);
-var ReactUpdateQueue = __webpack_require__(45);
+var Transaction = __webpack_require__(29);
+var ReactUpdateQueue = __webpack_require__(40);
 
 /**
  * Ensures that, when possible, the selection range (currently selected text
@@ -17179,11 +17525,11 @@ module.exports = ReactReconcileTransaction;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 134 */
+/* 140 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/* WEBPACK VAR INJECTION */(function(process) {/**
+/**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
  *
@@ -17196,44 +17542,11 @@ module.exports = ReactReconcileTransaction;
 
 
 
-var ReactOwner = __webpack_require__(131);
+var ReactOwner = __webpack_require__(137);
 
 var ReactRef = {};
 
-if (process.env.NODE_ENV !== 'production') {
-  var ReactCompositeComponentTypes = __webpack_require__(63);
-  var ReactComponentTreeHook = __webpack_require__(7);
-  var warning = __webpack_require__(3);
-
-  var warnedAboutStatelessRefs = {};
-}
-
 function attachRef(ref, component, owner) {
-  if (process.env.NODE_ENV !== 'production') {
-    if (component._compositeType === ReactCompositeComponentTypes.StatelessFunctional) {
-      var info = '';
-      var ownerName = void 0;
-      if (owner) {
-        if (typeof owner.getName === 'function') {
-          ownerName = owner.getName();
-        }
-        if (ownerName) {
-          info += '\n\nCheck the render method of `' + ownerName + '`.';
-        }
-      }
-
-      var warningKey = ownerName || component._debugID;
-      var element = component._currentElement;
-      if (element && element._source) {
-        warningKey = element._source.fileName + ':' + element._source.lineNumber;
-      }
-      if (!warnedAboutStatelessRefs[warningKey]) {
-        warnedAboutStatelessRefs[warningKey] = true;
-        process.env.NODE_ENV !== 'production' ? warning(false, 'Stateless function components cannot be given refs. ' + 'Attempts to access this ref will fail.%s%s', info, ReactComponentTreeHook.getStackAddendumByID(component._debugID)) : void 0;
-      }
-    }
-  }
-
   if (typeof ref === 'function') {
     ref(component.getPublicInstance());
   } else {
@@ -17304,10 +17617,9 @@ ReactRef.detachRefs = function (instance, element) {
 };
 
 module.exports = ReactRef;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 135 */
+/* 141 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17323,12 +17635,12 @@ module.exports = ReactRef;
 
 
 
-var _assign = __webpack_require__(5);
+var _assign = __webpack_require__(4);
 
-var PooledClass = __webpack_require__(16);
-var Transaction = __webpack_require__(33);
+var PooledClass = __webpack_require__(14);
+var Transaction = __webpack_require__(29);
 var ReactInstrumentation = __webpack_require__(8);
-var ReactServerUpdateQueue = __webpack_require__(136);
+var ReactServerUpdateQueue = __webpack_require__(142);
 
 /**
  * Executed within the scope of the `Transaction` instance. Consider these as
@@ -17403,7 +17715,7 @@ module.exports = ReactServerRenderingTransaction;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 136 */
+/* 142 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17422,14 +17734,14 @@ module.exports = ReactServerRenderingTransaction;
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var ReactUpdateQueue = __webpack_require__(45);
+var ReactUpdateQueue = __webpack_require__(40);
 
-var warning = __webpack_require__(3);
+var warning = __webpack_require__(2);
 
 function warnNoop(publicInstance, callerName) {
   if (process.env.NODE_ENV !== 'production') {
     var constructor = publicInstance.constructor;
-    process.env.NODE_ENV !== 'production' ? warning(false, '%s(...): Can only update a mounting component. ' + 'This usually means you called %s() outside componentWillMount() on the server. ' + 'This is a no-op.\n\nPlease check the code for the %s component.', callerName, callerName, constructor && (constructor.displayName || constructor.name) || 'ReactClass') : void 0;
+    process.env.NODE_ENV !== 'production' ? warning(false, '%s(...): Can only update a mounting component. ' + 'This usually means you called %s() outside componentWillMount() on the server. ' + 'This is a no-op. Please check the code for the %s component.', callerName, callerName, constructor && (constructor.displayName || constructor.name) || 'ReactClass') : void 0;
   }
 }
 
@@ -17462,6 +17774,22 @@ var ReactServerUpdateQueue = function () {
   };
 
   /**
+   * Enqueue a callback that will be executed after all the pending updates
+   * have processed.
+   *
+   * @param {ReactClass} publicInstance The instance to use as `this` context.
+   * @param {?function} callback Called after state is updated.
+   * @internal
+   */
+
+
+  ReactServerUpdateQueue.prototype.enqueueCallback = function enqueueCallback(publicInstance, callback, callerName) {
+    if (this.transaction.isInTransaction()) {
+      ReactUpdateQueue.enqueueCallback(publicInstance, callback, callerName);
+    }
+  };
+
+  /**
    * Forces an update. This should only be invoked when it is known with
    * certainty that we are **not** in a DOM transaction.
    *
@@ -17472,15 +17800,13 @@ var ReactServerUpdateQueue = function () {
    * `componentWillUpdate` and `componentDidUpdate`.
    *
    * @param {ReactClass} publicInstance The instance that should rerender.
-   * @param {?function} callback Called after component is updated.
-   * @param {?string} Name of the calling function in the public API.
    * @internal
    */
 
 
-  ReactServerUpdateQueue.prototype.enqueueForceUpdate = function enqueueForceUpdate(publicInstance, callback, callerName) {
+  ReactServerUpdateQueue.prototype.enqueueForceUpdate = function enqueueForceUpdate(publicInstance) {
     if (this.transaction.isInTransaction()) {
-      ReactUpdateQueue.enqueueForceUpdate(publicInstance, callback, callerName);
+      ReactUpdateQueue.enqueueForceUpdate(publicInstance);
     } else {
       warnNoop(publicInstance, 'forceUpdate');
     }
@@ -17495,15 +17821,13 @@ var ReactServerUpdateQueue = function () {
    *
    * @param {ReactClass} publicInstance The instance that should rerender.
    * @param {object|function} completeState Next state.
-   * @param {?function} callback Called after component is updated.
-   * @param {?string} Name of the calling function in the public API.
    * @internal
    */
 
 
-  ReactServerUpdateQueue.prototype.enqueueReplaceState = function enqueueReplaceState(publicInstance, completeState, callback, callerName) {
+  ReactServerUpdateQueue.prototype.enqueueReplaceState = function enqueueReplaceState(publicInstance, completeState) {
     if (this.transaction.isInTransaction()) {
-      ReactUpdateQueue.enqueueReplaceState(publicInstance, completeState, callback, callerName);
+      ReactUpdateQueue.enqueueReplaceState(publicInstance, completeState);
     } else {
       warnNoop(publicInstance, 'replaceState');
     }
@@ -17521,9 +17845,9 @@ var ReactServerUpdateQueue = function () {
    */
 
 
-  ReactServerUpdateQueue.prototype.enqueueSetState = function enqueueSetState(publicInstance, partialState, callback, callerName) {
+  ReactServerUpdateQueue.prototype.enqueueSetState = function enqueueSetState(publicInstance, partialState) {
     if (this.transaction.isInTransaction()) {
-      ReactUpdateQueue.enqueueSetState(publicInstance, partialState, callback, callerName);
+      ReactUpdateQueue.enqueueSetState(publicInstance, partialState);
     } else {
       warnNoop(publicInstance, 'setState');
     }
@@ -17536,159 +17860,7 @@ module.exports = ReactServerUpdateQueue;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 137 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright 2015-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-
-
-var _require = __webpack_require__(30),
-    HostComponent = _require.HostComponent;
-
-function getParent(inst) {
-  if (inst._hostParent !== undefined) {
-    return inst._hostParent;
-  }
-  if (typeof inst.tag === 'number') {
-    do {
-      inst = inst['return'];
-      // TODO: If this is a HostRoot we might want to bail out.
-      // That is depending on if we want nested subtrees (layers) to bubble
-      // events to their parent. We could also go through parentNode on the
-      // host node but that wouldn't work for React Native and doesn't let us
-      // do the portal feature.
-    } while (inst && inst.tag !== HostComponent);
-    if (inst) {
-      return inst;
-    }
-  }
-  return null;
-}
-
-/**
- * Return the lowest common ancestor of A and B, or null if they are in
- * different trees.
- */
-function getLowestCommonAncestor(instA, instB) {
-  var depthA = 0;
-  for (var tempA = instA; tempA; tempA = getParent(tempA)) {
-    depthA++;
-  }
-  var depthB = 0;
-  for (var tempB = instB; tempB; tempB = getParent(tempB)) {
-    depthB++;
-  }
-
-  // If A is deeper, crawl up.
-  while (depthA - depthB > 0) {
-    instA = getParent(instA);
-    depthA--;
-  }
-
-  // If B is deeper, crawl up.
-  while (depthB - depthA > 0) {
-    instB = getParent(instB);
-    depthB--;
-  }
-
-  // Walk in lockstep until we find a match.
-  var depth = depthA;
-  while (depth--) {
-    if (instA === instB) {
-      return instA;
-    }
-    instA = getParent(instA);
-    instB = getParent(instB);
-  }
-  return null;
-}
-
-/**
- * Return if A is an ancestor of B.
- */
-function isAncestor(instA, instB) {
-  while (instB) {
-    if (instB === instA) {
-      return true;
-    }
-    instB = getParent(instB);
-  }
-  return false;
-}
-
-/**
- * Return the parent instance of the passed-in instance.
- */
-function getParentInstance(inst) {
-  return getParent(inst);
-}
-
-/**
- * Simulates the traversal of a two-phase, capture/bubble event dispatch.
- */
-function traverseTwoPhase(inst, fn, arg) {
-  var path = [];
-  while (inst) {
-    path.push(inst);
-    inst = getParent(inst);
-  }
-  var i;
-  for (i = path.length; i-- > 0;) {
-    fn(path[i], 'captured', arg);
-  }
-  for (i = 0; i < path.length; i++) {
-    fn(path[i], 'bubbled', arg);
-  }
-}
-
-/**
- * Traverses the ID hierarchy and invokes the supplied `cb` on any IDs that
- * should would receive a `mouseEnter` or `mouseLeave` event.
- *
- * Does not invoke the callback on the nearest common ancestor because nothing
- * "entered" or "left" that element.
- */
-function traverseEnterLeave(from, to, fn, argFrom, argTo) {
-  var common = from && to ? getLowestCommonAncestor(from, to) : null;
-  var pathFrom = [];
-  while (from && from !== common) {
-    pathFrom.push(from);
-    from = getParent(from);
-  }
-  var pathTo = [];
-  while (to && to !== common) {
-    pathTo.push(to);
-    to = getParent(to);
-  }
-  var i;
-  for (i = 0; i < pathFrom.length; i++) {
-    fn(pathFrom[i], 'bubbled', argFrom);
-  }
-  for (i = pathTo.length; i-- > 0;) {
-    fn(pathTo[i], 'captured', argTo);
-  }
-}
-
-module.exports = {
-  isAncestor: isAncestor,
-  getLowestCommonAncestor: getLowestCommonAncestor,
-  getParentInstance: getParentInstance,
-  traverseTwoPhase: traverseTwoPhase,
-  traverseEnterLeave: traverseEnterLeave
-};
-
-/***/ }),
-/* 138 */
+/* 143 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17704,10 +17876,10 @@ module.exports = {
 
 
 
-module.exports = '16.0.0-alpha.1';
+module.exports = '15.4.2';
 
 /***/ }),
-/* 139 */
+/* 144 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18014,7 +18186,7 @@ Object.keys(ATTRS).forEach(function (key) {
 module.exports = SVGDOMPropertyConfig;
 
 /***/ }),
-/* 140 */
+/* 145 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18030,16 +18202,15 @@ module.exports = SVGDOMPropertyConfig;
 
 
 
-var EventPropagators = __webpack_require__(22);
+var EventPropagators = __webpack_require__(23);
 var ExecutionEnvironment = __webpack_require__(6);
-var ReactBrowserEventEmitter = __webpack_require__(23);
-var ReactDOMComponentTree = __webpack_require__(4);
-var ReactInputSelection = __webpack_require__(69);
-var SyntheticEvent = __webpack_require__(11);
+var ReactDOMComponentTree = __webpack_require__(5);
+var ReactInputSelection = __webpack_require__(64);
+var SyntheticEvent = __webpack_require__(12);
 
-var getActiveElement = __webpack_require__(84);
-var isTextInputElement = __webpack_require__(79);
-var shallowEqual = __webpack_require__(85);
+var getActiveElement = __webpack_require__(55);
+var isTextInputElement = __webpack_require__(74);
+var shallowEqual = __webpack_require__(32);
 
 var skipSelectionChangeEvent = ExecutionEnvironment.canUseDOM && 'documentMode' in document && document.documentMode <= 11;
 
@@ -18058,9 +18229,9 @@ var activeElementInst = null;
 var lastSelection = null;
 var mouseDown = false;
 
-// Track whether all listeners exists for this plugin. If none exist, we do
+// Track whether a listener exists for this plugin. If none exist, we do
 // not extract events. See #3639.
-var isListeningToAllDependencies = ReactBrowserEventEmitter.isListeningToAllDependencies;
+var hasListener = false;
 
 /**
  * Get an object which is a unique representation of the current selection.
@@ -18148,8 +18319,7 @@ var SelectEventPlugin = {
   eventTypes: eventTypes,
 
   extractEvents: function (topLevelType, targetInst, nativeEvent, nativeEventTarget) {
-    var doc = nativeEventTarget.window === nativeEventTarget ? nativeEventTarget.document : nativeEventTarget.nodeType === 9 ? nativeEventTarget : nativeEventTarget.ownerDocument;
-    if (!doc || !isListeningToAllDependencies('onSelect', doc)) {
+    if (!hasListener) {
       return null;
     }
 
@@ -18200,14 +18370,19 @@ var SelectEventPlugin = {
     }
 
     return null;
-  }
+  },
 
+  didPutListener: function (inst, registrationName, listener) {
+    if (registrationName === 'onSelect') {
+      hasListener = true;
+    }
+  }
 };
 
 module.exports = SelectEventPlugin;
 
 /***/ }),
-/* 141 */
+/* 146 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18224,22 +18399,25 @@ module.exports = SelectEventPlugin;
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
-var EventPropagators = __webpack_require__(22);
-var SyntheticAnimationEvent = __webpack_require__(142);
-var SyntheticClipboardEvent = __webpack_require__(143);
-var SyntheticEvent = __webpack_require__(11);
-var SyntheticFocusEvent = __webpack_require__(146);
-var SyntheticKeyboardEvent = __webpack_require__(148);
-var SyntheticMouseEvent = __webpack_require__(32);
-var SyntheticDragEvent = __webpack_require__(145);
-var SyntheticTouchEvent = __webpack_require__(149);
-var SyntheticTransitionEvent = __webpack_require__(150);
+var EventListener = __webpack_require__(53);
+var EventPropagators = __webpack_require__(23);
+var ReactDOMComponentTree = __webpack_require__(5);
+var SyntheticAnimationEvent = __webpack_require__(147);
+var SyntheticClipboardEvent = __webpack_require__(148);
+var SyntheticEvent = __webpack_require__(12);
+var SyntheticFocusEvent = __webpack_require__(151);
+var SyntheticKeyboardEvent = __webpack_require__(153);
+var SyntheticMouseEvent = __webpack_require__(28);
+var SyntheticDragEvent = __webpack_require__(150);
+var SyntheticTouchEvent = __webpack_require__(154);
+var SyntheticTransitionEvent = __webpack_require__(155);
 var SyntheticUIEvent = __webpack_require__(25);
-var SyntheticWheelEvent = __webpack_require__(151);
+var SyntheticWheelEvent = __webpack_require__(156);
 
-var getEventCharCode = __webpack_require__(47);
+var emptyFunction = __webpack_require__(9);
+var getEventCharCode = __webpack_require__(42);
 var invariant = __webpack_require__(1);
 
 /**
@@ -18262,7 +18440,7 @@ var invariant = __webpack_require__(1);
  */
 var eventTypes = {};
 var topLevelEventsToDispatchConfig = {};
-['abort', 'animationEnd', 'animationIteration', 'animationStart', 'blur', 'cancel', 'canPlay', 'canPlayThrough', 'click', 'close', 'contextMenu', 'copy', 'cut', 'doubleClick', 'drag', 'dragEnd', 'dragEnter', 'dragExit', 'dragLeave', 'dragOver', 'dragStart', 'drop', 'durationChange', 'emptied', 'encrypted', 'ended', 'error', 'focus', 'input', 'invalid', 'keyDown', 'keyPress', 'keyUp', 'load', 'loadedData', 'loadedMetadata', 'loadStart', 'mouseDown', 'mouseMove', 'mouseOut', 'mouseOver', 'mouseUp', 'paste', 'pause', 'play', 'playing', 'progress', 'rateChange', 'reset', 'scroll', 'seeked', 'seeking', 'stalled', 'submit', 'suspend', 'timeUpdate', 'touchCancel', 'touchEnd', 'touchMove', 'touchStart', 'transitionEnd', 'volumeChange', 'waiting', 'wheel'].forEach(function (event) {
+['abort', 'animationEnd', 'animationIteration', 'animationStart', 'blur', 'canPlay', 'canPlayThrough', 'click', 'contextMenu', 'copy', 'cut', 'doubleClick', 'drag', 'dragEnd', 'dragEnter', 'dragExit', 'dragLeave', 'dragOver', 'dragStart', 'drop', 'durationChange', 'emptied', 'encrypted', 'ended', 'error', 'focus', 'input', 'invalid', 'keyDown', 'keyPress', 'keyUp', 'load', 'loadedData', 'loadedMetadata', 'loadStart', 'mouseDown', 'mouseMove', 'mouseOut', 'mouseOver', 'mouseUp', 'paste', 'pause', 'play', 'playing', 'progress', 'rateChange', 'reset', 'scroll', 'seeked', 'seeking', 'stalled', 'submit', 'suspend', 'timeUpdate', 'touchCancel', 'touchEnd', 'touchMove', 'touchStart', 'transitionEnd', 'volumeChange', 'waiting', 'wheel'].forEach(function (event) {
   var capitalizedEvent = event[0].toUpperCase() + event.slice(1);
   var onEvent = 'on' + capitalizedEvent;
   var topEvent = 'top' + capitalizedEvent;
@@ -18278,6 +18456,18 @@ var topLevelEventsToDispatchConfig = {};
   topLevelEventsToDispatchConfig[topEvent] = type;
 });
 
+var onClickListeners = {};
+
+function getDictionaryKey(inst) {
+  // Prevents V8 performance issue:
+  // https://github.com/facebook/react/pull/7232
+  return '.' + inst._rootNodeID;
+}
+
+function isInteractive(tag) {
+  return tag === 'button' || tag === 'input' || tag === 'select' || tag === 'textarea';
+}
+
 var SimpleEventPlugin = {
 
   eventTypes: eventTypes,
@@ -18290,10 +18480,8 @@ var SimpleEventPlugin = {
     var EventConstructor;
     switch (topLevelType) {
       case 'topAbort':
-      case 'topCancel':
       case 'topCanPlay':
       case 'topCanPlayThrough':
-      case 'topClose':
       case 'topDurationChange':
       case 'topEmptied':
       case 'topEncrypted':
@@ -18397,6 +18585,29 @@ var SimpleEventPlugin = {
     var event = EventConstructor.getPooled(dispatchConfig, targetInst, nativeEvent, nativeEventTarget);
     EventPropagators.accumulateTwoPhaseDispatches(event);
     return event;
+  },
+
+  didPutListener: function (inst, registrationName, listener) {
+    // Mobile Safari does not fire properly bubble click events on
+    // non-interactive elements, which means delegated click listeners do not
+    // fire. The workaround for this bug involves attaching an empty click
+    // listener on the target node.
+    // http://www.quirksmode.org/blog/archives/2010/09/click_event_del.html
+    if (registrationName === 'onClick' && !isInteractive(inst._tag)) {
+      var key = getDictionaryKey(inst);
+      var node = ReactDOMComponentTree.getNodeFromInstance(inst);
+      if (!onClickListeners[key]) {
+        onClickListeners[key] = EventListener.listen(node, 'click', emptyFunction);
+      }
+    }
+  },
+
+  willDeleteListener: function (inst, registrationName) {
+    if (registrationName === 'onClick' && !isInteractive(inst._tag)) {
+      var key = getDictionaryKey(inst);
+      onClickListeners[key].remove();
+      delete onClickListeners[key];
+    }
   }
 
 };
@@ -18405,7 +18616,7 @@ module.exports = SimpleEventPlugin;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 142 */
+/* 147 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18421,7 +18632,7 @@ module.exports = SimpleEventPlugin;
 
 
 
-var SyntheticEvent = __webpack_require__(11);
+var SyntheticEvent = __webpack_require__(12);
 
 /**
  * @interface Event
@@ -18449,7 +18660,7 @@ SyntheticEvent.augmentClass(SyntheticAnimationEvent, AnimationEventInterface);
 module.exports = SyntheticAnimationEvent;
 
 /***/ }),
-/* 143 */
+/* 148 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18465,7 +18676,7 @@ module.exports = SyntheticAnimationEvent;
 
 
 
-var SyntheticEvent = __webpack_require__(11);
+var SyntheticEvent = __webpack_require__(12);
 
 /**
  * @interface Event
@@ -18492,7 +18703,7 @@ SyntheticEvent.augmentClass(SyntheticClipboardEvent, ClipboardEventInterface);
 module.exports = SyntheticClipboardEvent;
 
 /***/ }),
-/* 144 */
+/* 149 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18508,7 +18719,7 @@ module.exports = SyntheticClipboardEvent;
 
 
 
-var SyntheticEvent = __webpack_require__(11);
+var SyntheticEvent = __webpack_require__(12);
 
 /**
  * @interface Event
@@ -18533,7 +18744,7 @@ SyntheticEvent.augmentClass(SyntheticCompositionEvent, CompositionEventInterface
 module.exports = SyntheticCompositionEvent;
 
 /***/ }),
-/* 145 */
+/* 150 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18549,7 +18760,7 @@ module.exports = SyntheticCompositionEvent;
 
 
 
-var SyntheticMouseEvent = __webpack_require__(32);
+var SyntheticMouseEvent = __webpack_require__(28);
 
 /**
  * @interface DragEvent
@@ -18574,7 +18785,7 @@ SyntheticMouseEvent.augmentClass(SyntheticDragEvent, DragEventInterface);
 module.exports = SyntheticDragEvent;
 
 /***/ }),
-/* 146 */
+/* 151 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18615,7 +18826,7 @@ SyntheticUIEvent.augmentClass(SyntheticFocusEvent, FocusEventInterface);
 module.exports = SyntheticFocusEvent;
 
 /***/ }),
-/* 147 */
+/* 152 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18631,7 +18842,7 @@ module.exports = SyntheticFocusEvent;
 
 
 
-var SyntheticEvent = __webpack_require__(11);
+var SyntheticEvent = __webpack_require__(12);
 
 /**
  * @interface Event
@@ -18657,7 +18868,7 @@ SyntheticEvent.augmentClass(SyntheticInputEvent, InputEventInterface);
 module.exports = SyntheticInputEvent;
 
 /***/ }),
-/* 148 */
+/* 153 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18675,9 +18886,9 @@ module.exports = SyntheticInputEvent;
 
 var SyntheticUIEvent = __webpack_require__(25);
 
-var getEventCharCode = __webpack_require__(47);
-var getEventKey = __webpack_require__(157);
-var getEventModifierState = __webpack_require__(48);
+var getEventCharCode = __webpack_require__(42);
+var getEventKey = __webpack_require__(162);
+var getEventModifierState = __webpack_require__(43);
 
 /**
  * @interface KeyboardEvent
@@ -18746,7 +18957,7 @@ SyntheticUIEvent.augmentClass(SyntheticKeyboardEvent, KeyboardEventInterface);
 module.exports = SyntheticKeyboardEvent;
 
 /***/ }),
-/* 149 */
+/* 154 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18764,7 +18975,7 @@ module.exports = SyntheticKeyboardEvent;
 
 var SyntheticUIEvent = __webpack_require__(25);
 
-var getEventModifierState = __webpack_require__(48);
+var getEventModifierState = __webpack_require__(43);
 
 /**
  * @interface TouchEvent
@@ -18796,7 +19007,7 @@ SyntheticUIEvent.augmentClass(SyntheticTouchEvent, TouchEventInterface);
 module.exports = SyntheticTouchEvent;
 
 /***/ }),
-/* 150 */
+/* 155 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18812,7 +19023,7 @@ module.exports = SyntheticTouchEvent;
 
 
 
-var SyntheticEvent = __webpack_require__(11);
+var SyntheticEvent = __webpack_require__(12);
 
 /**
  * @interface Event
@@ -18840,7 +19051,7 @@ SyntheticEvent.augmentClass(SyntheticTransitionEvent, TransitionEventInterface);
 module.exports = SyntheticTransitionEvent;
 
 /***/ }),
-/* 151 */
+/* 156 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18856,7 +19067,7 @@ module.exports = SyntheticTransitionEvent;
 
 
 
-var SyntheticMouseEvent = __webpack_require__(32);
+var SyntheticMouseEvent = __webpack_require__(28);
 
 /**
  * @interface WheelEvent
@@ -18899,7 +19110,7 @@ SyntheticMouseEvent.augmentClass(SyntheticWheelEvent, WheelEventInterface);
 module.exports = SyntheticWheelEvent;
 
 /***/ }),
-/* 152 */
+/* 157 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18948,7 +19159,7 @@ function adler32(data) {
 module.exports = adler32;
 
 /***/ }),
-/* 153 */
+/* 158 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18964,12 +19175,13 @@ module.exports = adler32;
 
 
 
-var _prodInvariant = __webpack_require__(2);
+var _prodInvariant = __webpack_require__(3);
 
-var ReactPropTypeLocationNames = __webpack_require__(132);
+var ReactPropTypeLocationNames = __webpack_require__(138);
+var ReactPropTypesSecret = __webpack_require__(67);
 
 var invariant = __webpack_require__(1);
-var warning = __webpack_require__(3);
+var warning = __webpack_require__(2);
 
 var ReactComponentTreeHook;
 
@@ -18993,12 +19205,10 @@ var loggedTypeFailures = {};
  * @param {string} location e.g. "prop", "context", "child context"
  * @param {string} componentName Name of the component for error messages.
  * @param {?object} element The React element that is being type-checked
- * @param {?number} workInProgressOrDebugID The React component instance that is being type-checked
+ * @param {?number} debugID The React component instance that is being type-checked
  * @private
  */
-function checkReactTypeSpec(typeSpecs, values, location, componentName, element,
-// It is only safe to pass fiber if it is the work-in-progress version, and
-workInProgressOrDebugID) {
+function checkReactTypeSpec(typeSpecs, values, location, componentName, element, debugID) {
   for (var typeSpecName in typeSpecs) {
     if (typeSpecs.hasOwnProperty(typeSpecName)) {
       var error;
@@ -19009,7 +19219,7 @@ workInProgressOrDebugID) {
         // This is intentionally an invariant that gets caught. It's the same
         // behavior as without this statement except with a better message.
         !(typeof typeSpecs[typeSpecName] === 'function') ? process.env.NODE_ENV !== 'production' ? invariant(false, '%s: %s type `%s` is invalid; it must be a function, usually from React.PropTypes.', componentName || 'React class', ReactPropTypeLocationNames[location], typeSpecName) : _prodInvariant('84', componentName || 'React class', ReactPropTypeLocationNames[location], typeSpecName) : void 0;
-        error = typeSpecs[typeSpecName](values, typeSpecName, componentName, location);
+        error = typeSpecs[typeSpecName](values, typeSpecName, componentName, location, null, ReactPropTypesSecret);
       } catch (ex) {
         error = ex;
       }
@@ -19025,18 +19235,8 @@ workInProgressOrDebugID) {
           if (!ReactComponentTreeHook) {
             ReactComponentTreeHook = __webpack_require__(7);
           }
-          if (workInProgressOrDebugID != null) {
-            if (typeof workInProgressOrDebugID === 'number') {
-              // DebugID from Stack.
-              var debugID = workInProgressOrDebugID;
-              componentStackInfo = ReactComponentTreeHook.getStackAddendumByID(debugID);
-            } else if (typeof workInProgressOrDebugID.tag === 'number') {
-              // This is a Fiber.
-              // The stack will only be correct if this is a work in progress
-              // version and we're calling it during reconciliation.
-              var workInProgress = workInProgressOrDebugID;
-              componentStackInfo = ReactComponentTreeHook.getStackAddendumByWorkInProgressFiber(workInProgress);
-            }
+          if (debugID !== null) {
+            componentStackInfo = ReactComponentTreeHook.getStackAddendumByID(debugID);
           } else if (element !== null) {
             componentStackInfo = ReactComponentTreeHook.getCurrentStackAddendum(element);
           }
@@ -19052,11 +19252,11 @@ module.exports = checkReactTypeSpec;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 154 */
+/* 159 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/**
+/* WEBPACK VAR INJECTION */(function(process) {/**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
  *
@@ -19068,9 +19268,11 @@ module.exports = checkReactTypeSpec;
 
 
 
-var CSSProperty = __webpack_require__(61);
+var CSSProperty = __webpack_require__(56);
+var warning = __webpack_require__(2);
 
 var isUnitlessNumber = CSSProperty.isUnitlessNumber;
+var styleWarnings = {};
 
 /**
  * Convert a value into the proper css writable value. The style name `name`
@@ -19098,17 +19300,110 @@ function dangerousStyleValue(name, value, component) {
     return '';
   }
 
-  if (typeof value === 'number' && value !== 0 && !(isUnitlessNumber.hasOwnProperty(name) && isUnitlessNumber[name])) {
-    return value + 'px'; // Presumes implicit 'px' suffix for unitless numbers
+  var isNonNumeric = isNaN(value);
+  if (isNonNumeric || value === 0 || isUnitlessNumber.hasOwnProperty(name) && isUnitlessNumber[name]) {
+    return '' + value; // cast to string
   }
 
-  return ('' + value).trim();
+  if (typeof value === 'string') {
+    if (process.env.NODE_ENV !== 'production') {
+      // Allow '0' to pass through without warning. 0 is already special and
+      // doesn't require units, so we don't need to warn about it.
+      if (component && value !== '0') {
+        var owner = component._currentElement._owner;
+        var ownerName = owner ? owner.getName() : null;
+        if (ownerName && !styleWarnings[ownerName]) {
+          styleWarnings[ownerName] = {};
+        }
+        var warned = false;
+        if (ownerName) {
+          var warnings = styleWarnings[ownerName];
+          warned = warnings[name];
+          if (!warned) {
+            warnings[name] = true;
+          }
+        }
+        if (!warned) {
+          process.env.NODE_ENV !== 'production' ? warning(false, 'a `%s` tag (owner: `%s`) was passed a numeric string value ' + 'for CSS property `%s` (value: `%s`) which will be treated ' + 'as a unitless number in a future version of React.', component._currentElement.type, ownerName || 'unknown', name, value) : void 0;
+        }
+      }
+    }
+    value = value.trim();
+  }
+  return value + 'px';
 }
 
 module.exports = dangerousStyleValue;
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 155 */
+/* 160 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(process) {/**
+ * Copyright 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+
+
+var _prodInvariant = __webpack_require__(3);
+
+var ReactCurrentOwner = __webpack_require__(11);
+var ReactDOMComponentTree = __webpack_require__(5);
+var ReactInstanceMap = __webpack_require__(24);
+
+var getHostComponentFromComposite = __webpack_require__(71);
+var invariant = __webpack_require__(1);
+var warning = __webpack_require__(2);
+
+/**
+ * Returns the DOM node rendered by this element.
+ *
+ * See https://facebook.github.io/react/docs/top-level-api.html#reactdom.finddomnode
+ *
+ * @param {ReactComponent|DOMElement} componentOrElement
+ * @return {?DOMElement} The root node of this element.
+ */
+function findDOMNode(componentOrElement) {
+  if (process.env.NODE_ENV !== 'production') {
+    var owner = ReactCurrentOwner.current;
+    if (owner !== null) {
+      process.env.NODE_ENV !== 'production' ? warning(owner._warnedAboutRefsInRender, '%s is accessing findDOMNode inside its render(). ' + 'render() should be a pure function of props and state. It should ' + 'never access something that requires stale data from the previous ' + 'render, such as refs. Move this logic to componentDidMount and ' + 'componentDidUpdate instead.', owner.getName() || 'A component') : void 0;
+      owner._warnedAboutRefsInRender = true;
+    }
+  }
+  if (componentOrElement == null) {
+    return null;
+  }
+  if (componentOrElement.nodeType === 1) {
+    return componentOrElement;
+  }
+
+  var inst = ReactInstanceMap.get(componentOrElement);
+  if (inst) {
+    inst = getHostComponentFromComposite(inst);
+    return inst ? ReactDOMComponentTree.getNodeFromInstance(inst) : null;
+  }
+
+  if (typeof componentOrElement.render === 'function') {
+     true ? process.env.NODE_ENV !== 'production' ? invariant(false, 'findDOMNode was called on an unmounted component.') : _prodInvariant('44') : void 0;
+  } else {
+     true ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Element appears to be neither ReactComponent nor DOMNode (keys: %s)', Object.keys(componentOrElement)) : _prodInvariant('45', Object.keys(componentOrElement)) : void 0;
+  }
+}
+
+module.exports = findDOMNode;
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 161 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19125,9 +19420,9 @@ module.exports = dangerousStyleValue;
 
 
 
-var KeyEscapeUtils = __webpack_require__(41);
-var traverseAllChildren = __webpack_require__(81);
-var warning = __webpack_require__(3);
+var KeyEscapeUtils = __webpack_require__(36);
+var traverseAllChildren = __webpack_require__(76);
+var warning = __webpack_require__(2);
 
 var ReactComponentTreeHook;
 
@@ -19190,55 +19485,7 @@ module.exports = flattenChildren;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 156 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _prodInvariant = __webpack_require__(2);
-
-/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-var ReactInstanceMap = __webpack_require__(19);
-
-var emptyObject = __webpack_require__(53);
-var invariant = __webpack_require__(1);
-
-var getContextFiber = function (arg) {
-  invariant(false, 'Missing injection for fiber getContextForSubtree');
-};
-
-function getContextForSubtree(parentComponent) {
-  if (!parentComponent) {
-    return emptyObject;
-  }
-
-  var instance = ReactInstanceMap.get(parentComponent);
-  if (typeof instance.tag === 'number') {
-    return getContextFiber(instance);
-  } else {
-    return instance._processChildContext(instance._context);
-  }
-}
-
-getContextForSubtree._injectFiber = function (fn) {
-  getContextFiber = fn;
-};
-
-module.exports = getContextForSubtree;
-
-/***/ }),
-/* 157 */
+/* 162 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19254,7 +19501,7 @@ module.exports = getContextForSubtree;
 
 
 
-var getEventCharCode = __webpack_require__(47);
+var getEventCharCode = __webpack_require__(42);
 
 /**
  * Normalization of deprecated HTML5 `key` values
@@ -19345,7 +19592,7 @@ function getEventKey(nativeEvent) {
 module.exports = getEventKey;
 
 /***/ }),
-/* 158 */
+/* 163 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19391,7 +19638,7 @@ function getIteratorFn(maybeIterable) {
 module.exports = getIteratorFn;
 
 /***/ }),
-/* 159 */
+/* 164 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19417,7 +19664,7 @@ function getNextDebugID() {
 module.exports = getNextDebugID;
 
 /***/ }),
-/* 160 */
+/* 165 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19496,7 +19743,7 @@ function getNodeForCharacterOffset(root, offset) {
 module.exports = getNodeForCharacterOffset;
 
 /***/ }),
-/* 161 */
+/* 166 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19602,7 +19849,7 @@ function getVendorPrefixedEventName(eventName) {
 module.exports = getVendorPrefixedEventName;
 
 /***/ }),
-/* 162 */
+/* 167 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19618,7 +19865,7 @@ module.exports = getVendorPrefixedEventName;
 
 
 
-var escapeTextContentForBrowser = __webpack_require__(34);
+var escapeTextContentForBrowser = __webpack_require__(30);
 
 /**
  * Escapes attribute value to prevent scripting attacks.
@@ -19633,834 +19880,28 @@ function quoteAttributeValueForBrowser(value) {
 module.exports = quoteAttributeValueForBrowser;
 
 /***/ }),
-/* 163 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {
-
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * @typechecks
- */
-
-var emptyFunction = __webpack_require__(13);
-
-/**
- * Upstream version of event listener. Does not take into account specific
- * nature of platform.
- */
-var EventListener = {
-  /**
-   * Listen to DOM events during the bubble phase.
-   *
-   * @param {DOMEventTarget} target DOM element to register listener on.
-   * @param {string} eventType Event type, e.g. 'click' or 'mouseover'.
-   * @param {function} callback Callback function.
-   * @return {object} Object with a `remove` method.
-   */
-  listen: function listen(target, eventType, callback) {
-    if (target.addEventListener) {
-      target.addEventListener(eventType, callback, false);
-      return {
-        remove: function remove() {
-          target.removeEventListener(eventType, callback, false);
-        }
-      };
-    } else if (target.attachEvent) {
-      target.attachEvent('on' + eventType, callback);
-      return {
-        remove: function remove() {
-          target.detachEvent('on' + eventType, callback);
-        }
-      };
-    }
-  },
-
-  /**
-   * Listen to DOM events during the capture phase.
-   *
-   * @param {DOMEventTarget} target DOM element to register listener on.
-   * @param {string} eventType Event type, e.g. 'click' or 'mouseover'.
-   * @param {function} callback Callback function.
-   * @return {object} Object with a `remove` method.
-   */
-  capture: function capture(target, eventType, callback) {
-    if (target.addEventListener) {
-      target.addEventListener(eventType, callback, true);
-      return {
-        remove: function remove() {
-          target.removeEventListener(eventType, callback, true);
-        }
-      };
-    } else {
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('Attempted to listen to events during the capture phase on a ' + 'browser that does not support the capture phase. Your application ' + 'will not receive some events.');
-      }
-      return {
-        remove: emptyFunction
-      };
-    }
-  },
-
-  registerDefault: function registerDefault() {}
-};
-
-module.exports = EventListener;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 164 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * @typechecks
- */
-
-var _hyphenPattern = /-(.)/g;
-
-/**
- * Camelcases a hyphenated string, for example:
- *
- *   > camelize('background-color')
- *   < "backgroundColor"
- *
- * @param {string} string
- * @return {string}
- */
-function camelize(string) {
-  return string.replace(_hyphenPattern, function (_, character) {
-    return character.toUpperCase();
-  });
-}
-
-module.exports = camelize;
-
-/***/ }),
-/* 165 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * @typechecks
- */
-
-
-
-var camelize = __webpack_require__(164);
-
-var msPattern = /^-ms-/;
-
-/**
- * Camelcases a hyphenated CSS property name, for example:
- *
- *   > camelizeStyleName('background-color')
- *   < "backgroundColor"
- *   > camelizeStyleName('-moz-transition')
- *   < "MozTransition"
- *   > camelizeStyleName('-ms-transition')
- *   < "msTransition"
- *
- * As Andi Smith suggests
- * (http://www.andismith.com/blog/2012/02/modernizr-prefixed/), an `-ms` prefix
- * is converted to lowercase `ms`.
- *
- * @param {string} string
- * @return {string}
- */
-function camelizeStyleName(string) {
-  return camelize(string.replace(msPattern, 'ms-'));
-}
-
-module.exports = camelizeStyleName;
-
-/***/ }),
-/* 166 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-var isTextNode = __webpack_require__(174);
-
-/*eslint-disable no-bitwise */
-
-/**
- * Checks if a given DOM node contains or is another DOM node.
- */
-function containsNode(outerNode, innerNode) {
-  if (!outerNode || !innerNode) {
-    return false;
-  } else if (outerNode === innerNode) {
-    return true;
-  } else if (isTextNode(outerNode)) {
-    return false;
-  } else if (isTextNode(innerNode)) {
-    return containsNode(outerNode, innerNode.parentNode);
-  } else if ('contains' in outerNode) {
-    return outerNode.contains(innerNode);
-  } else if (outerNode.compareDocumentPosition) {
-    return !!(outerNode.compareDocumentPosition(innerNode) & 16);
-  } else {
-    return false;
-  }
-}
-
-module.exports = containsNode;
-
-/***/ }),
-/* 167 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {
-
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * @typechecks
- */
-
-var invariant = __webpack_require__(1);
-
-/**
- * Convert array-like objects to arrays.
- *
- * This API assumes the caller knows the contents of the data type. For less
- * well defined inputs use createArrayFromMixed.
- *
- * @param {object|function|filelist} obj
- * @return {array}
- */
-function toArray(obj) {
-  var length = obj.length;
-
-  // Some browsers builtin objects can report typeof 'function' (e.g. NodeList
-  // in old versions of Safari).
-  !(!Array.isArray(obj) && (typeof obj === 'object' || typeof obj === 'function')) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'toArray: Array-like object expected') : invariant(false) : void 0;
-
-  !(typeof length === 'number') ? process.env.NODE_ENV !== 'production' ? invariant(false, 'toArray: Object needs a length property') : invariant(false) : void 0;
-
-  !(length === 0 || length - 1 in obj) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'toArray: Object should have keys for indices') : invariant(false) : void 0;
-
-  !(typeof obj.callee !== 'function') ? process.env.NODE_ENV !== 'production' ? invariant(false, 'toArray: Object can\'t be `arguments`. Use rest params ' + '(function(...args) {}) or Array.from() instead.') : invariant(false) : void 0;
-
-  // Old IE doesn't give collections access to hasOwnProperty. Assume inputs
-  // without method will throw during the slice call and skip straight to the
-  // fallback.
-  if (obj.hasOwnProperty) {
-    try {
-      return Array.prototype.slice.call(obj);
-    } catch (e) {
-      // IE < 9 does not support Array#slice on collections objects
-    }
-  }
-
-  // Fall back to copying key by key. This assumes all keys have a value,
-  // so will not preserve sparsely populated inputs.
-  var ret = Array(length);
-  for (var ii = 0; ii < length; ii++) {
-    ret[ii] = obj[ii];
-  }
-  return ret;
-}
-
-/**
- * Perform a heuristic test to determine if an object is "array-like".
- *
- *   A monk asked Joshu, a Zen master, "Has a dog Buddha nature?"
- *   Joshu replied: "Mu."
- *
- * This function determines if its argument has "array nature": it returns
- * true if the argument is an actual array, an `arguments' object, or an
- * HTMLCollection (e.g. node.childNodes or node.getElementsByTagName()).
- *
- * It will return false for other array-like objects like Filelist.
- *
- * @param {*} obj
- * @return {boolean}
- */
-function hasArrayNature(obj) {
-  return (
-    // not null/false
-    !!obj && (
-    // arrays are objects, NodeLists are functions in Safari
-    typeof obj == 'object' || typeof obj == 'function') &&
-    // quacks like an array
-    'length' in obj &&
-    // not window
-    !('setInterval' in obj) &&
-    // no DOM node should be considered an array-like
-    // a 'select' element has 'length' and 'item' properties on IE8
-    typeof obj.nodeType != 'number' && (
-    // a real array
-    Array.isArray(obj) ||
-    // arguments
-    'callee' in obj ||
-    // HTMLCollection/NodeList
-    'item' in obj)
-  );
-}
-
-/**
- * Ensure that the argument is an array by wrapping it in an array if it is not.
- * Creates a copy of the argument if it is already an array.
- *
- * This is mostly useful idiomatically:
- *
- *   var createArrayFromMixed = require('createArrayFromMixed');
- *
- *   function takesOneOrMoreThings(things) {
- *     things = createArrayFromMixed(things);
- *     ...
- *   }
- *
- * This allows you to treat `things' as an array, but accept scalars in the API.
- *
- * If you need to convert an array-like object, like `arguments`, into an array
- * use toArray instead.
- *
- * @param {*} obj
- * @return {array}
- */
-function createArrayFromMixed(obj) {
-  if (!hasArrayNature(obj)) {
-    return [obj];
-  } else if (Array.isArray(obj)) {
-    return obj.slice();
-  } else {
-    return toArray(obj);
-  }
-}
-
-module.exports = createArrayFromMixed;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
 /* 168 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/* WEBPACK VAR INJECTION */(function(process) {
-
 /**
- * Copyright (c) 2013-present, Facebook, Inc.
+ * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  *
- * @typechecks
  */
 
-/*eslint-disable fb-www/unsafe-html*/
 
-var ExecutionEnvironment = __webpack_require__(6);
 
-var createArrayFromMixed = __webpack_require__(167);
-var getMarkupWrap = __webpack_require__(169);
-var invariant = __webpack_require__(1);
+var ReactMount = __webpack_require__(65);
 
-/**
- * Dummy container used to render all markup.
- */
-var dummyNode = ExecutionEnvironment.canUseDOM ? document.createElement('div') : null;
-
-/**
- * Pattern used by `getNodeName`.
- */
-var nodeNamePattern = /^\s*<(\w+)/;
-
-/**
- * Extracts the `nodeName` of the first element in a string of markup.
- *
- * @param {string} markup String of markup.
- * @return {?string} Node name of the supplied markup.
- */
-function getNodeName(markup) {
-  var nodeNameMatch = markup.match(nodeNamePattern);
-  return nodeNameMatch && nodeNameMatch[1].toLowerCase();
-}
-
-/**
- * Creates an array containing the nodes rendered from the supplied markup. The
- * optionally supplied `handleScript` function will be invoked once for each
- * <script> element that is rendered. If no `handleScript` function is supplied,
- * an exception is thrown if any <script> elements are rendered.
- *
- * @param {string} markup A string of valid HTML markup.
- * @param {?function} handleScript Invoked once for each rendered <script>.
- * @return {array<DOMElement|DOMTextNode>} An array of rendered nodes.
- */
-function createNodesFromMarkup(markup, handleScript) {
-  var node = dummyNode;
-  !!!dummyNode ? process.env.NODE_ENV !== 'production' ? invariant(false, 'createNodesFromMarkup dummy not initialized') : invariant(false) : void 0;
-  var nodeName = getNodeName(markup);
-
-  var wrap = nodeName && getMarkupWrap(nodeName);
-  if (wrap) {
-    node.innerHTML = wrap[1] + markup + wrap[2];
-
-    var wrapDepth = wrap[0];
-    while (wrapDepth--) {
-      node = node.lastChild;
-    }
-  } else {
-    node.innerHTML = markup;
-  }
-
-  var scripts = node.getElementsByTagName('script');
-  if (scripts.length) {
-    !handleScript ? process.env.NODE_ENV !== 'production' ? invariant(false, 'createNodesFromMarkup(...): Unexpected <script> element rendered.') : invariant(false) : void 0;
-    createArrayFromMixed(scripts).forEach(handleScript);
-  }
-
-  var nodes = Array.from(node.childNodes);
-  while (node.lastChild) {
-    node.removeChild(node.lastChild);
-  }
-  return nodes;
-}
-
-module.exports = createNodesFromMarkup;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+module.exports = ReactMount.renderSubtreeIntoContainer;
 
 /***/ }),
 /* 169 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(process) {
-
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
-/*eslint-disable fb-www/unsafe-html */
-
-var ExecutionEnvironment = __webpack_require__(6);
-
-var invariant = __webpack_require__(1);
-
-/**
- * Dummy container used to detect which wraps are necessary.
- */
-var dummyNode = ExecutionEnvironment.canUseDOM ? document.createElement('div') : null;
-
-/**
- * Some browsers cannot use `innerHTML` to render certain elements standalone,
- * so we wrap them, render the wrapped nodes, then extract the desired node.
- *
- * In IE8, certain elements cannot render alone, so wrap all elements ('*').
- */
-
-var shouldWrap = {};
-
-var selectWrap = [1, '<select multiple="true">', '</select>'];
-var tableWrap = [1, '<table>', '</table>'];
-var trWrap = [3, '<table><tbody><tr>', '</tr></tbody></table>'];
-
-var svgWrap = [1, '<svg xmlns="http://www.w3.org/2000/svg">', '</svg>'];
-
-var markupWrap = {
-  '*': [1, '?<div>', '</div>'],
-
-  'area': [1, '<map>', '</map>'],
-  'col': [2, '<table><tbody></tbody><colgroup>', '</colgroup></table>'],
-  'legend': [1, '<fieldset>', '</fieldset>'],
-  'param': [1, '<object>', '</object>'],
-  'tr': [2, '<table><tbody>', '</tbody></table>'],
-
-  'optgroup': selectWrap,
-  'option': selectWrap,
-
-  'caption': tableWrap,
-  'colgroup': tableWrap,
-  'tbody': tableWrap,
-  'tfoot': tableWrap,
-  'thead': tableWrap,
-
-  'td': trWrap,
-  'th': trWrap
-};
-
-// Initialize the SVG elements since we know they'll always need to be wrapped
-// consistently. If they are created inside a <div> they will be initialized in
-// the wrong namespace (and will not display).
-var svgElements = ['circle', 'clipPath', 'defs', 'ellipse', 'g', 'image', 'line', 'linearGradient', 'mask', 'path', 'pattern', 'polygon', 'polyline', 'radialGradient', 'rect', 'stop', 'text', 'tspan'];
-svgElements.forEach(function (nodeName) {
-  markupWrap[nodeName] = svgWrap;
-  shouldWrap[nodeName] = true;
-});
-
-/**
- * Gets the markup wrap configuration for the supplied `nodeName`.
- *
- * NOTE: This lazily detects which wraps are necessary for the current browser.
- *
- * @param {string} nodeName Lowercase `nodeName`.
- * @return {?array} Markup wrap configuration, if applicable.
- */
-function getMarkupWrap(nodeName) {
-  !!!dummyNode ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Markup wrapping node not initialized') : invariant(false) : void 0;
-  if (!markupWrap.hasOwnProperty(nodeName)) {
-    nodeName = '*';
-  }
-  if (!shouldWrap.hasOwnProperty(nodeName)) {
-    if (nodeName === '*') {
-      dummyNode.innerHTML = '<link />';
-    } else {
-      dummyNode.innerHTML = '<' + nodeName + '></' + nodeName + '>';
-    }
-    shouldWrap[nodeName] = !dummyNode.firstChild;
-  }
-  return shouldWrap[nodeName] ? markupWrap[nodeName] : null;
-}
-
-module.exports = getMarkupWrap;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 170 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * @typechecks
- */
-
-
-
-/**
- * Gets the scroll position of the supplied element or window.
- *
- * The return values are unbounded, unlike `getScrollPosition`. This means they
- * may be negative or exceed the element boundaries (which is possible using
- * inertial scrolling).
- *
- * @param {DOMWindow|DOMElement} scrollable
- * @return {object} Map with `x` and `y` keys.
- */
-
-function getUnboundedScrollPosition(scrollable) {
-  if (scrollable === window) {
-    return {
-      x: window.pageXOffset || document.documentElement.scrollLeft,
-      y: window.pageYOffset || document.documentElement.scrollTop
-    };
-  }
-  return {
-    x: scrollable.scrollLeft,
-    y: scrollable.scrollTop
-  };
-}
-
-module.exports = getUnboundedScrollPosition;
-
-/***/ }),
-/* 171 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * @typechecks
- */
-
-var _uppercasePattern = /([A-Z])/g;
-
-/**
- * Hyphenates a camelcased string, for example:
- *
- *   > hyphenate('backgroundColor')
- *   < "background-color"
- *
- * For CSS style names, use `hyphenateStyleName` instead which works properly
- * with all vendor prefixes, including `ms`.
- *
- * @param {string} string
- * @return {string}
- */
-function hyphenate(string) {
-  return string.replace(_uppercasePattern, '-$1').toLowerCase();
-}
-
-module.exports = hyphenate;
-
-/***/ }),
-/* 172 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * @typechecks
- */
-
-
-
-var hyphenate = __webpack_require__(171);
-
-var msPattern = /^ms-/;
-
-/**
- * Hyphenates a camelcased CSS property name, for example:
- *
- *   > hyphenateStyleName('backgroundColor')
- *   < "background-color"
- *   > hyphenateStyleName('MozTransition')
- *   < "-moz-transition"
- *   > hyphenateStyleName('msTransition')
- *   < "-ms-transition"
- *
- * As Modernizr suggests (http://modernizr.com/docs/#prefixed), an `ms` prefix
- * is converted to `-ms-`.
- *
- * @param {string} string
- * @return {string}
- */
-function hyphenateStyleName(string) {
-  return hyphenate(string).replace(msPattern, '-ms-');
-}
-
-module.exports = hyphenateStyleName;
-
-/***/ }),
-/* 173 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * @typechecks
- */
-
-/**
- * @param {*} object The object to check.
- * @return {boolean} Whether or not the object is a DOM node.
- */
-function isNode(object) {
-  return !!(object && (typeof Node === 'function' ? object instanceof Node : typeof object === 'object' && typeof object.nodeType === 'number' && typeof object.nodeName === 'string'));
-}
-
-module.exports = isNode;
-
-/***/ }),
-/* 174 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * @typechecks
- */
-
-var isNode = __webpack_require__(173);
-
-/**
- * @param {*} object The object to check.
- * @return {boolean} Whether or not the object is a DOM text node.
- */
-function isTextNode(object) {
-  return isNode(object) && object.nodeType == 3;
-}
-
-module.exports = isTextNode;
-
-/***/ }),
-/* 175 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- * @typechecks static-only
- */
-
-
-
-/**
- * Memoizes the return value of a function that accepts one string argument.
- */
-
-function memoizeStringOnly(callback) {
-  var cache = {};
-  return function (string) {
-    if (!cache.hasOwnProperty(string)) {
-      cache[string] = callback.call(this, string);
-    }
-    return cache[string];
-  };
-}
-
-module.exports = memoizeStringOnly;
-
-/***/ }),
-/* 176 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * @typechecks
- */
-
-
-
-var ExecutionEnvironment = __webpack_require__(6);
-
-var performance;
-
-if (ExecutionEnvironment.canUseDOM) {
-  performance = window.performance || window.msPerformance || window.webkitPerformance;
-}
-
-module.exports = performance || {};
-
-/***/ }),
-/* 177 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-/**
- * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * @typechecks
- */
-
-var performance = __webpack_require__(176);
-
-var performanceNow;
-
-/**
- * Detect if we can use `window.performance.now()` and gracefully fallback to
- * `Date.now()` if it doesn't exist. We need to support Firefox < 15 for now
- * because of Facebook's testing infrastructure.
- */
-if (performance.now) {
-  performanceNow = function performanceNow() {
-    return performance.now();
-  };
-} else {
-  performanceNow = function performanceNow() {
-    return Date.now();
-  };
-}
-
-module.exports = performanceNow;
-
-/***/ }),
-/* 178 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20524,7 +19965,7 @@ var KeyEscapeUtils = {
 module.exports = KeyEscapeUtils;
 
 /***/ }),
-/* 179 */
+/* 170 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20541,9 +19982,9 @@ module.exports = KeyEscapeUtils;
 
 
 
-var _prodInvariant = __webpack_require__(14);
+var _prodInvariant = __webpack_require__(16);
 
-var invariant = __webpack_require__(15);
+var invariant = __webpack_require__(1);
 
 /**
  * Static poolers. Several custom versions for each potential number of
@@ -20642,7 +20083,7 @@ module.exports = PooledClass;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 180 */
+/* 171 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20658,11 +20099,11 @@ module.exports = PooledClass;
 
 
 
-var PooledClass = __webpack_require__(179);
-var ReactElement = __webpack_require__(17);
+var PooledClass = __webpack_require__(170);
+var ReactElement = __webpack_require__(15);
 
-var emptyFunction = __webpack_require__(59);
-var traverseAllChildren = __webpack_require__(189);
+var emptyFunction = __webpack_require__(9);
+var traverseAllChildren = __webpack_require__(179);
 
 var twoArgumentPooler = PooledClass.twoArgumentPooler;
 var fourArgumentPooler = PooledClass.fourArgumentPooler;
@@ -20702,7 +20143,7 @@ function forEachSingleChild(bookKeeping, child, name) {
 /**
  * Iterates through children that are typically specified as `props.children`.
  *
- * See https://facebook.github.io/react/docs/react-api.html#react.children.foreach
+ * See https://facebook.github.io/react/docs/top-level-api.html#react.children.foreach
  *
  * The provided forEachFunc(child, index) will be called for each
  * leaf child.
@@ -20779,7 +20220,7 @@ function mapIntoWithKeyPrefixInternal(children, array, prefix, func, context) {
 /**
  * Maps children that are typically specified as `props.children`.
  *
- * See https://facebook.github.io/react/docs/react-api.html#react.children.map
+ * See https://facebook.github.io/react/docs/top-level-api.html#react.children.map
  *
  * The provided mapFunction(child, key, index) will be called for each
  * leaf child.
@@ -20806,7 +20247,7 @@ function forEachSingleChildDummy(traverseContext, child, name) {
  * Count the number of children that are typically specified as
  * `props.children`.
  *
- * See https://facebook.github.io/react/docs/react-api.html#react.children.count
+ * See https://facebook.github.io/react/docs/top-level-api.html#react.children.count
  *
  * @param {?*} children Children tree container.
  * @return {number} The number of children.
@@ -20819,7 +20260,7 @@ function countChildren(children, context) {
  * Flatten a children object (typically specified as `props.children`) and
  * return an array with appropriately re-keyed children.
  *
- * See https://facebook.github.io/react/docs/react-api.html#react.children.toarray
+ * See https://facebook.github.io/react/docs/top-level-api.html#react.children.toarray
  */
 function toArray(children) {
   var result = [];
@@ -20838,7 +20279,7 @@ var ReactChildren = {
 module.exports = ReactChildren;
 
 /***/ }),
-/* 181 */
+/* 172 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20854,17 +20295,17 @@ module.exports = ReactChildren;
 
 
 
-var _prodInvariant = __webpack_require__(14),
-    _assign = __webpack_require__(37);
+var _prodInvariant = __webpack_require__(16),
+    _assign = __webpack_require__(4);
 
-var ReactComponent = __webpack_require__(54);
-var ReactElement = __webpack_require__(17);
-var ReactPropTypeLocationNames = __webpack_require__(56);
-var ReactNoopUpdateQueue = __webpack_require__(55);
+var ReactComponent = __webpack_require__(48);
+var ReactElement = __webpack_require__(15);
+var ReactPropTypeLocationNames = __webpack_require__(50);
+var ReactNoopUpdateQueue = __webpack_require__(49);
 
-var emptyObject = __webpack_require__(60);
-var invariant = __webpack_require__(15);
-var warning = __webpack_require__(10);
+var emptyObject = __webpack_require__(21);
+var invariant = __webpack_require__(1);
+var warning = __webpack_require__(2);
 
 var MIXINS_KEY = 'mixins';
 
@@ -20878,6 +20319,8 @@ function identity(fn) {
  * Policies that describe methods in `ReactClassInterface`.
  */
 
+
+var injectedMixins = [];
 
 /**
  * Composite components are higher-level components that compose other composite
@@ -20993,6 +20436,7 @@ var ReactClassInterface = {
    *   }
    *
    * @return {ReactComponent}
+   * @nosideeffects
    * @required
    */
   render: 'DEFINE_ONCE',
@@ -21388,9 +20832,9 @@ function bindAutoBindMethod(component, method) {
       // ignore the value of "this" that the user is trying to use, so
       // let's warn.
       if (newThis !== component && newThis !== null) {
-        process.env.NODE_ENV !== 'production' ? warning(false, 'bind(): React component methods may only be bound to the ' + 'component instance.\n\nSee %s', componentName) : void 0;
+        process.env.NODE_ENV !== 'production' ? warning(false, 'bind(): React component methods may only be bound to the ' + 'component instance. See %s', componentName) : void 0;
       } else if (!args.length) {
-        process.env.NODE_ENV !== 'production' ? warning(false, 'bind(): You are binding a component method to the component. ' + 'React does this for you automatically in a high-performance ' + 'way, so you can safely remove this call.\n\nSee %s', componentName) : void 0;
+        process.env.NODE_ENV !== 'production' ? warning(false, 'bind(): You are binding a component method to the component. ' + 'React does this for you automatically in a high-performance ' + 'way, so you can safely remove this call. See %s', componentName) : void 0;
         return boundMethod;
       }
       var reboundMethod = _bind.apply(boundMethod, arguments);
@@ -21428,7 +20872,10 @@ var ReactClassMixin = {
    * type signature and the only use case for this, is to avoid that.
    */
   replaceState: function (newState, callback) {
-    this.updater.enqueueReplaceState(this, newState, callback, 'replaceState');
+    this.updater.enqueueReplaceState(this, newState);
+    if (callback) {
+      this.updater.enqueueCallback(this, callback, 'replaceState');
+    }
   },
 
   /**
@@ -21454,7 +20901,7 @@ var ReactClass = {
 
   /**
    * Creates a composite component class given a class specification.
-   * See https://facebook.github.io/react/docs/react-api.html#createclass
+   * See https://facebook.github.io/react/docs/top-level-api.html#react.createclass
    *
    * @param {object} spec Class specification (which must define `render`).
    * @return {function} Component constructor function.
@@ -21504,6 +20951,8 @@ var ReactClass = {
     Constructor.prototype.constructor = Constructor;
     Constructor.prototype.__reactAutoBindPairs = [];
 
+    injectedMixins.forEach(mixSpecIntoComponent.bind(null, Constructor));
+
     mixSpecIntoComponent(Constructor, spec);
 
     // Initialize the defaultProps property after all mixins have been merged.
@@ -21539,6 +20988,12 @@ var ReactClass = {
     }
 
     return Constructor;
+  },
+
+  injection: {
+    injectMixin: function (mixin) {
+      injectedMixins.push(mixin);
+    }
   }
 
 };
@@ -21547,7 +21002,7 @@ module.exports = ReactClass;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 182 */
+/* 173 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21563,7 +21018,7 @@ module.exports = ReactClass;
 
 
 
-var ReactElement = __webpack_require__(17);
+var ReactElement = __webpack_require__(15);
 
 /**
  * Create a factory that creates HTML tag elements.
@@ -21572,7 +21027,7 @@ var ReactElement = __webpack_require__(17);
  */
 var createDOMFactory = ReactElement.createFactory;
 if (process.env.NODE_ENV !== 'production') {
-  var ReactElementValidator = __webpack_require__(87);
+  var ReactElementValidator = __webpack_require__(78);
   createDOMFactory = ReactElementValidator.createFactory;
 }
 
@@ -21723,7 +21178,7 @@ module.exports = ReactDOMFactories;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 183 */
+/* 174 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21739,15 +21194,13 @@ module.exports = ReactDOMFactories;
 
 
 
-var _prodInvariant = __webpack_require__(14);
+var ReactElement = __webpack_require__(15);
+var ReactPropTypeLocationNames = __webpack_require__(50);
+var ReactPropTypesSecret = __webpack_require__(79);
 
-var ReactElement = __webpack_require__(17);
-var ReactPropTypeLocationNames = __webpack_require__(56);
-
-var emptyFunction = __webpack_require__(59);
-var getIteratorFn = __webpack_require__(58);
-var invariant = __webpack_require__(15);
-var warning = __webpack_require__(10);
+var emptyFunction = __webpack_require__(9);
+var getIteratorFn = __webpack_require__(52);
+var warning = __webpack_require__(2);
 
 /**
  * Collection of methods that allow declaration and validation of props that are
@@ -21798,58 +21251,25 @@ var warning = __webpack_require__(10);
 
 var ANONYMOUS = '<<anonymous>>';
 
-var ReactPropTypes;
+var ReactPropTypes = {
+  array: createPrimitiveTypeChecker('array'),
+  bool: createPrimitiveTypeChecker('boolean'),
+  func: createPrimitiveTypeChecker('function'),
+  number: createPrimitiveTypeChecker('number'),
+  object: createPrimitiveTypeChecker('object'),
+  string: createPrimitiveTypeChecker('string'),
+  symbol: createPrimitiveTypeChecker('symbol'),
 
-if (process.env.NODE_ENV !== 'production') {
-  // Keep in sync with production version below
-  ReactPropTypes = {
-    array: createPrimitiveTypeChecker('array'),
-    bool: createPrimitiveTypeChecker('boolean'),
-    func: createPrimitiveTypeChecker('function'),
-    number: createPrimitiveTypeChecker('number'),
-    object: createPrimitiveTypeChecker('object'),
-    string: createPrimitiveTypeChecker('string'),
-    symbol: createPrimitiveTypeChecker('symbol'),
-
-    any: createAnyTypeChecker(),
-    arrayOf: createArrayOfTypeChecker,
-    element: createElementTypeChecker(),
-    instanceOf: createInstanceTypeChecker,
-    node: createNodeChecker(),
-    objectOf: createObjectOfTypeChecker,
-    oneOf: createEnumTypeChecker,
-    oneOfType: createUnionTypeChecker,
-    shape: createShapeTypeChecker
-  };
-} else {
-  var productionTypeChecker = function () {
-    invariant(false, 'React.PropTypes type checking code is stripped in production.');
-  };
-  productionTypeChecker.isRequired = productionTypeChecker;
-  var getProductionTypeChecker = function () {
-    return productionTypeChecker;
-  };
-  // Keep in sync with development version above
-  ReactPropTypes = {
-    array: productionTypeChecker,
-    bool: productionTypeChecker,
-    func: productionTypeChecker,
-    number: productionTypeChecker,
-    object: productionTypeChecker,
-    string: productionTypeChecker,
-    symbol: productionTypeChecker,
-
-    any: productionTypeChecker,
-    arrayOf: getProductionTypeChecker,
-    element: productionTypeChecker,
-    instanceOf: getProductionTypeChecker,
-    node: productionTypeChecker,
-    objectOf: getProductionTypeChecker,
-    oneOf: getProductionTypeChecker,
-    oneOfType: getProductionTypeChecker,
-    shape: getProductionTypeChecker
-  };
-}
+  any: createAnyTypeChecker(),
+  arrayOf: createArrayOfTypeChecker,
+  element: createElementTypeChecker(),
+  instanceOf: createInstanceTypeChecker,
+  node: createNodeChecker(),
+  objectOf: createObjectOfTypeChecker,
+  oneOf: createEnumTypeChecker,
+  oneOfType: createUnionTypeChecker,
+  shape: createShapeTypeChecker
+};
 
 /**
  * inlined Object.is polyfill to avoid requiring consumers ship their own
@@ -21871,7 +21291,7 @@ function is(x, y) {
 
 /**
  * We use an Error-like object for backward compatibility as people may call
- * PropTypes directly and inspect their output. However, we don't use real
+ * PropTypes directly and inspect their output. However we don't use real
  * Errors anymore. We don't inspect their stack anyway, and creating them
  * is prohibitively expensive if they are created too often, such as what
  * happens in oneOfType() for any type before the one that matched.
@@ -21884,9 +21304,21 @@ function PropTypeError(message) {
 PropTypeError.prototype = Error.prototype;
 
 function createChainableTypeChecker(validate) {
-  function checkType(isRequired, props, propName, componentName, location, propFullName) {
+  if (process.env.NODE_ENV !== 'production') {
+    var manualPropTypeCallCache = {};
+  }
+  function checkType(isRequired, props, propName, componentName, location, propFullName, secret) {
     componentName = componentName || ANONYMOUS;
     propFullName = propFullName || propName;
+    if (process.env.NODE_ENV !== 'production') {
+      if (secret !== ReactPropTypesSecret && typeof console !== 'undefined') {
+        var cacheKey = componentName + ':' + propName;
+        if (!manualPropTypeCallCache[cacheKey]) {
+          process.env.NODE_ENV !== 'production' ? warning(false, 'You are manually calling a React.PropTypes validation ' + 'function for the `%s` prop on `%s`. This is deprecated ' + 'and will not work in production with the next major version. ' + 'You may be seeing this warning due to a third-party PropTypes ' + 'library. See https://fb.me/react-warning-dont-call-proptypes ' + 'for details.', propFullName, componentName) : void 0;
+          manualPropTypeCallCache[cacheKey] = true;
+        }
+      }
+    }
     if (props[propName] == null) {
       var locationName = ReactPropTypeLocationNames[location];
       if (isRequired) {
@@ -21908,7 +21340,7 @@ function createChainableTypeChecker(validate) {
 }
 
 function createPrimitiveTypeChecker(expectedType) {
-  function validate(props, propName, componentName, location, propFullName) {
+  function validate(props, propName, componentName, location, propFullName, secret) {
     var propValue = props[propName];
     var propType = getPropType(propValue);
     if (propType !== expectedType) {
@@ -21926,7 +21358,7 @@ function createPrimitiveTypeChecker(expectedType) {
 }
 
 function createAnyTypeChecker() {
-  return createChainableTypeChecker(emptyFunction.thatReturnsNull);
+  return createChainableTypeChecker(emptyFunction.thatReturns(null));
 }
 
 function createArrayOfTypeChecker(typeChecker) {
@@ -21941,7 +21373,7 @@ function createArrayOfTypeChecker(typeChecker) {
       return new PropTypeError('Invalid ' + locationName + ' `' + propFullName + '` of type ' + ('`' + propType + '` supplied to `' + componentName + '`, expected an array.'));
     }
     for (var i = 0; i < propValue.length; i++) {
-      var error = typeChecker(propValue, i, componentName, location, propFullName + '[' + i + ']');
+      var error = typeChecker(propValue, i, componentName, location, propFullName + '[' + i + ']', ReactPropTypesSecret);
       if (error instanceof Error) {
         return error;
       }
@@ -22011,7 +21443,7 @@ function createObjectOfTypeChecker(typeChecker) {
     }
     for (var key in propValue) {
       if (propValue.hasOwnProperty(key)) {
-        var error = typeChecker(propValue, key, componentName, location, propFullName + '.' + key);
+        var error = typeChecker(propValue, key, componentName, location, propFullName + '.' + key, ReactPropTypesSecret);
         if (error instanceof Error) {
           return error;
         }
@@ -22028,21 +21460,11 @@ function createUnionTypeChecker(arrayOfTypeCheckers) {
     return emptyFunction.thatReturnsNull;
   }
 
-  var errors = [];
-
   function validate(props, propName, componentName, location, propFullName) {
     for (var i = 0; i < arrayOfTypeCheckers.length; i++) {
       var checker = arrayOfTypeCheckers[i];
-      var checked = checker(props, propName, componentName, location, propFullName);
-      if (checked == null) {
+      if (checker(props, propName, componentName, location, propFullName, ReactPropTypesSecret) == null) {
         return null;
-      } else {
-        errors.push(checked);
-        if (errors.length >= arrayOfTypeCheckers.length) {
-          var lastError = errors[errors.length - 1];
-          errors = [];
-          return lastError;
-        }
       }
     }
 
@@ -22076,7 +21498,7 @@ function createShapeTypeChecker(shapeTypes) {
       if (!checker) {
         continue;
       }
-      var error = checker(propValue, key, componentName, location, propFullName + '.' + key);
+      var error = checker(propValue, key, componentName, location, propFullName + '.' + key, ReactPropTypesSecret);
       if (error) {
         return error;
       }
@@ -22196,7 +21618,7 @@ module.exports = ReactPropTypes;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 184 */
+/* 175 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22212,12 +21634,12 @@ module.exports = ReactPropTypes;
 
 
 
-var _assign = __webpack_require__(37);
+var _assign = __webpack_require__(4);
 
-var ReactComponent = __webpack_require__(54);
-var ReactNoopUpdateQueue = __webpack_require__(55);
+var ReactComponent = __webpack_require__(48);
+var ReactNoopUpdateQueue = __webpack_require__(49);
 
-var emptyObject = __webpack_require__(60);
+var emptyObject = __webpack_require__(21);
 
 /**
  * Base class helpers for the updating state of a component.
@@ -22243,39 +21665,7 @@ ReactPureComponent.prototype.isPureReactComponent = true;
 module.exports = ReactPureComponent;
 
 /***/ }),
-/* 185 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/**
- * Copyright 2013-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- */
-
-
-
-module.exports = {
-  IndeterminateComponent: 0, // Before we know whether it is functional or class
-  FunctionalComponent: 1,
-  ClassComponent: 2,
-  HostRoot: 3, // Root of a host tree. Could be nested inside another node.
-  HostPortal: 4, // A subtree. Could be an entry point to a different renderer.
-  HostComponent: 5,
-  HostText: 6,
-  CoroutineComponent: 7,
-  CoroutineHandlerPhase: 8,
-  YieldComponent: 9,
-  Fragment: 10
-};
-
-/***/ }),
-/* 186 */
+/* 176 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22291,10 +21681,10 @@ module.exports = {
 
 
 
-module.exports = '16.0.0-alpha.1';
+module.exports = '15.4.2';
 
 /***/ }),
-/* 187 */
+/* 177 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22310,12 +21700,13 @@ module.exports = '16.0.0-alpha.1';
 
 
 
-var _prodInvariant = __webpack_require__(14);
+var _prodInvariant = __webpack_require__(16);
 
-var ReactPropTypeLocationNames = __webpack_require__(56);
+var ReactPropTypeLocationNames = __webpack_require__(50);
+var ReactPropTypesSecret = __webpack_require__(79);
 
-var invariant = __webpack_require__(15);
-var warning = __webpack_require__(10);
+var invariant = __webpack_require__(1);
+var warning = __webpack_require__(2);
 
 var ReactComponentTreeHook;
 
@@ -22339,12 +21730,10 @@ var loggedTypeFailures = {};
  * @param {string} location e.g. "prop", "context", "child context"
  * @param {string} componentName Name of the component for error messages.
  * @param {?object} element The React element that is being type-checked
- * @param {?number} workInProgressOrDebugID The React component instance that is being type-checked
+ * @param {?number} debugID The React component instance that is being type-checked
  * @private
  */
-function checkReactTypeSpec(typeSpecs, values, location, componentName, element,
-// It is only safe to pass fiber if it is the work-in-progress version, and
-workInProgressOrDebugID) {
+function checkReactTypeSpec(typeSpecs, values, location, componentName, element, debugID) {
   for (var typeSpecName in typeSpecs) {
     if (typeSpecs.hasOwnProperty(typeSpecName)) {
       var error;
@@ -22355,7 +21744,7 @@ workInProgressOrDebugID) {
         // This is intentionally an invariant that gets caught. It's the same
         // behavior as without this statement except with a better message.
         !(typeof typeSpecs[typeSpecName] === 'function') ? process.env.NODE_ENV !== 'production' ? invariant(false, '%s: %s type `%s` is invalid; it must be a function, usually from React.PropTypes.', componentName || 'React class', ReactPropTypeLocationNames[location], typeSpecName) : _prodInvariant('84', componentName || 'React class', ReactPropTypeLocationNames[location], typeSpecName) : void 0;
-        error = typeSpecs[typeSpecName](values, typeSpecName, componentName, location);
+        error = typeSpecs[typeSpecName](values, typeSpecName, componentName, location, null, ReactPropTypesSecret);
       } catch (ex) {
         error = ex;
       }
@@ -22371,18 +21760,8 @@ workInProgressOrDebugID) {
           if (!ReactComponentTreeHook) {
             ReactComponentTreeHook = __webpack_require__(7);
           }
-          if (workInProgressOrDebugID != null) {
-            if (typeof workInProgressOrDebugID === 'number') {
-              // DebugID from Stack.
-              var debugID = workInProgressOrDebugID;
-              componentStackInfo = ReactComponentTreeHook.getStackAddendumByID(debugID);
-            } else if (typeof workInProgressOrDebugID.tag === 'number') {
-              // This is a Fiber.
-              // The stack will only be correct if this is a work in progress
-              // version and we're calling it during reconciliation.
-              var workInProgress = workInProgressOrDebugID;
-              componentStackInfo = ReactComponentTreeHook.getStackAddendumByWorkInProgressFiber(workInProgress);
-            }
+          if (debugID !== null) {
+            componentStackInfo = ReactComponentTreeHook.getStackAddendumByID(debugID);
           } else if (element !== null) {
             componentStackInfo = ReactComponentTreeHook.getCurrentStackAddendum(element);
           }
@@ -22398,7 +21777,7 @@ module.exports = checkReactTypeSpec;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 188 */
+/* 178 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22413,17 +21792,17 @@ module.exports = checkReactTypeSpec;
  */
 
 
-var _prodInvariant = __webpack_require__(14);
+var _prodInvariant = __webpack_require__(16);
 
-var ReactElement = __webpack_require__(17);
+var ReactElement = __webpack_require__(15);
 
-var invariant = __webpack_require__(15);
+var invariant = __webpack_require__(1);
 
 /**
  * Returns the first child in a collection of children and verifies that there
  * is only one child in the collection.
  *
- * See https://facebook.github.io/react/docs/react-api.html#react.children.only
+ * See https://facebook.github.io/react/docs/top-level-api.html#react.children.only
  *
  * The current implementation of this function assumes that a single child gets
  * passed without a wrapper, but the purpose of this helper function is to
@@ -22442,7 +21821,7 @@ module.exports = onlyChild;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 189 */
+/* 179 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22458,15 +21837,15 @@ module.exports = onlyChild;
 
 
 
-var _prodInvariant = __webpack_require__(14);
+var _prodInvariant = __webpack_require__(16);
 
-var ReactCurrentOwner = __webpack_require__(9);
-var REACT_ELEMENT_TYPE = __webpack_require__(86);
+var ReactCurrentOwner = __webpack_require__(11);
+var REACT_ELEMENT_TYPE = __webpack_require__(77);
 
-var getIteratorFn = __webpack_require__(58);
-var invariant = __webpack_require__(15);
-var KeyEscapeUtils = __webpack_require__(178);
-var warning = __webpack_require__(10);
+var getIteratorFn = __webpack_require__(52);
+var invariant = __webpack_require__(1);
+var KeyEscapeUtils = __webpack_require__(169);
+var warning = __webpack_require__(2);
 
 var SEPARATOR = '.';
 var SUBSEPARATOR = ':';
@@ -22558,7 +21937,7 @@ function traverseAllChildrenImpl(children, nameSoFar, callback, traverseContext)
           if (ReactCurrentOwner.current) {
             var mapsAsChildrenOwnerName = ReactCurrentOwner.current.getName();
             if (mapsAsChildrenOwnerName) {
-              mapsAsChildrenAddendum = '\n\nCheck the render method of `' + mapsAsChildrenOwnerName + '`.';
+              mapsAsChildrenAddendum = ' Check the render method of `' + mapsAsChildrenOwnerName + '`.';
             }
           }
           process.env.NODE_ENV !== 'production' ? warning(didWarnAboutMaps, 'Using Maps as children is not yet fully supported. It is an ' + 'experimental feature that might be removed. Convert it to a ' + 'sequence / iterable of keyed ReactElements instead.%s', mapsAsChildrenAddendum) : void 0;
@@ -22578,10 +21957,13 @@ function traverseAllChildrenImpl(children, nameSoFar, callback, traverseContext)
       var addendum = '';
       if (process.env.NODE_ENV !== 'production') {
         addendum = ' If you meant to render a collection of children, use an array ' + 'instead or wrap the object using createFragment(object) from the ' + 'React add-ons.';
+        if (children._isReactElement) {
+          addendum = ' It looks like you\'re using an element created by a different ' + 'version of React. Make sure to use only one copy of React.';
+        }
         if (ReactCurrentOwner.current) {
           var name = ReactCurrentOwner.current.getName();
           if (name) {
-            addendum += '\n\nCheck the render method of `' + name + '`.';
+            addendum += ' Check the render method of `' + name + '`.';
           }
         }
       }
@@ -22621,35 +22003,203 @@ module.exports = traverseAllChildren;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 190 */
+/* 180 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var React = __webpack_require__(90);
-var ReactDOM = __webpack_require__(89);
+var React = __webpack_require__(20);
+var MinimizedNote = __webpack_require__(182);
 
-var propTypes  = {
-  foo: React.PropTypes.oneOfType([
-       React.PropTypes.string,
-       React.PropTypes.shape({
-        bar: React.PropTypes.shape({
-          car: React.PropTypes.number
+var ClassTile = React.createClass({
+  displayName: 'ClassTile',
+
+  getInitialState: function() {
+    return {
+      shouldShowNotes: false,
+    };
+  },
+
+  propTypes: {
+    className: React.PropTypes.string.isRequired,
+    notes: React.PropTypes.arrayOf(
+      React.PropTypes.shape({
+        fileName: React.PropTypes.string.isRequired,
+        date: React.PropTypes.string.isRequired,
+        lectureNumber: React.PropTypes.string.isRequired,
+        className: React.PropTypes.string.isRequired,
+      }).isRequired
+    ).isRequired,
+  },
+
+  showNotes: function() {
+    console.log("showNotes");
+    return (
+      React.createElement('ul', {},
+        this.props.notes.map(function(note) {
+          return React.createElement(MinimizedNote,
+            {
+              fileName: note.fileName,
+              date: note.date,
+              lectureNumber: note.lectureNumber,
+              className: note.className,
+              shouldMinimize: !this.state.shouldShowNotes,
+            }
+          );
         })
-      })
-    ])
-};
+      )
+    );
+  },
 
-var rootElement = React.createElement('div', {}, "Contacts");
-
-var MyComponent = React.createClass({
-  displayName: "MyComponent",
   render: function() {
-    return rootElement;
+    return (
+      React.createElement('div',
+        { className: "class-tile" },
+        React.createElement('div', { className: "class-name" }, this.props.className),
+        this.state.shouldShowNotes && this.showNotes()
+       )
+    );
   }
 });
 
-MyComponent.propTypes = propTypes;
+module.exports = ClassTile;
 
-ReactDOM.render(React.createElement(MyComponent, { foo: { bar: "x" } }), document.getElementById('app'));
+
+/***/ }),
+/* 181 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var React = __webpack_require__(20);
+
+var LectureNote = React.createClass({
+  displayName: 'LectureNote',
+
+  propTypes: {
+    fileName: React.PropTypes.string.isRequired,
+  },
+
+  render: function() {
+    return (
+      React.createElement('div', { className: "lecture-note" }, /*get pdf*/)
+    );
+  }
+});
+
+module.exports = LectureNote;
+
+
+/***/ }),
+/* 182 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var React = __webpack_require__(20);
+var LectureNote = __webpack_require__(181);
+
+var MinimizedNote = React.createClass({
+  displayName: 'MinimizedNote',
+
+  getInitialState: function() {
+    return {
+      shouldExpandNote: false,
+    };
+  },
+
+  propTypes: {
+    fileName: React.PropTypes.string.isRequired,
+    date: React.PropTypes.string.isRequired,
+    lectureNumber: React.PropTypes.string.isRequired,
+    className: React.PropTypes.string.isRequired,
+    shouldMinimize: React.PropTypes.bool.isRequired,
+  },
+
+  componentWillReceiveProps: function(nextProps) {
+    if (nextProps.shouldMinimize) {
+      //make sure component level state is in sync with parent
+      //component TODO does this even matter? might be jumping the gun
+      this.setState({
+        shouldExpandNote: false,
+      });
+    }
+  },
+
+  toggleNote: function() {
+    this.setState({ shouldExpandNote: !this.state.shouldExpandNote });
+  },
+
+  render: function() {
+    return (
+      React.createElement('li', {
+        onClick: this.toggleNote,
+      },
+      this.state.shouldExpandNote ?
+      React.createElement(LectureNote, {
+        fileName: this.props.fileName,
+      }) :
+      this.props.fileName
+      )
+    );
+  }
+});
+
+module.exports = MinimizedNote;
+
+
+/***/ }),
+/* 183 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var React = __webpack_require__(20);
+var ReactDOM = __webpack_require__(82);
+var App = __webpack_require__(83);
+var getHeaderData = __webpack_require__(81);
+var allPdfsJSON = __webpack_require__(80);
+
+
+//[{ className: string, notes: [{fileName: string, date: string, lectureNumber: string, className: string}]}]
+
+function getFormattedClassNotes() {
+  var noteData = JSON.parse(allPdfsJSON);
+  var allFormattedNoteData = noteData.map(function(nameAndContent) {
+    var headerData = getHeaderData(nameAndContent.content);
+
+    return {
+      fileName: nameAndContent.fileName,
+      date: headerData.date,
+      lectureNumber: headerData.lectureNumber,
+      className: headerData.className
+    };
+  });
+
+  //group notes by className
+  var totalClasses = 0;
+  var groupedNotes = allFormattedNoteData.reduce(function(groups, noteData) {
+    if (groups[noteData.className]) {
+      groups[noteData.className].push(noteData);
+    } else {
+      totalClasses += 1;
+      groups[noteData.className] = [noteData];
+    }
+    return groups;
+  }, {});
+
+  var arrayOfNoteGroups = new Array(totalClasses);
+  var className;
+  var indexClassName = 0;
+  for (className in groupedNotes) {
+    arrayOfNoteGroups[indexClassName] = {
+      className: className,
+      notes: groupedNotes[className],
+    };
+    indexClassName += 1;
+  }
+
+  return arrayOfNoteGroups;
+}
+
+ReactDOM.render(
+  React.createElement(App, {
+    classNotes: getFormattedClassNotes(),
+  }),
+  document.getElementById('app')
+);
 
 
 /***/ })
