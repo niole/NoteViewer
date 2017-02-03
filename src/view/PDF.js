@@ -14,7 +14,8 @@ var PDF = React.createClass({
   },
 
   shouldComponentUpdate: function(newProps, newState) {
-    return newProps.textContent !== this.props.textContent;
+    return newProps.textContent !== this.props.textContent ||
+      newProps.fileName !== this.props.fileName;
   },
 
   getFormattedText: function() {
@@ -39,7 +40,13 @@ var PDF = React.createClass({
 
   render: function() {
     return (
-      React.createElement('div', { className: "pdf-text" }, this.props.fileName ? this.getPDFIFrame() : this.getFormattedText())
+      React.createElement(
+        'div',
+        { className: "pdf-text" },
+        this.props.fileName ?
+        this.getPDFIFrame() :
+        this.getFormattedText()
+      )
     );
   }
 });

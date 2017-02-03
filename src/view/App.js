@@ -50,7 +50,7 @@ var App = React.createClass({
           return React.createElement(
             PDF,
             {
-              key: "%-pdf-text".replace("%", index),
+              key: "%-pdf-text".replace("%", note.fileName),
               textContent: note.content,
               fileName: note.fileName,
             }
