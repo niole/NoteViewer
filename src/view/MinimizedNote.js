@@ -1,5 +1,5 @@
 var React = require('react');
-var LectureNote = require('./LectureNote.js');
+
 
 var MinimizedNote = React.createClass({
   displayName: 'MinimizedNote',
@@ -63,10 +63,9 @@ var MinimizedNote = React.createClass({
       React.createElement(
         'li',
         {
+          className: this.state.shouldExpandNote ? "note showing" : "note hiding",
           onClick: this.toggleNote,
         },
-        this.state.shouldExpandNote ?
-        React.createElement(LectureNote, { fileName: this.props.fileName }) :
         this.props.fileName
       )
     );

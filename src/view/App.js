@@ -26,7 +26,7 @@ var App = React.createClass({
 
   getInitialState: function() {
     return {
-      viewing: [], //notes currently being viewed
+      viewing: [], // currently viewed notes
     };
   },
 
@@ -83,7 +83,14 @@ var App = React.createClass({
           })
         ),
         !!this.state.viewing.length &&
-          React.createElement('div', { className: "pdf-viewer-container" }, this.getViewedPdfs())
+          React.createElement(
+            'div',
+            {
+              style: { height: window.innerHeight },
+              className: "pdf-viewer-container"
+            },
+            this.getViewedPdfs()
+          )
       )
     );
   }

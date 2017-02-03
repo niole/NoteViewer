@@ -7,9 +7,18 @@ var PDF = React.createClass({
     textContent: React.PropTypes.string.isRequired,
   },
 
+  shouldComponentUpdate: function(newProps, newState) {
+    return newProps.textContent !== this.props.textContent;
+  },
+
+  getFormattedText: function() {
+    var withHTMLLineBreaks = this.props.textContent.replace("\n", "<br/>");
+    return React.createElement('div', { dangerouslySetInnerHTML: { __html: withHTMLLineBreaks } });
+  },
+
   render: function() {
     return (
-      React.createElement('div', { className: "pdf-text" }, this.props.textContent)
+      React.createElement('div', { className: "pdf-text" }, this.getFormattedText())
     );
   }
 });
