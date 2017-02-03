@@ -1,72 +1,13 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <style>
-        body {
-          margin: 0;
-          font-family: 'Chivo', sans-serif;
-          font-weight: bold;
-          color: darkred;
-        }
-
-        ul {
-          list-style: none;
-        }
-
-        li {
-          width: 90%;
-          text-align: left;
-          padding-top: 5px;
-        }
-
-        .note.showing {
-          color: orangered;
-        }
-
-        .class-name {
-          padding: 40px 5px 0px;
-        }
-
-        .note-titles {
-          overflow: auto;
-          height: 65%;
-        }
-
-        .all-classes {
-          height: 100%;
-        }
-
-        .class-tile {
-          height: 200px;
-          width: 200px;
-          display: inline-block;
-          text-align: center;
-          border: 1px solid darkred;
-          border-radius: 5px;
-          margin: 10px;
-          background: lightcoral;
-        }
-
-        .pdf-viewer-container {
-          right: 0;
-          top: 0;
-          width: 1300px;
-          overflow: auto;
-          background: whitesmoke;
-        }
-
-        .landing-page {
-          display: flex;
-        }
-
-        .pdf-text {
-          background: white;
-          margin: 20px;
-        }
-    </style>
     <title>NoteViewer</title>
+    <link rel="stylesheet" type="text/css" href="main.css">
   </head>
   <body>
+    <object data="./lec1.pdf" type="application/pdf">
+        <embed src="./lec1.pdf" type="application/pdf" />
+    </object>
     <div id="app"></div>
     <script src="bundle.js"></script>
   </body>

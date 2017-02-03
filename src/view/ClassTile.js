@@ -51,9 +51,7 @@ var ClassTile = React.createClass({
   toggleNotes: function(event) {
     event.preventDefault();
 
-    //TODO be able to remove all of a className when tile is closed
-    //addNoteToViewing: React.PropTypes.func.isRequired,
-    //removeNoteFromViewing: React.PropTypes.func.isRequired,
+    //remove all of a className when tile is closing
     if (this.state.shouldShowNotes) {
       this.props.removeAllViewing(this.props.className);
     }

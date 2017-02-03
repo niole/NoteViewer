@@ -16,9 +16,9 @@ var webpackconfig = {
 var app = express();
 var compiler = webpack(webpackconfig);
 
-app.use(express.static(__dirname + 'dist/'));
+app.use(express.static('dist'));
 app.use(webpackMiddleware(compiler));
-app.get('*', function response(req, res) {
+app.get('/', function response(req, res) {
   res.sendFile(path.join(__dirname, 'dist/index.html'));
 });
 
