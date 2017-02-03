@@ -30,12 +30,23 @@ var PDF = React.createClass({
   getPDFIFrame: function() {
     var pathToPDF = this.getPDFFilePath();
 
-    return React.createElement("object",
-                        { data: pathToPDF,
-                          type: "application/pdf"},
-      React.createElement("embed",
-                        { src: pathToPDF,
-                          type: "application/pdf"}));
+    return (
+      React.createElement(
+        "object",
+        {
+          data: pathToPDF,
+          type: "application/pdf",
+          className: "pdf-embed-container",
+        },
+        React.createElement(
+          "embed",
+          {
+            src: pathToPDF,
+            type: "application/pdf",
+          }
+        )
+      )
+    );
   },
 
   render: function() {
