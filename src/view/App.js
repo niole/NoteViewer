@@ -40,6 +40,8 @@ var App = React.createClass({
 
   addNoteToViewing: function(noteToAdd) {
     var nextViewing = [noteToAdd].concat(this.state.viewing);
+
+    //need to then create iframe with embedded pdf
     this.setState({ viewing: nextViewing});
   },
 

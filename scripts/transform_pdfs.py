@@ -12,11 +12,12 @@ def transform_pdfs(dir_name="pdf"):
     """
     for filename in os.listdir(dir_name):
         if filename.endswith(".pdf"):
-            outfile = "./text/%s%s.txt" % (dir_name.replace("/", "_"), filename)
+            outfile = "./text/%s_%s.txt" % (dir_name.replace("/", "_"), filename)
             infile = "./%s/%s" % (dir_name, filename)
+            print "transforming %s" % infile
             cmd = "pdf2txt.py -o %s %s" % (outfile, infile)
             os.system(cmd)
-            print "successfully transformed %s%s" % (dir_name, filename)
+            print "successfully transformed %s/%s" % (dir_name, filename)
         else:
             transform_pdfs("%s/%s"%(dir_name, filename))
 

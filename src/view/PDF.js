@@ -4,6 +4,7 @@ var PDF = React.createClass({
   displayName: 'PDF',
 
   propTypes: {
+    fileName: React.PropTypes.string,
     textContent: React.PropTypes.string.isRequired,
   },
 
@@ -16,9 +17,20 @@ var PDF = React.createClass({
     return React.createElement('div', { dangerouslySetInnerHTML: { __html: withHTMLLineBreaks } });
   },
 
+  getPDFIFrame: function() {
+    var pathToPDF = fileName.replace("_","/");
+    return false;
+  //  return React.createElement("object",
+  //                      { data: pathToPDF
+  //                        type: "application/pdf"},
+  //    React.createElement("embed",
+  //                      { src: pathToPDF
+  //                        type: "application/pdf"}));
+  },
+
   render: function() {
     return (
-      React.createElement('div', { className: "pdf-text" }, this.getFormattedText())
+      React.createElement('div', { className: "pdf-text" }, this.props.fileName ? this.getPDFIFrame() : this.getFormattedText())
     );
   }
 });
