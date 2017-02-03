@@ -2,7 +2,7 @@ var React = require('react');
 var ReactDOM = require('react-dom');
 var App = require('./view/App.js');
 var getHeaderData = require('./getHeaderData.js');
-var noteData = require('./allPdfs.json');
+var noteData = require('../allPdfs.json');
 
 
 //allPdfs.json --> [{ className: string, notes: [{fileName: string, date: string, lectureNumber: string, className: string}]}]

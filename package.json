@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "parse": "python transform_pdfs.py; node textGetter.js"
+    "parse": "python scripts/transform_pdfs.py; node scripts/textGetter.js"
   },
   "author": "",
   "license": "ISC",

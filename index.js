@@ -5,15 +5,15 @@ var webpackMiddleware = require('webpack-middleware');
 
 var webpackconfig = {
   devtool: 'eval-source-map',
-  entry: path.join(__dirname, 'app.js'),
+  entry: path.join(__dirname, 'src/app.js'),
   output: {
-    path: path.join(__dirname, '.'),
+    path: path.join(__dirname, '/dist/'),
     filename: 'bundle.js',
     publicPath: '/'
   },
   module: {
     loaders: [{
-      exclude: /node_modules|index.html/
+      exclude: /node_modules/
     }]
   }
 };
@@ -21,10 +21,10 @@ var webpackconfig = {
 var app = express();
 var compiler = webpack(webpackconfig);
 
-app.use(express.static(__dirname + 'bundle.js'));
+app.use(express.static(__dirname + 'dist/'));
 app.use(webpackMiddleware(compiler));
 app.get('*', function response(req, res) {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'dist/index.html'));
 });
 
 app.listen(3000);
