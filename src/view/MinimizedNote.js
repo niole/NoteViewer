@@ -28,7 +28,8 @@ var MinimizedNote = React.createClass({
     }
   },
 
-  toggleNote: function() {
+  toggleNote: function(event) {
+    event.stopPropagation();
     this.setState({ shouldExpandNote: !this.state.shouldExpandNote });
   },
 

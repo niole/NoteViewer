@@ -10,11 +10,6 @@ var webpackconfig = {
     path: path.join(__dirname, '/dist/'),
     filename: 'bundle.js',
     publicPath: '/'
-  },
-  module: {
-    loaders: [{
-      exclude: /node_modules/
-    }]
   }
 };
 

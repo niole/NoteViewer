@@ -42,22 +42,32 @@ var ClassTile = React.createClass({
     );
   },
 
-  toggleNotes: function() {
+  toggleNotes: function(event) {
+    event.preventDefault();
     this.setState({ shouldShowNotes: !this.state.shouldShowNotes });
   },
 
   render: function() {
     return (
-      React.createElement('div',
-        { className: "class-tile" },
+      React.createElement(
+        'div',
+        {
+          onClick: this.toggleNotes,
+          className: "class-tile",
+        },
         React.createElement(
           'div',
           {
             className: "class-name",
-            onClick: this.toggleNotes,
           },
           this.props.className),
-        this.state.shouldShowNotes && this.showNotes()
+          React.createElement(
+            'div',
+            {
+              className: "note-titles",
+            },
+            this.state.shouldShowNotes && this.showNotes()
+          )
        )
     );
   }
