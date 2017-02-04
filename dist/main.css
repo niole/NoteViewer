@@ -1,11 +1,12 @@
         body {
           margin: 0;
-          font-family: 'Tahoma', 'Geneva', sans-serif
+          font-family: Georgia,Times,'Times New Roman';
+          color: rgba(56, 53, 41, 0.8);
         }
 
         ul {
           list-style: none;
-          margin: 0;
+          margin: 0px 15px;
         }
 
         li {
@@ -21,15 +22,14 @@
         }
 
         .note.showing {
-          color: orangered;
+          color: #f2582e;
         }
 
         .class-name {
           padding: 40px 5px 15px 0px;
-          border-bottom: 1px solid darkred;
+          border-bottom: 3px solid #f2d12e;
           width: 80%;
           margin: auto;
-          cursor: pointer;
         }
 
         .note-titles {
@@ -50,7 +50,6 @@
         .operator-bar {
           width: 100%;
           height: 65px;
-          background: whitesmoke;
           position: fixed;
           z-index: 100;
           border-bottom: 25px solid;
@@ -96,7 +95,7 @@
 
         .create-new-title {
           display: inline-block;
-          margin: 20px;
+          margin: 20px 0px 0px 70px;
           top: 0;
           position: absolute;
         }
@@ -106,8 +105,8 @@
           width: 200px;
           display: inline-block;
           text-align: center;
-          border: 1px solid darkred;
-          border-radius: 5px;
+          border: 1px solid;
+          border-radius: 3px;
           margin: 26px;
           position: fixed;
         }

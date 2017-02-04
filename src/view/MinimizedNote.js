@@ -17,19 +17,8 @@ var MinimizedNote = React.createClass({
     lectureNumber: React.PropTypes.number.isRequired,
     className: React.PropTypes.string.isRequired,
     content: React.PropTypes.string.isRequired,
-    shouldMinimize: React.PropTypes.bool.isRequired,
     addNoteToViewing: React.PropTypes.func.isRequired,
     removeNoteFromViewing: React.PropTypes.func.isRequired,
-  },
-
-  componentWillReceiveProps: function(nextProps) {
-    if (nextProps.shouldMinimize) {
-      //make sure component level state is in sync with parent
-      //component TODO does this even matter? might be jumping the gun
-      this.setState({
-        shouldExpandNote: false,
-      });
-    }
   },
 
   getNoteData: function() {

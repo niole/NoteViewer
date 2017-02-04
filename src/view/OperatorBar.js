@@ -9,7 +9,7 @@ var ASC = constants.ASC;
 var DESC = constants.DESC;
 var FILTER_TYPES = [SORT_DATE, SORT_LECTURE_NUMBER/*, FILTER_RANGE TODO this doesn't work*/];
 var APPLY_FILTER_BTN_LABEL = "Apply Filter";
-var CREATE_NEW_OP_TITLE = "Create New Operator";
+var CREATE_NEW_OP_TITLE = "Pick a Class";
 
 var OperatorBar = React.createClass({
   displayName: 'OperatorBar',
@@ -95,6 +95,10 @@ var OperatorBar = React.createClass({
     }
   },
 
+  getFormattedSortLabel: function(label) {
+    return label.replace("_", " by ");
+  },
+
   renderFilterTypeRadioButtons: function() {
     //always for sorting
 
@@ -104,7 +108,7 @@ var OperatorBar = React.createClass({
         {
           className: "sort-type-checkboxes filter-controls",
         },
-        SORT_DATE,
+        this.getFormattedSortLabel(SORT_DATE),
         React.createElement(
           'input',
           {
@@ -114,7 +118,7 @@ var OperatorBar = React.createClass({
             onChange: this.updateFilterTypes.bind(this, SORT_DATE),
           }
         ),
-        SORT_LECTURE_NUMBER,
+        this.getFormattedSortLabel(SORT_LECTURE_NUMBER),
         React.createElement(
           'input',
           {

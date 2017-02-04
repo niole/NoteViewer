@@ -19,12 +19,6 @@ var ClassTile = React.createClass({
     removeAllViewing: React.PropTypes.func.isRequired,
   },
 
-  getInitialState: function() {
-    return {
-      shouldShowNotes: false,
-    };
-  },
-
   showNotes: function() {
     var self = this;
     return (
@@ -40,7 +34,6 @@ var ClassTile = React.createClass({
               lectureNumber: note.lectureNumber,
               className: note.className,
               content: note.content,
-              shouldMinimize: !self.state.shouldShowNotes,
               addNoteToViewing: self.props.addNoteToViewing,
               removeNoteFromViewing: self.props.removeNoteFromViewing,
             }
@@ -50,23 +43,11 @@ var ClassTile = React.createClass({
     );
   },
 
-  toggleNotes: function(event) {
-    event.preventDefault();
-
-    //remove all of a className when tile is closing
-    if (this.state.shouldShowNotes) {
-      this.props.removeAllViewing(this.props.className);
-    }
-
-    this.setState({ shouldShowNotes: !this.state.shouldShowNotes });
-  },
-
   render: function() {
     return (
       React.createElement(
         'div',
         {
-          onClick: this.toggleNotes,
           className: "class-tile",
         },
         React.createElement(
@@ -80,7 +61,7 @@ var ClassTile = React.createClass({
             {
               className: "note-titles",
             },
-            this.state.shouldShowNotes && this.showNotes()
+            this.showNotes()
           )
        )
     );
