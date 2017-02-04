@@ -76,7 +76,15 @@ var App = React.createClass({
   },
 
   toggleClassNotes: function(className) {
-    this.setState({ activeClasses: { [className]: true } });
+    var activeClasses = this.state.activeClasses;
+
+    if (!activeClasses[className]) {
+
+      this.setState({
+        activePDFs: [],
+        activeClasses: { [className]: true }
+      });
+    }
   },
 
   renderClassTiles: function() {

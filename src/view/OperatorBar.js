@@ -102,7 +102,7 @@ var OperatorBar = React.createClass({
       React.createElement(
         'div',
         {
-          className: "sort-type-checkboxes",
+          className: "sort-type-checkboxes filter-controls",
         },
         SORT_DATE,
         React.createElement(
@@ -143,6 +143,7 @@ var OperatorBar = React.createClass({
             type: "radio",
             name: "group-sort-dir",
             key: "asc-checkbox",
+            className: "filter-controls",
             onChange: this.setFilterValue.bind(this, ASC),
           }
         ),
@@ -153,6 +154,7 @@ var OperatorBar = React.createClass({
             type: "radio",
             name: "group-sort-dir",
             key: "desc-checkbox",
+            className: "filter-controls",
             onChange: this.setFilterValue.bind(this, DESC),
           }
         )
@@ -220,7 +222,7 @@ var OperatorBar = React.createClass({
       React.createElement(
         'div',
         {
-          className: "inprgress-op",
+          className: "filter-controls",
         },
         React.createElement(
           'div',
