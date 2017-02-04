@@ -6,9 +6,10 @@ var constants = require('../constants.js');
 var SORT_DATE = constants.SORT_DATE;
 var SORT_LECTURE_NUMBER = constants.SORT_LECTURE_NUMBER;
 var FILTER_RANGE = constants.FILTER_RANGE;
-
+var ASC = constants.ASC;
+var DESC = constants.DESC;
 var FILTER_TYPES = [SORT_DATE, SORT_LECTURE_NUMBER/*, FILTER_RANGE TODO this doesn't work*/];
-
+var APPLY_FILTER_BTN_LABEL = "Apply Filter";
 var CREATE_NEW_OP_TITLE = "Create New Operator";
 
 var OperatorBar = React.createClass({
@@ -137,7 +138,7 @@ var OperatorBar = React.createClass({
           {
             type: "checkbox",
             key: "asc-checkbox",
-            onChange: this.setFilterValue.bind(this, "asc"),
+            onChange: this.setFilterValue.bind(this, ASC),
           }
         ),
         "descending",
@@ -146,7 +147,7 @@ var OperatorBar = React.createClass({
           {
             type: "checkbox",
             key: "desc-checkbox",
-            onChange: this.setFilterValue.bind(this, "desc"),
+            onChange: this.setFilterValue.bind(this, DESC),
           }
         )
       )
@@ -215,7 +216,7 @@ var OperatorBar = React.createClass({
         {
           className: "inprgress-op",
         },
-        this.state.operatorInProgress.classNames().join(" "),
+        this.state.operatorInProgress.classNames().join(" "), //TODO these cannot being a single string
         filterType,
         this.showValueInput(filterType)
       )
@@ -255,7 +256,7 @@ var OperatorBar = React.createClass({
               className: "apply-btn",
               onClick: this.applyAll,
             },
-            "Apply Filter"
+            APPLY_FILTER_BTN_LABEL
           ),
           this.showInprogressOp()
         )
