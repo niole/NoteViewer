@@ -110,7 +110,6 @@ var App = React.createClass({
           React.createElement(
             'div',
             {
-              style: { height: window.innerHeight },
               className: "pdf-viewer-container"
             },
             this.getViewedPdfs()

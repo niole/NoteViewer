@@ -1,12 +1,11 @@
         body {
           margin: 0;
-          font-family: 'Chivo', sans-serif;
-          font-weight: bold;
-          color: darkred;
+          font-family: 'Tahoma', 'Geneva', sans-serif
         }
 
         ul {
           list-style: none;
+          margin: 0;
         }
 
         li {
@@ -34,6 +33,7 @@
         }
 
         .all-classes {
+          left: 15px;
           height: 100%;
           position: absolute;
           top: 100px;
@@ -41,12 +41,8 @@
 
         .operator-bar {
           width: 100%;
-          height: 100px;
+          height: 90px;
           background: whitesmoke;
-        }
-
-        .inprgress-op {
-          margin-top: 15px;
         }
 
         .dropdown-container {
@@ -64,11 +60,16 @@
 
         .apply-btn {
           position: absolute;
-          right: 0;
+          right: 15px;
         }
 
         .filter-controls {
           margin-left: 10px;
+        }
+
+        .create-new-operator {
+          margin: 15px;
+          width: 90%;
         }
 
         .create-new-title {
@@ -82,13 +83,12 @@
           text-align: center;
           border: 1px solid darkred;
           border-radius: 5px;
-          margin: 10px;
-          background: lightcoral;
+          margin: 3.5%;
         }
 
         .pdf-viewer-container {
-          right: 0;
-          top: 100px;
+          right: 15px;
+          top: 107px;
           width: 80%;
           overflow: auto;
           background: whitesmoke;
