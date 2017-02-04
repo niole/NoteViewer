@@ -4,6 +4,12 @@ transforms .pdfs into .txt files
 
 import os
 
+
+TEXTDIRPATH = "./text"
+
+if not os.path.exists(TEXTDIRPATH):
+    os.mkdir(TEXTDIRPATH)
+
 def transform_pdfs(dir_name="dist/pdf"):
     """
     transforms all pdfs in directory
@@ -12,7 +18,7 @@ def transform_pdfs(dir_name="dist/pdf"):
     """
     for filename in os.listdir(dir_name):
         if filename.endswith(".pdf"):
-            outfile = "./text/%s_%s.txt" % (dir_name.replace("/", "_"), filename)
+            outfile = "%s/%s_%s.txt" % (TEXTDIRPATH, dir_name.replace("/", "_"), filename)
             infile = "./%s/%s" % (dir_name, filename)
             print "transforming %s" % infile
             cmd = "pdf2txt.py -o %s %s" % (outfile, infile)
