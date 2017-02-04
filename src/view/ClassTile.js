@@ -9,8 +9,8 @@ var ClassTile = React.createClass({
     notes: React.PropTypes.arrayOf(
       React.PropTypes.shape({
         fileName: React.PropTypes.string.isRequired,
-        date: React.PropTypes.string.isRequired,
-        lectureNumber: React.PropTypes.string.isRequired,
+        date: React.PropTypes.number.isRequired,
+        lectureNumber: React.PropTypes.number.isRequired,
         className: React.PropTypes.string.isRequired,
       }).isRequired
     ).isRequired,

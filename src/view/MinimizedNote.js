@@ -13,8 +13,8 @@ var MinimizedNote = React.createClass({
   propTypes: {
     fileName: React.PropTypes.string.isRequired,
     fileLabel: React.PropTypes.string.isRequired,
-    date: React.PropTypes.string.isRequired,
-    lectureNumber: React.PropTypes.string.isRequired,
+    date: React.PropTypes.number.isRequired,
+    lectureNumber: React.PropTypes.number.isRequired,
     className: React.PropTypes.string.isRequired,
     content: React.PropTypes.string.isRequired,
     shouldMinimize: React.PropTypes.bool.isRequired,

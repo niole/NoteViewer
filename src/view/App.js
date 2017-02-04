@@ -1,6 +1,7 @@
 var React = require('react');
 var ClassTile = require('./ClassTile.js');
 var PDF = require('./PDF.js');
+var OperatorBar = require('./OperatorBar.js');
 
 
 var App = React.createClass({
@@ -16,8 +17,8 @@ var App = React.createClass({
             content: React.PropTypes.string.isRequired,
             fileLabel: React.PropTypes.string.isRequired,
             fileName: React.PropTypes.string.isRequired,
-            date: React.PropTypes.string.isRequired,
-            lectureNumber: React.PropTypes.string.isRequired,
+            date: React.PropTypes.number.isRequired,
+            lectureNumber: React.PropTypes.number.isRequired,
             className: React.PropTypes.string.isRequired,
             content: React.PropTypes.string.isRequired,
           }).isRequired
@@ -68,11 +69,31 @@ var App = React.createClass({
     this.setState({ viewing: nextViewing });
   },
 
+  applyFilterToData: function(filter) {
+    this.props.PDFController.addOperator(filter);
+    this.forceUpdate();
+  },
+
   render: function() {
     var self = this;
+
+    console.log('this.props.classNotes', this.props.classNotes);
+    console.log('data', this.props.PDFController.data);
     return (
       React.createElement('div', { className: "landing-page" },
-        React.createElement('div', { className: "all-classes" },
+        React.createElement(
+          OperatorBar,
+          {
+            allClassNames: this.props.classNotes.map(function(notes) { return notes.className; }),
+            applyNewFilter: this.applyFilterToData,
+          }
+        ),
+        React.createElement(
+          'div',
+          {
+            className: "all-classes",
+            style: this.state.viewing.length ? { width: "20%" } : {},
+          },
           this.props.classNotes.map(function(classNotes, index) {
             return React.createElement(
               ClassTile,

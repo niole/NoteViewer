@@ -35,6 +35,44 @@
 
         .all-classes {
           height: 100%;
+          position: absolute;
+          top: 100px;
+        }
+
+        .operator-bar {
+          width: 100%;
+          height: 100px;
+          background: whitesmoke;
+        }
+
+        .inprgress-op {
+          margin-top: 15px;
+        }
+
+        .dropdown-container {
+          display: inline-block;
+          position: absolute;
+        }
+
+        .class-name-check-label {
+          display: inline-block;
+        }
+
+        .class-name-checkboxes {
+          display: inline-block;
+        }
+
+        .apply-btn {
+          position: absolute;
+          right: 0;
+        }
+
+        .filter-controls {
+          margin-left: 10px;
+        }
+
+        .create-new-title {
+          display: inline-block;
         }
 
         .class-tile {
@@ -50,10 +88,11 @@
 
         .pdf-viewer-container {
           right: 0;
-          top: 0;
+          top: 100px;
           width: 80%;
           overflow: auto;
           background: whitesmoke;
+          position: absolute;
         }
 
         .landing-page {

@@ -1,9 +1,13 @@
 var getHeaderData = require('./getHeaderData.js');
-var fileLabelPattern = /_(lec[0-9]+)\.pdf\.txt$/;
+var constants = require('./constants.js');
 
-var SORT_DATE = "sort_date";
-var SORT_LECTURE_NUMBER = "sort_number";
-var FILTER_RANGE = "filter_range";
+var SORT_DATE = constants.SORT_DATE;
+var SORT_LECTURE_NUMBER = constants.SORT_LECTURE_NUMBER;
+var FILTER_RANGE = constants.FILTER_RANGE;
+var ASC = constants.ASC;
+
+
+var fileLabelPattern = /_(lec[0-9]+)\.pdf\.txt$/;
 
 
 function PDFController(noteJSON) {
@@ -21,6 +25,8 @@ PDFController.prototype.setData = function(json) {
 };
 
 PDFController.prototype.removeOperator = function(op) {
+  //controls removal of all operators
+
   var id = op.id();
   var type = op.type();
 
@@ -73,10 +79,10 @@ PDFController.prototype.addOperator = function(op) {
 
   switch(type) {
     case SORT_DATE:
-      this.sortClassByDate(op.classNames(), op.args());
+      this.sortClassByDate(op.classNames(), op.args() === ASC);
       break;
     case SORT_LECTURE_NUMBER:
-      this.sortClassByLectureNumber(op.classNames(), op.args());
+      this.sortClassByLectureNumber(op.classNames(), op.args() === ASC);
       break;
     case FILTER_RANGE:
       this.filterOnRange(op.classNames(), op.args()[0], op.args()[1]);
@@ -88,9 +94,9 @@ PDFController.prototype.addOperator = function(op) {
 };
 
 PDFController.prototype.sortBy = function(index, key, ascending) {
-    this.data[index].notes = this.data[index].notes.sort(function(a, b) {
-      return ascending ? a[key] - b[key] : b[key] - a[key];
-    });
+  this.data[index].notes = this.data[index].notes.sort(function(a, b) {
+    return ascending ? a[key] - b[key] : b[key] - a[key];
+  });
 };
 
 PDFController.prototype.filterOnRange = function(classNames, startDate, endDate) {
@@ -115,7 +121,7 @@ PDFController.prototype.sortClassByLectureNumber = function(classNames, ascendin
   var self = this;
 
   classNames.forEach(function(className) {
-    self.sortBy(this.classIndex[className], 'lectureNumber', ascending);
+    self.sortBy(self.classIndex[className], 'lectureNumber', ascending);
   });
 };
 
@@ -124,7 +130,7 @@ PDFController.prototype.sortClassByDate = function(classNames, ascending) {
   var self = this;
 
   classNames.forEach(function(className) {
-    self.sortBy(this.classIndex[className], 'date', ascending);
+    self.sortBy(self.classIndex[className], 'date', ascending);
   });
 
 };
