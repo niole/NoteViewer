@@ -27,6 +27,10 @@ Operator.prototype.hasClassName = function(c) {
   return this._classNames.indexOf(c) > -1;
 };
 
+Operator.prototype.setClassName = function(c) {
+  this._classNames = [c];
+};
+
 Operator.prototype.addClassName = function(c) {
   this._classNames.push(c);
 };

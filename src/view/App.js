@@ -76,16 +76,7 @@ var App = React.createClass({
   },
 
   toggleClassNotes: function(className) {
-    var activeClasses = this.state.activeClasses;
-    if (activeClasses[className]) {
-      //remove class
-      delete activeClasses[className];
-    } else {
-      //add class
-      activeClasses[className] = true;
-    }
-
-    this.setState({ activeClasses: activeClasses });
+    this.setState({ activeClasses: { [className]: true } });
   },
 
   renderClassTiles: function() {

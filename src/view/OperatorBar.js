@@ -41,11 +41,7 @@ var OperatorBar = React.createClass({
   toggleActiveClass: function(name) {
     this.props.toggleClassNotes(name);
 
-    if (this.operatorInProgress.hasClassName(name)) {
-      this.operatorInProgress.removeClassName(name);
-    } else {
-      this.operatorInProgress.addClassName(name);
-    }
+    this.operatorInProgress.setClassName(name);
 
     if (this.operatorInProgress.complete()) {
       this.applyAll();
@@ -61,28 +57,29 @@ var OperatorBar = React.createClass({
          {
            className: "class-name-checkboxes filter-controls",
          },
-          this.props.allClassNames.map(function(name) {
-            var uniqueKey = name+"-checkbox";
-            return (
+        this.props.allClassNames.map(function(name) {
+          var uniqueKey = name+"-checkbox";
+          return (
+            React.createElement(
+              'div',
+              {
+                key: name+"-check-label",
+                className: "class-name-check-label filter-controls",
+              },
+              name,
               React.createElement(
-                'div',
+                'input',
                 {
-                  key: name+"-check-label",
-                  className: "class-name-check-label filter-controls",
-                },
-                name,
-                React.createElement(
-                  'input',
-                  {
-                    type: "checkbox",
-                    ref: uniqueKey,
-                    key: uniqueKey,
-                    onChange: self.toggleActiveClass.bind(self, name),
-                  }
-                )
+                  type: "radio",
+                  name: "class-name-radio",
+                  ref: uniqueKey,
+                  key: uniqueKey,
+                  onChange: self.toggleActiveClass.bind(self, name),
+                }
               )
-            );
-          })
+            )
+          );
+        })
       )
     );
   },
@@ -111,7 +108,8 @@ var OperatorBar = React.createClass({
         React.createElement(
           'input',
           {
-            type: "checkbox",
+            type: "radio",
+            name: "group-filter-type",
             key: "%-checkbox".replace("%", SORT_DATE),
             onChange: this.updateFilterTypes.bind(this, SORT_DATE),
           }
@@ -120,7 +118,8 @@ var OperatorBar = React.createClass({
         React.createElement(
           'input',
           {
-            type: "checkbox",
+            type: "radio",
+            name: "group-filter-type",
             key: "%-checkbox".replace("%", SORT_LECTURE_NUMBER),
             onChange: this.updateFilterTypes.bind(this, SORT_LECTURE_NUMBER),
           }
@@ -141,7 +140,8 @@ var OperatorBar = React.createClass({
         React.createElement(
           'input',
           {
-            type: "checkbox",
+            type: "radio",
+            name: "group-sort-dir",
             key: "asc-checkbox",
             onChange: this.setFilterValue.bind(this, ASC),
           }
@@ -150,7 +150,8 @@ var OperatorBar = React.createClass({
         React.createElement(
           'input',
           {
-            type: "checkbox",
+            type: "radio",
+            name: "group-sort-dir",
             key: "desc-checkbox",
             onChange: this.setFilterValue.bind(this, DESC),
           }
