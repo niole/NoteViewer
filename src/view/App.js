@@ -77,8 +77,6 @@ var App = React.createClass({
   render: function() {
     var self = this;
 
-    console.log('this.props.classNotes', this.props.classNotes);
-    console.log('data', this.props.PDFController.data);
     return (
       React.createElement('div', { className: "landing-page" },
         React.createElement(

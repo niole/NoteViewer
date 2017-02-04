@@ -7,7 +7,7 @@ var SORT_DATE = constants.SORT_DATE;
 var SORT_LECTURE_NUMBER = constants.SORT_LECTURE_NUMBER;
 var FILTER_RANGE = constants.FILTER_RANGE;
 
-var FILTER_TYPES = [SORT_DATE, SORT_LECTURE_NUMBER, FILTER_RANGE];
+var FILTER_TYPES = [SORT_DATE, SORT_LECTURE_NUMBER/*, FILTER_RANGE TODO this doesn't work*/];
 
 var CREATE_NEW_OP_TITLE = "Create New Operator";
 
@@ -100,6 +100,11 @@ var OperatorBar = React.createClass({
 
   setFilterValue: function(value) {
     var op = this.state.operatorInProgress;
+
+    if (!value) {
+      value = [new Date(this.refs.lb.value).getTime(), new Date(this.refs.ub.value).getTime()];
+    }
+
     op.setArgs(value);
     this.setState({ operatorInProgress: op });
   },
@@ -135,8 +140,7 @@ var OperatorBar = React.createClass({
   },
 
   getFilterRangeInputs: function() {
-    var lb = this.refs.lb ? this.refs.lb.value : null;
-    var ub = this.refs.ub ? this.refs.ub.value : null;
+    //TODO this is not working
     return (
       React.createElement(
         'div',
@@ -147,6 +151,7 @@ var OperatorBar = React.createClass({
           'input',
           {
             className: "filter-range-input",
+            type: "date",
             ref: "lb",
           }
         ),
@@ -154,6 +159,7 @@ var OperatorBar = React.createClass({
           'input',
           {
             className: "filter-range-input",
+            type: "date",
             ref: "ub",
           }
         ),
@@ -161,7 +167,7 @@ var OperatorBar = React.createClass({
           'button',
           {
             className: "filter-range-submit",
-            onClick: this.setFilterValue.bind(this, [parseInt(lb), parseInt(ub)]),
+            onClick: this.setFilterValue,
           }
         )
       )

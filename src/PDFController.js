@@ -103,6 +103,7 @@ PDFController.prototype.filterOnRange = function(classNames, startDate, endDate)
   //assumes ms representation for dates
   var self = this;
   var index;
+  console.log(arguments);
   classNames.forEach(function(className) {
     index = self.classIndex[className];
     self.data[index].notes = self.data[index].notes.map(function(note) {
