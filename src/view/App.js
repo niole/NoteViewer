@@ -29,27 +29,28 @@ var App = React.createClass({
 
   getInitialState: function() {
     return {
-      viewing: [], // currently viewed notes
+      activePDFs: [],
+      activeClasses: [],
     };
   },
 
   removeNoteFromViewing: function(noteToRemove) {
-    var nextViewing = this.state.viewing.filter(function(note) {
+    var nextViewing = this.state.activePDFs.filter(function(note) {
       return note.fileName !== noteToRemove.fileName;
     });
 
-    this.setState({ viewing: nextViewing});
+    this.setState({ activePDFs: nextViewing});
   },
 
   addNoteToViewing: function(noteToAdd) {
-    var nextViewing = [noteToAdd].concat(this.state.viewing);
+    var nextViewing = [noteToAdd].concat(this.state.activePDFs);
 
     //need to then create iframe with embedded pdf
-    this.setState({ viewing: nextViewing});
+    this.setState({ activePDFs: nextViewing});
   },
 
   getViewedPdfs: function() {
-      return this.state.viewing.map(function(note, index) {
+      return this.state.activePDFs.map(function(note, index) {
           return React.createElement(
             PDF,
             {
@@ -62,7 +63,7 @@ var App = React.createClass({
   },
 
   removeAllViewing: function(className) {
-    var nextViewing = this.state.viewing.filter(function(note) {
+    var nextViewing = this.state.activePDFs.filter(function(note) {
       return note.className !== className;
     });
 
@@ -72,6 +73,44 @@ var App = React.createClass({
   applyFilterToData: function(filter) {
     this.props.PDFController.addOperator(filter);
     this.forceUpdate();
+  },
+
+  toggleClassNotes: function(className) {
+    var activeClasses = this.state.activeClasses;
+    if (activeClasses[className]) {
+      //remove class
+      delete activeClasses[className];
+    } else {
+      //add class
+      activeClasses[className] = true;
+    }
+
+    this.setState({ activeClasses: activeClasses });
+  },
+
+  renderClassTiles: function() {
+    var self = this;
+
+    return this.props.classNotes.reduce(function(activeClasses, classNotes, index) {
+      if (self.state.activeClasses[classNotes.className]) {
+
+        activeClasses.push(
+          React.createElement(
+          ClassTile,
+            {
+              key: "%-class-tile".replace("%", index),
+              className: classNotes.className,
+              notes: classNotes.notes,
+              addNoteToViewing: self.addNoteToViewing,
+              removeNoteFromViewing: self.removeNoteFromViewing,
+              removeAllViewing: self.removeAllViewing,
+            }
+          )
+        );
+      }
+
+      return activeClasses;
+    }, []);
   },
 
   render: function() {
@@ -84,29 +123,18 @@ var App = React.createClass({
           {
             allClassNames: this.props.classNotes.map(function(notes) { return notes.className; }),
             applyNewFilter: this.applyFilterToData,
+            toggleClassNotes: this.toggleClassNotes,
           }
         ),
         React.createElement(
           'div',
           {
             className: "all-classes",
-            style: this.state.viewing.length ? { width: "20%" } : {},
+            style: this.state.activePDFs.length ? { width: "20%" } : {},
           },
-          this.props.classNotes.map(function(classNotes, index) {
-            return React.createElement(
-              ClassTile,
-              {
-                key: "%-class-tile".replace("%", index),
-                className: classNotes.className,
-                notes: classNotes.notes,
-                addNoteToViewing: self.addNoteToViewing,
-                removeNoteFromViewing: self.removeNoteFromViewing,
-                removeAllViewing: self.removeAllViewing,
-              }
-            );
-          })
+          this.renderClassTiles()
         ),
-        !!this.state.viewing.length &&
+        !!this.state.activePDFs.length &&
           React.createElement(
             'div',
             {

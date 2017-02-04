@@ -1,6 +1,5 @@
 var React = require('react');
 var Operator = require('../Operator.js');
-var FilterTypeDropDown = require('./FilterTypeDropDown.js');
 var constants = require('../constants.js');
 
 var SORT_DATE = constants.SORT_DATE;
@@ -18,63 +17,38 @@ var OperatorBar = React.createClass({
   propTypes: {
     allClassNames: React.PropTypes.arrayOf(React.PropTypes.string.isRequired).isRequired,
     applyNewFilter: React.PropTypes.func.isRequired,
+    toggleClassNotes: React.PropTypes.func.isRequired,
   },
 
-  getInitialState: function() {
-    return {
-      operators: [], //TODO render operators as buttons, which can be removed
-      operatorInProgress: this.getDefaultInProgressOp(),
-    };
-  },
-
-  uncheckClassNames: function() {
-    var self = this;
-    var refName;
-    this.props.allClassNames.forEach(function(name) {
-      refName = name+"-checkbox";
-      if  (self.refs[refName].checked) {
-        self.refs[refName].checked = false;
-      }
-    });
+  componentWillMount: function() {
+    this.operatorInProgress = new Operator();
   },
 
   applyAll: function() {
-    var ops = this.state.operators;
-    ops.push(this.state.operatorInProgress);
-
-    this.props.applyNewFilter(this.state.operatorInProgress);
-    this.uncheckClassNames();
-
-    this.setState({
-      operators: ops,
-      operatorInProgress: this.getDefaultInProgressOp(),
-    });
-  },
-
-  getDefaultInProgressOp: function() {
-    return new Operator();
+    this.props.applyNewFilter(this.operatorInProgress);
   },
 
   updateFilterTypes: function(filterType) {
-    var op = this.state.operatorInProgress;
-    op.setType(filterType);
+    this.operatorInProgress.setType(filterType);
 
-    this.setState({ operatorInProgress: op });
+    if (this.operatorInProgress.complete()) {
+      this.applyAll();
+    }
+
+    this.forceUpdate();
   },
 
-  removeClassFromInProgressOp: function(name) {
-    var op = this.state.operatorInProgress;
-    op.removeClassName(name);
-    this.setState({ operatorInProgress: op });
-  },
+  toggleActiveClass: function(name) {
+    this.props.toggleClassNotes(name);
 
-  addClassToInProgressOp: function(name) {
-    var op = this.state.operatorInProgress;
-    if (op.classNames().indexOf(name) === -1) {
-      op.addClassName(name);
-      this.setState({ operatorInProgress: op });
+    if (this.operatorInProgress.hasClassName(name)) {
+      this.operatorInProgress.removeClassName(name);
     } else {
-      this.removeClassFromInProgressOp(name);
+      this.operatorInProgress.addClassName(name);
+    }
+
+    if (this.operatorInProgress.complete()) {
+      this.applyAll();
     }
   },
 
@@ -103,7 +77,7 @@ var OperatorBar = React.createClass({
                     type: "checkbox",
                     ref: uniqueKey,
                     key: uniqueKey,
-                    onChange: self.addClassToInProgressOp.bind(self, name),
+                    onChange: self.toggleActiveClass.bind(self, name),
                   }
                 )
               )
@@ -114,17 +88,48 @@ var OperatorBar = React.createClass({
   },
 
   setFilterValue: function(value) {
-    var op = this.state.operatorInProgress;
-
     if (!value) {
       value = [new Date(this.refs.lb.value).getTime(), new Date(this.refs.ub.value).getTime()];
     }
 
-    op.setArgs(value);
-    this.setState({ operatorInProgress: op });
+    this.operatorInProgress.setArgs(value);
+    if (this.operatorInProgress.complete()) {
+      this.applyAll();
+    }
   },
 
-  getFilterRadioButtons: function(filterType) {
+  renderFilterTypeRadioButtons: function() {
+    //always for sorting
+
+    return (
+      React.createElement(
+        'div',
+        {
+          className: "sort-type-checkboxes",
+        },
+        SORT_DATE,
+        React.createElement(
+          'input',
+          {
+            type: "checkbox",
+            key: "%-checkbox".replace("%", SORT_DATE),
+            onChange: this.updateFilterTypes.bind(this, SORT_DATE),
+          }
+        ),
+        SORT_LECTURE_NUMBER,
+        React.createElement(
+          'input',
+          {
+            type: "checkbox",
+            key: "%-checkbox".replace("%", SORT_LECTURE_NUMBER),
+            onChange: this.updateFilterTypes.bind(this, SORT_LECTURE_NUMBER),
+          }
+        )
+      )
+    );
+  },
+
+  getFilterRadioButtons: function() {
     //always for sorting
     return (
       React.createElement(
@@ -192,9 +197,9 @@ var OperatorBar = React.createClass({
   showValueInput: function(filterType) {
     switch(filterType) {
       case SORT_DATE:
-        return this.getFilterRadioButtons(SORT_DATE);
+        return this.getFilterRadioButtons();
       case SORT_LECTURE_NUMBER:
-        return this.getFilterRadioButtons(SORT_LECTURE_NUMBER);
+        return this.getFilterRadioButtons();
       case FILTER_RANGE:
         return this.getFilterRangeInputs();
       default:
@@ -204,7 +209,7 @@ var OperatorBar = React.createClass({
   },
 
   showFilterType: function() {
-    return this.state.operatorInProgress.type();
+    return this.operatorInProgress.type();
   },
 
   showInprogressOp: function() {
@@ -221,7 +226,7 @@ var OperatorBar = React.createClass({
           {
             className: "filter-components",
           },
-          this.state.operatorInProgress.classNames().join(", ")
+          this.operatorInProgress.classNames().join(", ")
         ),
         React.createElement(
           'div',
@@ -261,21 +266,7 @@ var OperatorBar = React.createClass({
             className: "create-new-operator",
           },
           this.getClassNameCheckBoxes(),
-          React.createElement(
-            FilterTypeDropDown,
-            {
-              filterTypes: FILTER_TYPES,
-              selectedTypeCallback: this.updateFilterTypes,
-            }
-          ),
-          React.createElement(
-            'button',
-            {
-              className: "apply-btn",
-              onClick: this.applyAll,
-            },
-            APPLY_FILTER_BTN_LABEL
-          ),
+          this.renderFilterTypeRadioButtons(),
           this.showInprogressOp()
         )
       )
