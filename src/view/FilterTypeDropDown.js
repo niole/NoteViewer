@@ -51,7 +51,7 @@ var FilterTypeDropDown = React.createClass({
           className: "dropdown-container filter-controls",
         },
         React.createElement(
-          'div',
+          'button',
           {
             className: "dropdown-btn",
             onClick: self.toggle,

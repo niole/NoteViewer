@@ -68,12 +68,18 @@
         }
 
         .create-new-operator {
-          margin: 15px;
+          margin-left: 15px;
           width: 90%;
+        }
+
+        .filter-components {
+          display: inline-block;
+          margin-right: 10px;
         }
 
         .create-new-title {
           display: inline-block;
+          padding: 10px 0px 0px 10px;
         }
 
         .class-tile {

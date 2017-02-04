@@ -216,9 +216,27 @@ var OperatorBar = React.createClass({
         {
           className: "inprgress-op",
         },
-        this.state.operatorInProgress.classNames().join(" "), //TODO these cannot being a single string
-        filterType,
-        this.showValueInput(filterType)
+        React.createElement(
+          'div',
+          {
+            className: "filter-components",
+          },
+          this.state.operatorInProgress.classNames().join(", ")
+        ),
+        React.createElement(
+          'div',
+          {
+            className: "filter-components",
+          },
+          filterType
+        ),
+        React.createElement(
+          'div',
+          {
+            className: "filter-components",
+          },
+          this.showValueInput(filterType)
+        )
       )
     );
   },
@@ -233,15 +251,15 @@ var OperatorBar = React.createClass({
         React.createElement(
           'div',
           {
+            className: "create-new-title",
+          },
+          CREATE_NEW_OP_TITLE
+        ),
+        React.createElement(
+          'div',
+          {
             className: "create-new-operator",
           },
-          React.createElement(
-            'div',
-            {
-              className: "create-new-title",
-            },
-            CREATE_NEW_OP_TITLE
-          ),
           this.getClassNameCheckBoxes(),
           React.createElement(
             FilterTypeDropDown,
