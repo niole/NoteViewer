@@ -21,9 +21,20 @@ var OperatorBar = React.createClass({
 
   getInitialState: function() {
     return {
-      operators: [],
+      operators: [], //TODO render operators as buttons, which can be removed
       operatorInProgress: this.getDefaultInProgressOp(),
     };
+  },
+
+  uncheckClassNames: function() {
+    var self = this;
+    var refName;
+    this.props.allClassNames.forEach(function(name) {
+      refName = name+"-checkbox";
+      if  (self.refs[refName].checked) {
+        self.refs[refName].checked = false;
+      }
+    });
   },
 
   applyAll: function() {
@@ -31,10 +42,11 @@ var OperatorBar = React.createClass({
     ops.push(this.state.operatorInProgress);
 
     this.props.applyNewFilter(this.state.operatorInProgress);
+    this.uncheckClassNames();
 
     this.setState({
       operators: ops,
-      operatorInProgress: new Operator(),
+      operatorInProgress: this.getDefaultInProgressOp(),
     });
   },
 
@@ -75,6 +87,7 @@ var OperatorBar = React.createClass({
            className: "class-name-checkboxes filter-controls",
          },
           this.props.allClassNames.map(function(name) {
+            var uniqueKey = name+"-checkbox";
             return (
               React.createElement(
                 'div',
@@ -87,7 +100,8 @@ var OperatorBar = React.createClass({
                   'input',
                   {
                     type: "checkbox",
-                    key: name+"-checkbox",
+                    ref: uniqueKey,
+                    key: uniqueKey,
                     onChange: self.addClassToInProgressOp.bind(self, name),
                   }
                 )
