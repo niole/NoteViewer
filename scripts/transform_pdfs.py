@@ -1,14 +1,7 @@
 """
 transforms .pdfs into .txt files
 """
-
 import os
-
-
-TEXTDIRPATH = "./text"
-
-if not os.path.exists(TEXTDIRPATH):
-    os.mkdir(TEXTDIRPATH)
 
 def transform_pdfs(dir_name="dist/pdf"):
     """
@@ -27,4 +20,10 @@ def transform_pdfs(dir_name="dist/pdf"):
         else:
             transform_pdfs("%s/%s"%(dir_name, filename))
 
-transform_pdfs()
+if __name__ == "__main__":
+    TEXTDIRPATH = "./text"
+
+    if not os.path.exists(TEXTDIRPATH):
+        os.mkdir(TEXTDIRPATH)
+
+    transform_pdfs()
