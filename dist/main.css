@@ -1,27 +1,28 @@
         body {
           margin: 0;
-          font-family: Georgia,Times,'Times New Roman';
-          color: rgba(56, 53, 41, 0.8);
+          font-family: Lato,'Helvetica Neue',Arial,Helvetica,sans-serif;
+          color: rgba(0, 0, 0, 0.952941);
         }
 
-        ul {
-          list-style: none;
-          margin: 0px 15px;
-        }
-
-        li {
-          width: 90%;
-          text-align: left;
-          padding-top: 5px;
-          cursor: pointer;
+        input[type="radio"] + label {
+          box-shadow: none;
+          padding: .92857143em 1.14285714em;
+          border-radius: .28571429rem;
+          transition: background .1s ease,box-shadow .1s ease,color .1s ease;
         }
 
         input[type="radio"]:checked + label {
-          background: red;
+          font-weight: 400;
+          background: rgba(0,0,0,.05);
+          color: rgba(0,0,0,.95);
+          box-shadow: rgba(34, 36, 38, 0.14902) 0px 1px 2px 0px;
         }
 
         input[type="radio"]:active + label {
-          background: red;
+          font-weight: 400;
+          background: rgba(0,0,0,.05);
+          color: rgba(0,0,0,.95);
+          box-shadow: rgba(34, 36, 38, 0.14902) 0px 1px 2px 0px;
         }
 
         input[type="radio"] {
@@ -35,15 +36,29 @@
           height: 1000px;
         }
 
+        .note {
+          width: 90%;
+          text-align: left;
+          padding: 5px;
+          cursor: pointer;
+          transition: background .1s ease,box-shadow .1s ease,color .1s ease;
+        }
+
         .note.showing {
-          color: #f2582e;
+          font-weight: 400;
+          background: rgba(0,0,0,.05);
+          color: rgba(0,0,0,.95);
+          box-shadow: rgba(34, 36, 38, 0.14902) 0px 1px 2px 0px;
         }
 
         .class-name {
-          padding: 40px 5px 15px 0px;
-          border-bottom: 3px solid #f2d12e;
-          width: 80%;
-          margin: auto;
+          padding: 40px 5px 0px 5px;
+        }
+
+        .header-one {
+          font-size: 24px;
+          font-weight: bold;
+          border-bottom: 1px solid rgba(34, 36, 38, 0.14902);
         }
 
         .note-titles {
@@ -56,9 +71,9 @@
 
         .all-classes {
           left: 15px;
-          height: 85%;
           position: absolute;
-          top: 100px;
+          top: 45px;
+          width: 150px;
         }
 
         .operator-bar {
@@ -66,7 +81,7 @@
           height: 65px;
           position: fixed;
           z-index: 100;
-          border-bottom: 25px solid;
+          box-shadow: rgba(34, 36, 38, 0.14902) 0px 1px 2px 0px;
           background: white;
         }
 
@@ -88,15 +103,9 @@
           right: 15px;
         }
 
-        .filter-controls {
-          margin-left: 10px;
-          display: inline-block;
-        }
-
         .create-new-operator {
-          margin: 20px;
+          margin: 16px;
           position: absolute;
-          left: 200px;
         }
 
         .filter-components {
@@ -110,25 +119,18 @@
 
         .create-new-title {
           display: inline-block;
-          margin: 20px 0px 0px 70px;
-          top: 0;
-          position: absolute;
         }
 
         .class-tile {
-          height: 85%;
-          width: 200px;
+          height: 90%;
           display: inline-block;
-          text-align: center;
-          border: 1px solid;
-          border-radius: 3px;
-          margin: 26px;
           position: fixed;
+          width: 200px;
         }
 
         .pdf-viewer-container {
           right: 15px;
-          top: 107px;
+          top: 94px;
           width: 80%;
           position: absolute;
         }

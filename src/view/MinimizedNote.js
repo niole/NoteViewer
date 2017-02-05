@@ -51,7 +51,7 @@ var MinimizedNote = React.createClass({
   render: function() {
     return (
       React.createElement(
-        'li',
+        'div',
         {
           className: this.state.shouldExpandNote ? "note showing" : "note hiding",
           onClick: this.toggleNote,

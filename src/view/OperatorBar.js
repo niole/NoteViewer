@@ -51,44 +51,36 @@ var OperatorBar = React.createClass({
   getClassNameCheckBoxes: function() {
     var self = this;
 
-    return (
-      React.createElement(
-        'div',
-         {
-           className: "class-name-checkboxes filter-controls",
-         },
-        this.props.allClassNames.map(function(name) {
-          var uniqueKey = name+"-checkbox";
-          return (
+    return this.props.allClassNames.map(function(name) {
+        var uniqueKey = name+"-checkbox";
+        return (
+          React.createElement(
+            'div',
+            {
+              key: name+"-check-label",
+              className: "class-name-check-label filter-controls",
+            },
             React.createElement(
-              'div',
+              'input',
               {
-                key: name+"-check-label",
-                className: "class-name-check-label filter-controls",
+                type: "radio",
+                id: name,
+                name: "class-name-radio",
+                ref: uniqueKey,
+                key: uniqueKey,
+                onChange: self.toggleActiveClass.bind(self, name),
+              }
+            ),
+            React.createElement(
+              'label',
+              {
+                htmlFor: name,
               },
-              React.createElement(
-                'input',
-                {
-                  type: "radio",
-                  id: name,
-                  name: "class-name-radio",
-                  ref: uniqueKey,
-                  key: uniqueKey,
-                  onChange: self.toggleActiveClass.bind(self, name),
-                }
-              ),
-              React.createElement(
-                'label',
-                {
-                  htmlFor: name,
-                },
-                name
-              )
+              name
             )
-          );
-        })
-      )
-    );
+          )
+        );
+      });
   },
 
   setFilterValue: function(value) {
@@ -111,12 +103,7 @@ var OperatorBar = React.createClass({
    var date = this.getFormattedSortLabel(SORT_DATE);
    var lecture = this.getFormattedSortLabel(SORT_LECTURE_NUMBER);
 
-    return (
-      React.createElement(
-        'div',
-        {
-          className: "sort-type-checkboxes filter-controls",
-        },
+    return [
         React.createElement(
           'input',
           {
@@ -130,6 +117,7 @@ var OperatorBar = React.createClass({
         React.createElement(
           'label',
           {
+            key: date,
             htmlFor: date,
           },
           date
@@ -147,12 +135,12 @@ var OperatorBar = React.createClass({
         React.createElement(
           'label',
           {
+            key: lecture,
             htmlFor: lecture,
           },
           lecture
         )
-      )
-    );
+    ];
   },
 
   getFilterRadioButtons: function() {
@@ -160,51 +148,46 @@ var OperatorBar = React.createClass({
     var a = "ascending";
     var d = "descending";
 
-    return (
+    return [
       React.createElement(
-        'div',
+        'input',
         {
-          className: "sort-type-checkboxes",
+          type: "radio",
+          id: a,
+          name: "group-sort-dir",
+          key: "asc-checkbox",
+          className: "filter-controls",
+          onChange: this.setFilterValue.bind(this, ASC),
+        }
+      ),
+      React.createElement(
+        'label',
+        {
+          key: a,
+          htmlFor: a,
         },
-        React.createElement(
-          'input',
-          {
-            type: "radio",
-            id: a,
-            name: "group-sort-dir",
-            key: "asc-checkbox",
-            className: "filter-controls",
-            onChange: this.setFilterValue.bind(this, ASC),
-          }
-        ),
-        React.createElement(
-          'label',
-          {
-            htmlFor: a,
-          },
-          a
-        ),
-        React.createElement(
-          'input',
-          {
-            type: "radio",
-            id: d,
-            name: "group-sort-dir",
-            key: "desc-checkbox",
-            className: "filter-controls",
-            onChange: this.setFilterValue.bind(this, DESC),
-
-          }
-        ),
-        React.createElement(
-          'label',
-          {
-            htmlFor: d,
-          },
-          d
-        )
+        a
+      ),
+      React.createElement(
+        'input',
+        {
+          type: "radio",
+          id: d,
+          name: "group-sort-dir",
+          key: "desc-checkbox",
+          className: "filter-controls",
+          onChange: this.setFilterValue.bind(this, DESC),
+        }
+      ),
+      React.createElement(
+        'label',
+        {
+          key: d,
+          htmlFor: d,
+        },
+        d
       )
-    );
+    ];
   },
 
   getFilterRangeInputs: function() {
@@ -260,26 +243,6 @@ var OperatorBar = React.createClass({
     return this.operatorInProgress.type();
   },
 
-  showInprogressOp: function() {
-    var filterType = this.showFilterType();
-
-    return (
-      React.createElement(
-        'div',
-        {
-          className: "filter-controls",
-        },
-        React.createElement(
-          'div',
-          {
-            className: "filter-components",
-          },
-          this.showValueInput(filterType)
-        )
-      )
-    );
-  },
-
   render: function() {
     return (
       React.createElement(
@@ -290,18 +253,24 @@ var OperatorBar = React.createClass({
         React.createElement(
           'div',
           {
-            className: "create-new-title",
-          },
-          CREATE_NEW_OP_TITLE
-        ),
-        React.createElement(
-          'div',
-          {
             className: "create-new-operator",
           },
-          this.getClassNameCheckBoxes(),
-          this.renderFilterTypeRadioButtons(),
-          this.showInprogressOp()
+          React.createElement(
+            'div',
+             {
+               className: "class-name-checkboxes filter-controls",
+             },
+            React.createElement(
+              'div',
+              {
+                className: "create-new-title header-one",
+              },
+              CREATE_NEW_OP_TITLE
+            ),
+            this.getClassNameCheckBoxes(),
+            this.renderFilterTypeRadioButtons(),
+            this.showValueInput(this.showFilterType())
+          )
         )
       )
     );

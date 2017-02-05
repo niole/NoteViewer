@@ -22,7 +22,7 @@ var ClassTile = React.createClass({
   showNotes: function() {
     var self = this;
     return (
-      React.createElement('ul', {},
+      React.createElement('div', {},
         this.props.notes.map(function(note, index) {
           return React.createElement(
             MinimizedNote,
@@ -53,9 +53,10 @@ var ClassTile = React.createClass({
         React.createElement(
           'div',
           {
-            className: "class-name",
+            className: "class-name header-one",
           },
-          this.props.className),
+          this.props.className
+          ),
           React.createElement(
             'div',
             {
