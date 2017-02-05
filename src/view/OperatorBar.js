@@ -66,16 +66,23 @@ var OperatorBar = React.createClass({
                 key: name+"-check-label",
                 className: "class-name-check-label filter-controls",
               },
-              name,
               React.createElement(
                 'input',
                 {
                   type: "radio",
+                  id: name,
                   name: "class-name-radio",
                   ref: uniqueKey,
                   key: uniqueKey,
                   onChange: self.toggleActiveClass.bind(self, name),
                 }
+              ),
+              React.createElement(
+                'label',
+                {
+                  htmlFor: name,
+                },
+                name
               )
             )
           );
@@ -101,6 +108,8 @@ var OperatorBar = React.createClass({
 
   renderFilterTypeRadioButtons: function() {
     //always for sorting
+   var date = this.getFormattedSortLabel(SORT_DATE);
+   var lecture = this.getFormattedSortLabel(SORT_LECTURE_NUMBER);
 
     return (
       React.createElement(
@@ -108,25 +117,39 @@ var OperatorBar = React.createClass({
         {
           className: "sort-type-checkboxes filter-controls",
         },
-        this.getFormattedSortLabel(SORT_DATE),
         React.createElement(
           'input',
           {
             type: "radio",
+            id: date,
             name: "group-filter-type",
             key: "%-checkbox".replace("%", SORT_DATE),
             onChange: this.updateFilterTypes.bind(this, SORT_DATE),
           }
         ),
-        this.getFormattedSortLabel(SORT_LECTURE_NUMBER),
+        React.createElement(
+          'label',
+          {
+            htmlFor: date,
+          },
+          date
+        ),
         React.createElement(
           'input',
           {
             type: "radio",
+            id: lecture,
             name: "group-filter-type",
             key: "%-checkbox".replace("%", SORT_LECTURE_NUMBER),
             onChange: this.updateFilterTypes.bind(this, SORT_LECTURE_NUMBER),
           }
+        ),
+        React.createElement(
+          'label',
+          {
+            htmlFor: lecture,
+          },
+          lecture
         )
       )
     );
@@ -134,33 +157,51 @@ var OperatorBar = React.createClass({
 
   getFilterRadioButtons: function() {
     //always for sorting
+    var a = "ascending";
+    var d = "descending";
+
     return (
       React.createElement(
         'div',
         {
           className: "sort-type-checkboxes",
         },
-        "ascending",
         React.createElement(
           'input',
           {
             type: "radio",
+            id: a,
             name: "group-sort-dir",
             key: "asc-checkbox",
             className: "filter-controls",
             onChange: this.setFilterValue.bind(this, ASC),
           }
         ),
-        "descending",
+        React.createElement(
+          'label',
+          {
+            htmlFor: a,
+          },
+          a
+        ),
         React.createElement(
           'input',
           {
             type: "radio",
+            id: d,
             name: "group-sort-dir",
             key: "desc-checkbox",
             className: "filter-controls",
             onChange: this.setFilterValue.bind(this, DESC),
+
           }
+        ),
+        React.createElement(
+          'label',
+          {
+            htmlFor: d,
+          },
+          d
         )
       )
     );
@@ -228,20 +269,6 @@ var OperatorBar = React.createClass({
         {
           className: "filter-controls",
         },
-        React.createElement(
-          'div',
-          {
-            className: "filter-components",
-          },
-          this.operatorInProgress.classNames().join(", ")
-        ),
-        React.createElement(
-          'div',
-          {
-            className: "filter-components",
-          },
-          filterType
-        ),
         React.createElement(
           'div',
           {

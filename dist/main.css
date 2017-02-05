@@ -16,6 +16,20 @@
           cursor: pointer;
         }
 
+        input[type="radio"]:checked + label {
+          background: red;
+        }
+
+        input[type="radio"]:active + label {
+          background: red;
+        }
+
+        input[type="radio"] {
+          -moz-appearance: button;
+          -webkit-appearance: button;
+          -ms-appearance: button;
+        }
+
         .pdf-embed-container {
           width: 100%;
           height: 1000px;
